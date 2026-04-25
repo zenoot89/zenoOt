@@ -346,10 +346,14 @@ function go(id, el) {
   if (id==='channel') renderChannel();
 }
 
-function toggleAccordion(el) {
-  el.classList.toggle('open');
-  el.nextElementSibling.classList.toggle('open');
+// ═══ ACCORDION SIDEBAR — Shopee Style ═══
+function toggleAcc(header) {
+  const body = header.nextElementSibling;
+  const isOpen = header.classList.contains('open');
+  header.classList.toggle('open', !isOpen);
+  if (body) body.classList.toggle('open', !isOpen);
 }
+function toggleAccordion(el) { toggleAcc(el); }
 
 // ================================================================
 // MODAL & TOAST
