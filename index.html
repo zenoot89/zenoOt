@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zenOt — Operasional V2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ══════ SIDEBAR ══════ -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-text"><h1>zenOt</h1><p>Operasional V2</p></div>
+  </div>
+
+  <div class="nav-sec">Utama</div>
+  <div class="nav-item active" onclick="go('dashboard',this)"><span>📊</span><span>Dashboard</span></div>
+
+  <div class="nav-sec">Inventori</div>
+  <div class="nav-item" onclick="go('stok',this)"><span>📦</span><span>Stok Produk</span></div>
+  <div class="nav-item" onclick="go('restock',this)"><span>🔄</span><span>Re-Stock</span></div>
+  <div class="nav-item" onclick="go('produk',this)"><span>🏷️</span><span>Kelola Produk</span></div>
+  <div class="nav-item" onclick="go('harga',this)"><span>💰</span><span>Price List</span></div>
+
+  <div class="nav-sec">Penjualan</div>
+  <div class="nav-item" onclick="go('jurnal',this)"><span>📝</span><span>Jurnal Penjualan</span></div>
+  <div class="nav-item" onclick="go('channel',this)"><span>🛒</span><span>Channel</span></div>
+
+  <!-- ANALISIS & PROYEKSI — accordion -->
+  <div class="nav-sec">Analisis</div>
+  <div class="nav-parent" onclick="toggleAccordion(this)">
+    <div class="nav-parent-label"><span>🤖</span><span>Analisis &amp; Proyeksi</span></div>
+    <span class="nav-chevron">▶</span>
+  </div>
+  <div class="nav-children">
+    <div class="nav-item" onclick="goRK('rk-overview',this)"><span>📈</span><span>Rasio Keuangan</span></div>
+    <div class="nav-item" onclick="goRK('rk-upload',this)"><span>📁</span><span>Upload &amp; Data</span></div>
+    <div class="nav-item" onclick="goRK('rk-rekap',this)"><span>🗒️</span><span>Rekap Tahunan</span></div>
+    <div class="nav-item" onclick="goTE('te-upload',this)"><span>🚀</span><span>AI Strategy</span></div>
+  </div>
+
+  <div class="nav-sec">Tools</div>
+  <div class="nav-item" onclick="go('daily',this)"><span>✅</span><span>Daily Checklist</span></div>
+
+  <div style="margin-top:auto;"></div>
+  <!-- Backup badge -->
+  <div style="padding:8px 14px;display:flex;align-items:center;gap:6px;">
+    <div id="backup-badge" style="display:none;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid;"></div>
+    <span id="save-indicator" style="display:none;font-size:10px;color:var(--sage);font-weight:600;"></span>
+  </div>
+
+  <div class="sidebar-footer-bar">
+    <div style="padding:10px 14px;flex:1;">
+      <span class="footer-v">V2.0</span>
+      <span class="footer-by">by</span>
+      <span class="footer-name">zenOt System</span>
+    </div>
+    <button class="sidebar-toggle-btn" onclick="toggleSidebarCollapse()">
+      <span id="sidebar-toggle-icon">◀</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════ MAIN ══════ -->
+<div class="main" id="main-content">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="page-title" id="ph">Dashboard <span>zenOt</span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="date-badge" id="topbar-date"></span>
+      <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-harga">🔄 Sync</button>
+      <button class="btn btn-o btn-sm" onclick="exportDB()">⬇️ Backup</button>
+    </div>
+  </div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: DASHBOARD
+════════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div id="stat-cards" class="grid4"></div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">📊 Stok per SKU (Top 8)</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:100px;" id="chart-bars"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;" id="chart-leg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚨 Notifikasi Stok</div>
+      <div id="notif-area"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">🎯 Progress Bulanan</div>
+      <div id="progress-area"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🕒 Transaksi Terakhir</div>
+      <div id="last-sales"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: STOK PRODUK
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-stok">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+    <input class="search-bar" style="max-width:280px;margin:0" placeholder="🔍 Cari SKU..." oninput="filterStok(this.value)" id="stok-search">
+    <select class="sel" id="stok-fil-supplier" style="max-width:160px" onchange="onSupplierFilterChange()"><option value="">Semua Supplier</option></select>
+    <select class="sel" id="stok-fil-induk" style="max-width:160px" onchange="renderStok()"><option value="">Semua Produk</option></select>
+    <select class="sel" id="stok-fil-status" style="max-width:130px" onchange="renderStok()">
+      <option value="">Semua Status</option><option>Aman</option><option>Rendah</option><option>Kritis</option><option>Habis</option>
+    </select>
+    <button class="btn btn-o btn-sm" onclick="resetStokFilter()">↺ Reset</button>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn btn-s btn-sm" onclick="openModal('modal-restock-quick')">➕ Input Masuk</button>
+      <button class="btn btn-o btn-sm" onclick="openModal('modal-stok-massal')">📋 Massal</button>
+      <button class="btn btn-o btn-sm" onclick="syncStokDanRender()">🔄 Sync</button>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>SKU Induk</th><th>SKU Variasi</th>
+        <th onclick="sortStok('akhir')" style="cursor:pointer">Stok Akhir ↕</th>
+        <th>Awal</th><th>Masuk</th><th>Keluar</th><th>HPP/pc</th><th>Nilai Stok</th><th>Supplier</th><th>Status</th><th>Aksi</th>
+      </tr></thead>
+      <tbody id="stok-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: RE-STOCK
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-restock">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">➕ Input Stok Masuk</div>
+      <div class="form-row">
+        <div class="fg"><label class="lbl">Tanggal</label><input class="inp" type="date" id="rs-tgl"></div>
+        <div class="fg"><label class="lbl">Supplier</label>
+          <select class="sel" id="rs-supplier">
+            <option>ALAN</option><option>H SOLAH</option><option>G. CS</option>
+            <option>PRODUKSI SENDIRI</option><option>LAINNYA</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="lbl">SKU Induk</label><select class="sel" id="rs-sku-induk" onchange="populateRsVariasi()"></select></div>
+        <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="rs-sku-variasi"></select></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="lbl">Jumlah Masuk (pcs)</label><input class="inp" type="number" id="rs-qty" placeholder="0" min="1"></div>
+        <div class="fg"><label class="lbl">Catatan</label><input class="inp" id="rs-catatan" placeholder="Opsional"></div>
+      </div>
+      <button class="btn btn-p btn-full" onclick="inputRestock()">✅ Simpan Restock</button>
+    </div>
+    <div class="card">
+      <div class="card-title">⚠️ SKU Stok Rendah</div>
+      <div id="low-stock-list"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Log Restock</div>
+    <div class="tbl-wrap" style="margin:0">
+      <table>
+        <thead><tr><th>Tanggal</th><th>SKU Variasi</th><th>Supplier</th><th>+Masuk</th><th>Catatan</th><th>Aksi</th></tr></thead>
+        <tbody id="restock-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: JURNAL PENJUALAN
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-jurnal">
+  <div class="grid4" style="margin-bottom:18px;">
+    <div class="stat c1"><div class="stat-label">Total Modal</div><div class="stat-val" style="font-size:16px" id="j-rev">Rp 0</div></div>
+    <div class="stat c2"><div class="stat-label">Total Qty</div><div class="stat-val" id="j-tot-qty">0</div></div>
+    <div class="stat c3"><div class="stat-label">Transaksi</div><div class="stat-val" id="j-trx">0</div></div>
+    <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;">
+    <input class="search-bar" style="margin:0;flex:1" placeholder="🔍 Cari SKU atau channel..." oninput="filterJurnal(this.value)">
+    <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')">➕ Tambah</button>
+    <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal">🔄 Sync</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Tanggal</th><th>Channel</th><th>SKU Variasi</th><th>Qty</th><th>HPP/pc</th><th>Modal</th><th>Aksi</th></tr></thead>
+      <tbody id="jurnal-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: KELOLA PRODUK
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-produk">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <input class="search-bar" style="margin:0;flex:1;max-width:340px" placeholder="🔍 Cari produk..." oninput="filterProduk(this.value)">
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn btn-p" onclick="openModal('modal-tambah-produk')">➕ Tambah</button>
+      <button class="btn btn-o btn-sm" onclick="openModal('modal-import-sheets')">📋 Import Sheets</button>
+      <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-produk')">🗑 Reset</button>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>HPP/pc</th><th>Supplier</th><th>Aksi</th></tr></thead>
+      <tbody id="produk-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: PRICE LIST
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-harga">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+    <input class="search-bar" style="margin:0;flex:1;max-width:280px" placeholder="🔍 Cari SKU..." oninput="filterHarga(this.value)">
+  </div>
+  <div class="ftabs" id="harga-ftabs"></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Induk</th><th>Variasi</th><th>HPP</th><th>NPM</th><th>Harga Jual</th><th>Reseller</th><th>GM%</th></tr></thead>
+      <tbody id="harga-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: CHANNEL
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-channel">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    <button class="btn btn-p" onclick="openModal('modal-tambah-channel')">➕ Tambah Channel</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Nama</th><th>Platform</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody id="channel-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: RASIO KEUANGAN — OVERVIEW
+════════════════════════════════════════════════════════════════ -->
+<div class="page rk-page" id="page-rk-overview">
+  <div class="rk-tab-page-header">
+    <div>
+      <div class="rk-tab-page-title"><div class="rk-tab-page-title-icon">📊</div> Overview Rasio Keuangan</div>
+      <div class="rk-tab-page-subtitle">Hasil analisis otomatis dari data yang diupload</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div id="statusKeuanganBadge" style="display:none;align-items:center;padding:5px 14px;border-radius:20px;font-size:0.75em;font-weight:800;"></div>
+      <input type="month" id="rk_periode" style="border:1.5px solid #ddd;border-radius:8px;padding:6px 10px;font-size:0.82em;font-weight:700;outline:none;" placeholder="Pilih periode">
+      <button onclick="exportRasioPDF()" id="btnExportPDF" style="background:#1a1a2e;color:#fff;border:none;padding:7px 16px;border-radius:8px;font-size:0.78em;font-weight:800;cursor:pointer;opacity:.4;pointer-events:none;">⬇️ Export PDF</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:12px;align-items:start;">
+    <!-- Tabel Rasio -->
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:14px;overflow:hidden;">
+      <div style="background:#1a1a2e;color:#fff;padding:10px 16px;font-size:0.75em;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center;">
+        <span>📊 Rasio Keuangan</span><span id="rk_thPeriode" style="opacity:.6;font-weight:600;font-size:.85em;">—</span>
+      </div>
+      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+        <tbody id="rk_tbody">
+          <tr><td colspan="3" style="text-align:center;padding:30px;color:#bbb;font-size:.85em;">Upload data di tab Upload &amp; Data untuk melihat dashboard</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <!-- Side widgets -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
+        <div style="background:#1a1a2e;color:#fff;padding:9px 14px;font-size:0.7em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">📊 Indikator Kinerja</div>
+        <div id="gpmRoasContent" style="padding:12px 14px;"></div>
+      </div>
+      <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
+        <div style="background:#ee4d2d;color:#fff;padding:9px 14px;font-size:0.7em;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">🔥 Varian Terlaris</div>
+        <div id="varianList" style="padding:6px 0;"><div style="text-align:center;padding:16px;color:#bbb;font-size:.78em;">Upload pesanan untuk melihat varian terlaris</div></div>
+        <div id="varianPeriode" style="padding:6px 12px;font-size:.68em;color:#aaa;border-top:1px solid #f0f0f0;"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Simulasi -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;">
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="background:#dc2626;color:#fff;padding:9px 14px;font-size:0.7em;font-weight:800;text-transform:uppercase;">⚖️ BEP Volume / Bulan</div>
+      <div id="bepVolumeContent" style="padding:10px 14px;flex:1;"><div style="text-align:center;padding:10px;color:#bbb;font-size:.78em;">Upload data untuk melihat BEP</div></div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="background:#0d9488;color:#fff;padding:9px 14px;font-size:0.7em;font-weight:800;text-transform:uppercase;">📈 Proyeksi Laba</div>
+      <div id="proyeksiLabaContent" style="padding:10px 14px;flex:1;"><div style="text-align:center;padding:10px;color:#bbb;font-size:.78em;">Upload data untuk proyeksi</div></div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="background:#7c3aed;color:#fff;padding:9px 14px;font-size:0.7em;font-weight:800;text-transform:uppercase;">🎯 Target Order</div>
+      <div id="targetOrderContent" style="padding:10px 14px;flex:1;"><div style="text-align:center;padding:10px;color:#bbb;font-size:.78em;">Upload data untuk target</div></div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="background:#d97706;color:#fff;padding:9px 14px;font-size:0.7em;font-weight:800;text-transform:uppercase;">🔄 Konversi → Order</div>
+      <div style="padding:10px 14px;flex:1;">
+        <label style="font-size:.68em;font-weight:700;color:#555;display:block;margin-bottom:4px;">Total Kunjungan:</label>
+        <input type="text" id="rk_kunjungan" placeholder="cth: 5000" style="width:100%;border:1.5px solid #ddd;border-radius:7px;padding:5px 9px;font-size:.82em;font-weight:700;outline:none;" oninput="updateKonversi()">
+        <div id="konversiResult" style="color:#bbb;font-size:.75em;text-align:center;padding:6px 0 2px;">Isi jumlah kunjungan di atas</div>
+      </div>
+    </div>
+  </div>
+  <!-- Chart + Jam Ramai + Kota -->
+  <div style="display:grid;grid-template-columns:1fr 220px 220px;gap:12px;margin-top:12px;">
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:14px;padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div><div style="font-size:.78em;font-weight:800;color:#1a1a2e;text-transform:uppercase;">📈 Grafik Order Harian</div><div style="font-size:.68em;color:#aaa;margin-top:2px;">Bulan ini vs bulan lalu</div></div>
+        <div style="display:flex;gap:10px;font-size:.72em;font-weight:700;">
+          <span style="color:#ee4d2d;">● Bulan Ini</span><span style="color:#94a3b8;">-- Bulan Lalu</span>
+        </div>
+      </div>
+      <div style="position:relative;min-height:200px;">
+        <canvas id="chartOrderHarian" style="width:100%;display:block;"></canvas>
+        <div id="chartEmptyState" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:.82em;">Upload pesanan untuk melihat grafik</div>
+      </div>
+      <div id="chartTooltip" style="display:none;position:fixed;background:#1a1a2e;color:#fff;border-radius:8px;padding:8px 12px;font-size:.75em;pointer-events:none;z-index:9999;"></div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
+      <div style="background:#0d9488;color:#fff;padding:9px 14px;font-size:.7em;font-weight:800;text-transform:uppercase;">🕐 Jam Ramai</div>
+      <div id="jamRamaiList" style="padding:8px;"><div style="text-align:center;padding:16px;color:#bbb;font-size:.78em;">Upload pesanan</div></div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
+      <div style="background:#7c3aed;color:#fff;padding:9px 14px;font-size:.7em;font-weight:800;text-transform:uppercase;">📍 Kota Terbanyak</div>
+      <div id="kotaList" style="padding:4px 0;"><div style="text-align:center;padding:16px;color:#bbb;font-size:.78em;">Upload pesanan</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: RASIO KEUANGAN — UPLOAD & DATA
+════════════════════════════════════════════════════════════════ -->
+<div class="page rk-page" id="page-rk-upload">
+  <div class="rk-tab-page-header">
+    <div>
+      <div class="rk-tab-page-title"><div class="rk-tab-page-title-icon">📁</div> Upload &amp; Data</div>
+      <div class="rk-tab-page-subtitle">Upload laporan keuangan Shopee — data otomatis masuk ke Overview</div>
+    </div>
+    <button onclick="resetRasio()" style="background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 16px;border-radius:8px;font-size:.78em;font-weight:800;cursor:pointer;">🔄 Reset Data</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+    <!-- Income -->
+    <div class="rk-upload-box" id="boxIncome" onclick="document.getElementById('fileIncome').click()">
+      <input type="file" id="fileIncome" accept=".xlsx" style="display:none" onchange="showFileName(this,'boxIncome');handleRasioUpload('income',this)">
+      <div class="rk-upload-icon">📥</div>
+      <div class="rk-upload-label">Income / Dana Dilepas</div>
+      <div class="rk-upload-sub">.xlsx — Laporan Income</div>
+      <div class="rk-upload-status" id="statusIncome">Belum upload</div>
+    </div>
+    <!-- Pesanan Ini -->
+    <div class="rk-upload-box" id="boxOrder1" onclick="document.getElementById('fileOrder1').click()">
+      <input type="file" id="fileOrder1" accept=".xlsx" style="display:none" onchange="showFileName(this,'boxOrder1');handleRasioUpload('order1',this)">
+      <div class="rk-upload-icon">📦</div>
+      <div class="rk-upload-label">Pesanan Selesai</div>
+      <div class="rk-upload-sub">Bulan Ini (.xlsx)</div>
+      <div class="rk-upload-status" id="statusOrder1">Belum upload</div>
+    </div>
+    <!-- Pesanan Lalu -->
+    <div class="rk-upload-box" id="boxOrder2" onclick="document.getElementById('fileOrder2').click()">
+      <input type="file" id="fileOrder2" accept=".xlsx" style="display:none" onchange="showFileName(this,'boxOrder2');handleRasioUpload('order2',this)">
+      <div class="rk-upload-icon">📦</div>
+      <div class="rk-upload-label">Pesanan Selesai</div>
+      <div class="rk-upload-sub">Bulan Lalu (.xlsx)</div>
+      <div class="rk-upload-status" id="statusOrder2">Belum upload</div>
+    </div>
+    <!-- Ads -->
+    <div class="rk-upload-box" id="boxAds" style="cursor:default;">
+      <div class="rk-upload-icon">📣</div>
+      <div class="rk-upload-label">Biaya Iklan (Ads)</div>
+      <div class="rk-upload-sub" style="margin-bottom:6px;">Isi Saldo × PPN 11%</div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button onclick="event.stopPropagation();document.getElementById('fileAds').click()" style="flex:1;font-size:.7em;padding:5px;border:1px solid #ee4d2d;background:#fff;color:#ee4d2d;border-radius:6px;cursor:pointer;font-weight:700;">Upload CSV</button>
+        <button onclick="event.stopPropagation();toggleAdsManual()" style="flex:1;font-size:.7em;padding:5px;border:1px solid #3730a3;background:#fff;color:#3730a3;border-radius:6px;cursor:pointer;font-weight:700;">Manual</button>
+      </div>
+      <input type="file" id="fileAds" accept=".csv" style="display:none" onchange="showFileName(this,'boxAds');handleRasioUpload('ads',this)">
+      <div id="adsManualWrap" style="display:none;margin-top:4px;">
+        <input type="text" id="adsManualVal" placeholder="Rp Biaya Ads (sudah PPN)..." oninput="formatRKRibuan(this);prosesAdsManual()" style="width:100%;padding:5px 8px;border:1.5px solid #3730a3;border-radius:6px;font-size:.82em;font-weight:700;box-sizing:border-box;outline:none;">
+      </div>
+      <div class="rk-upload-status" id="statusAds">Belum diisi</div>
+    </div>
+    <!-- Operasional -->
+    <div class="rk-upload-box" style="cursor:default;border-color:#5A7A6A;background:#f0fdf4;">
+      <div class="rk-upload-icon">⚙️</div>
+      <div class="rk-upload-label" style="color:#2D6A4F;">Biaya Operasional</div>
+      <div class="rk-upload-sub" style="margin-bottom:8px;">Gaji, listrik, internet, dll</div>
+      <input type="text" id="rk_oprTotal" placeholder="Rp 0" oninput="formatRKRibuan(this);rkData.oprTotal=parseRKNum('rk_oprTotal');updateRasioDashboard()" style="width:100%;padding:7px 10px;border:1.5px solid #5A7A6A;border-radius:7px;font-size:.9em;font-weight:700;box-sizing:border-box;outline:none;text-align:center;">
+    </div>
+    <!-- Status -->
+    <div class="rk-upload-box" style="cursor:default;border-color:#3730a3;background:#f0f4ff;">
+      <div class="rk-upload-icon">📋</div>
+      <div class="rk-upload-label" style="color:#3730a3;">Status Data</div>
+      <div style="font-size:.72em;color:#555;text-align:left;line-height:1.9;margin-top:4px;">
+        <div>Income: <span id="rk_st_income" style="font-weight:700;color:#bbb">—</span></div>
+        <div>Pesanan Ini: <span id="rk_st_order1" style="font-weight:700;color:#bbb">—</span></div>
+        <div>Pesanan Lalu: <span id="rk_st_order2" style="font-weight:700;color:#bbb">—</span></div>
+        <div style="font-size:.9em;color:#7c3aed;margin-top:4px;" id="rk_st_hpp_detail">—</div>
+      </div>
+    </div>
+  </div>
+  <!-- Proses -->
+  <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;padding:16px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <button onclick="prosesSemuaData()" style="background:#ee4d2d;color:#fff;border:none;padding:10px 28px;border-radius:10px;font-size:.9em;font-weight:800;cursor:pointer;">⚡ PROSES DATA</button>
+      <div id="prosesStatus" style="flex:1;">
+        <div id="prosesStatusBadge" style="display:none;font-size:.82em;font-weight:700;padding:7px 14px;border-radius:8px;"></div>
+        <div id="prosesStatusDetail" style="font-size:.75em;color:#aaa;"></div>
+      </div>
+    </div>
+    <div id="prosesChecklist" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div id="chk_income" style="font-size:.78em;padding:5px 10px;border-radius:7px;background:#f5f5f5;color:#aaa;">⬜ Income</div>
+      <div id="chk_order1" style="font-size:.78em;padding:5px 10px;border-radius:7px;background:#f5f5f5;color:#aaa;">⬜ Pesanan Bulan Ini</div>
+      <div id="chk_order2" style="font-size:.78em;padding:5px 10px;border-radius:7px;background:#f5f5f5;color:#aaa;">⬜ Pesanan Bulan Lalu</div>
+      <div id="chk_ads" style="font-size:.78em;padding:5px 10px;border-radius:7px;background:#f5f5f5;color:#aaa;">⬜ Biaya Iklan</div>
+    </div>
+  </div>
+  <!-- Override -->
+  <div style="background:#fff;border:1.5px solid #ebebeb;border-radius:12px;overflow:hidden;">
+    <button onclick="toggleOverridePanel()" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fafafa;border:none;cursor:pointer;">
+      <span style="font-size:.72em;font-weight:800;color:#555;text-transform:uppercase;">✏️ Input Manual Override</span>
+      <svg id="overrideChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+    <div id="overridePanel" style="display:none;padding:14px 16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label style="font-size:.65em;color:#888;font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">Total Pendapatan (Rp)</label><input type="text" id="rk_totalPendapatan" placeholder="Dari income xlsx" oninput="formatRKRibuan(this);updateRasioDashboard()" style="width:100%;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:.85em;font-weight:600;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:.65em;color:#888;font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">Total Penghasilan / Cair (Rp)</label><input type="text" id="rk_totalPenghasilan" placeholder="Dari income xlsx" oninput="formatRKRibuan(this);updateRasioDashboard()" style="width:100%;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:.85em;font-weight:600;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:.65em;color:#888;font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">HPP Total (Rp)</label><input type="text" id="rk_hppTotal" placeholder="Auto dari pesanan" oninput="formatRKRibuan(this);updateRasioDashboard()" style="width:100%;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:.85em;font-weight:600;outline:none;box-sizing:border-box;"></div>
+        <div><label style="font-size:.65em;color:#888;font-weight:700;text-transform:uppercase;display:block;margin-bottom:3px;">Iklan Manual (Rp)</label><input type="text" id="rk_iklanManual" placeholder="Jika tidak upload CSV" oninput="formatRKRibuan(this);rkData.iklanTotal=parseRKNum('rk_iklanManual');updateRasioDashboard()" style="width:100%;padding:6px 10px;border:1.5px solid #e5e5e5;border-radius:7px;font-size:.85em;font-weight:600;outline:none;box-sizing:border-box;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: REKAP TAHUNAN
+════════════════════════════════════════════════════════════════ -->
+<div class="page rk-page" id="page-rk-rekap">
+  <div class="rk-tab-page-header">
+    <div>
+      <div class="rk-tab-page-title"><div class="rk-tab-page-title-icon">🗒️</div> Rekap Tahunan</div>
+      <div class="rk-tab-page-subtitle">Input manual per bulan — copy dari metrik Overview</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="tambahBulanRekap()" style="background:#3730a3;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:.8em;font-weight:700;cursor:pointer;">+ Tambah Bulan</button>
+      <button onclick="resetRekap()" style="background:#fff1f0;border:1px solid #ffccc7;color:#d93025;padding:7px 14px;border-radius:8px;font-size:.8em;font-weight:700;cursor:pointer;">🔄 Reset</button>
+    </div>
+  </div>
+  <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:.78em;color:#3730a3;line-height:1.8;">
+    <strong>Cara pakai:</strong> Klik <b>+ Tambah Bulan</b> → isi nama bulan → salin angka dari Overview. Data tersimpan di browser otomatis.
+  </div>
+  <div style="background:#fff;border-radius:12px;overflow:hidden;border:1.5px solid #ebebeb;overflow-x:auto;">
+    <table id="rekapTable" style="width:100%;border-collapse:collapse;font-size:.82em;min-width:700px;">
+      <thead id="rekapThead"></thead>
+      <tbody id="rekapTbody"></tbody>
+    </table>
+    <div id="rekapEmpty" style="text-align:center;padding:32px;color:#bbb;font-size:.85em;">Belum ada data. Klik <b>+ Tambah Bulan</b> untuk mulai.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: AI STRATEGY — UPLOAD
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-te-upload">
+  <div class="card">
+    <div class="card-title">🤖 AI Strategy &amp; Blueprint — Upload Data Shopee</div>
+    <p style="font-size:13px;color:var(--dusty);margin-bottom:16px;line-height:1.7;">
+      Upload file <strong>Laporan Performa Produk</strong> atau <strong>Pesanan Selesai</strong> dari Shopee Seller Center.
+      Engine akan otomatis parsing, membandingkan dengan stok internal, dan menghasilkan Action Plan.
+    </p>
+    <div class="grid2" style="margin-bottom:16px;">
+      <div>
+        <div class="drop-zone te-drop-zone" data-type="performa">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleTEFileInput(this,'performa')">
+          <div class="drop-zone-icon">📊</div>
+          <div class="drop-zone-title">Performa Produk / SKU</div>
+          <div class="drop-zone-sub">parentskudetail.xlsx atau .csv dari Shopee</div>
+        </div>
+        <p style="font-size:11px;color:var(--dusty);margin-top:8px;">File ini berisi: tayangan, klik, produk terjual, per SKU/variasi</p>
+      </div>
+      <div>
+        <div class="drop-zone te-drop-zone" data-type="sales">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleTEFileInput(this,'sales')">
+          <div class="drop-zone-icon">📦</div>
+          <div class="drop-zone-title">Pesanan Selesai</div>
+          <div class="drop-zone-sub">order.xlsx atau .csv dari Shopee</div>
+        </div>
+        <p style="font-size:11px;color:var(--dusty);margin-top:8px;">File ini berisi: nomor referensi SKU, qty, kota, waktu pesanan</p>
+      </div>
+    </div>
+    <!-- Settings -->
+    <div style="background:var(--cream);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">⚙️ Financial Guard Settings</div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="lbl">Admin Fee Shopee (%)</label>
+          <input class="inp" type="number" id="te-admin-pct" value="8.5" min="0" max="30" step="0.1" placeholder="8.5">
+        </div>
+        <div class="fg">
+          <label class="lbl">Total Budget Iklan (Rp)</label>
+          <input class="inp" id="te-ads-budget" placeholder="Rp 0" oninput="formatRKRibuan(this)">
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <button class="btn btn-p btn-full" onclick="updateTESettings()">🔄 Update &amp; Analisis Ulang</button>
+        </div>
+      </div>
+    </div>
+    <div id="te-parse-status" class="parse-status"></div>
+    <div style="background:var(--warn-bg);border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;margin-top:10px;line-height:1.7;">
+      <strong>💡 Tips:</strong> Pastikan kolom <strong>"Nomor Referensi SKU"</strong> di file Shopee sama persis dengan <strong>SKU Variasi</strong> di Kelola Produk untuk auto-match HPP dan stok.
+    </div>
+  </div>
+  <!-- Summary Bar -->
+  <div id="te-summary-bar" class="summary-bar" style="display:none;"></div>
+  <!-- SKU Cards -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="card-title" style="margin:0">📦 Analisis Per SKU</div>
+      <button class="btn btn-s btn-sm" onclick="goTE('te-blueprint',null);document.getElementById('ph').innerHTML='AI Strategy &lt;span&gt;Blueprint&lt;/span&gt;'">📋 Lihat Action Plan →</button>
+    </div>
+    <div id="te-sku-grid" class="sku-grid">
+      <div style="text-align:center;padding:40px;color:var(--dusty);grid-column:1/-1;">Upload file Shopee untuk melihat analisis SKU</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: AI STRATEGY — BLUEPRINT
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-te-blueprint">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+    <div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;">📋 Step-by-Step Action Plan</div>
+      <div style="font-size:12px;color:var(--dusty);margin-top:3px;">Generated otomatis dari data Shopee + stok internal</div>
+    </div>
+    <button class="btn btn-o btn-sm" onclick="goTE('te-upload',null);document.getElementById('ph').innerHTML='AI Strategy &lt;span&gt;Upload&lt;/span&gt;'">← Kembali ke Upload</button>
+  </div>
+  <div id="te-action-plan">
+    <div style="text-align:center;padding:40px;color:var(--dusty);">Upload file Shopee di tab sebelumnya untuk generate Action Plan otomatis.</div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <div class="card-title">📊 Detail Analisis SKU</div>
+    <div id="te-sku-grid-2" class="sku-grid"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: AI STRATEGY — PROFIT GUARD
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-te-profit">
+  <div style="margin-bottom:18px;">
+    <div style="font-family:'DM Serif Display',serif;font-size:20px;">💸 Profit Guard — Real Profit per SKU</div>
+    <div style="font-size:12px;color:var(--dusty);margin-top:3px;">Kalkulasi laba bersih setelah admin fee Shopee, HPP, dan alokasi iklan</div>
+  </div>
+  <div class="alert al-w" style="margin-bottom:16px;">
+    <span>💡</span>
+    <div><strong>Formula:</strong> Real Profit = Harga Jual − HPP − Admin Fee Shopee − (Ads ÷ proporsi penjualan). Item merah = margin &lt; 10%.</div>
+  </div>
+  <div id="te-profit-table">
+    <div style="text-align:center;padding:40px;color:var(--dusty);">Upload file Shopee untuk melihat tabel profit per SKU.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: DAILY CHECKLIST
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-daily">
+  <div class="grid2">
+    <div class="card"><div class="card-title">🌅 Checklist Pagi</div><div id="chk-pagi"></div></div>
+    <div class="card"><div class="card-title">🌙 Checklist Malam</div><div id="chk-malam"></div></div>
+    <div class="card"><div class="card-title">💬 Checklist Chat</div><div id="chk-chat"></div></div>
+    <div class="card"><div class="card-title">📊 Evaluasi Harian</div><div id="chk-eval"></div></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<!-- ══════ MODALS ══════ -->
+
+<!-- Edit Stok -->
+<div class="overlay" id="modal-edit-stok">
+  <div class="modal">
+    <div class="modal-hd">Edit Stok <button class="modal-close" onclick="closeModal('modal-edit-stok')">×</button></div>
+    <input type="hidden" id="es-idx">
+    <div class="form-row">
+      <div class="fg"><label class="lbl">SKU Induk</label><input class="inp" id="es-sku" readonly></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><input class="inp" id="es-var" readonly></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Stok Awal</label><input class="inp" type="number" id="es-awal" min="0"></div>
+      <div class="fg"><label class="lbl">Stok Masuk</label><input class="inp" type="number" id="es-masuk" min="0"></div>
+      <div class="fg"><label class="lbl">Stok Keluar</label><input class="inp" type="number" id="es-keluar" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">HPP / pc</label><input class="inp" type="number" id="es-hpp" min="0"></div>
+      <div class="fg"><label class="lbl">Safety Stock</label><input class="inp" type="number" id="es-safety" min="0"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn btn-p btn-full" onclick="saveEditStok()">💾 Simpan</button>
+      <button class="btn btn-d" onclick="closeModal('modal-edit-stok')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tambah Produk -->
+<div class="overlay" id="modal-tambah-produk">
+  <div class="modal">
+    <div class="modal-hd">Tambah Produk Baru <button class="modal-close" onclick="closeModal('modal-tambah-produk')">×</button></div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">SKU Induk</label><input class="inp" id="np-induk" placeholder="cth: MAYRA"></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><input class="inp" id="np-variasi" placeholder="cth: MAYRA_HITAM"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">HPP / pc</label><input class="inp" type="number" id="np-hpp" placeholder="0"></div>
+      <div class="fg"><label class="lbl">Suplaier</label><input class="inp" id="np-suplaier" placeholder="cth: ALAN"></div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="tambahProduk()">✅ Tambah Produk</button>
+  </div>
+</div>
+
+<!-- Reset Produk -->
+<div class="overlay" id="modal-reset-produk">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hd">🗑 Reset Kelola Produk <button class="modal-close" onclick="closeModal('modal-reset-produk')">×</button></div>
+    <div class="alert al-d"><span>⚠️</span><div>Aksi ini akan <strong>menghapus SEMUA produk</strong>. Stok dan jurnal TIDAK ikut terhapus.</div></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-d btn-full" onclick="resetProdukSaja()">🗑 Ya, Reset Produk</button>
+      <button class="btn btn-o" onclick="closeModal('modal-reset-produk')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import dari Sheets -->
+<div class="overlay" id="modal-import-sheets">
+  <div class="modal" style="max-width:680px;width:95vw">
+    <div class="modal-hd">📋 Import dari Google Sheets <button class="modal-close" onclick="closeImportSheets()">×</button></div>
+    <div id="import-step-1">
+      <p style="font-size:13px;color:var(--dusty);margin:0 0 10px">Di Google Sheets, pilih semua data → Ctrl+C → Paste di bawah ini.</p>
+      <div style="background:var(--card);border:1px dashed var(--border);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--dusty)">Kolom yang dikenali: <strong>SKU</strong>, <strong>VARIANT</strong>, <strong>HPP</strong>, <strong>SUPLAIER</strong></div>
+      <textarea id="import-paste-area" class="inp" rows="8" style="width:100%;font-family:monospace;font-size:12px;resize:vertical" placeholder="Paste data dari Google Sheets di sini..."></textarea>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button class="btn btn-p btn-full" onclick="parseImportSheets()">🔍 Preview Data</button>
+        <button class="btn btn-o" onclick="closeImportSheets()">Batal</button>
+      </div>
+    </div>
+    <div id="import-step-2" style="display:none">
+      <div id="import-mapping-area" style="margin-bottom:14px;"></div>
+      <div style="max-height:260px;overflow-y:auto;margin-bottom:14px;">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <thead><tr id="import-preview-head" style="background:var(--card)"></tr></thead>
+          <tbody id="import-preview-body"></tbody>
+        </table>
+      </div>
+      <div id="import-summary" style="font-size:13px;color:var(--dusty);margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-p btn-full" onclick="doImportSheets()">✅ Import Sekarang</button>
+        <button class="btn btn-o" onclick="backImportStep1()">← Ulangi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tambah Jurnal -->
+<div class="overlay" id="modal-tambah-jurnal">
+  <div class="modal">
+    <div class="modal-hd">➕ Tambah Transaksi <button class="modal-close" onclick="closeModal('modal-tambah-jurnal')">×</button></div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Tanggal</label><input class="inp" type="date" id="j-tgl"></div>
+      <div class="fg"><label class="lbl">Channel</label>
+        <select class="sel" id="j-ch">
+          <option>SHP.ZENOOT</option><option>SHP. ALLEY</option><option>SHP.ELENZ</option>
+          <option>LAZ.ZENOOT</option><option>TT.ALLEY</option><option>OFFLEN</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">SKU Induk</label><select class="sel" id="j-sku-induk" onchange="populateJVariasi()"></select></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="j-sku-variasi"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Qty Terjual</label><input class="inp" type="number" id="j-qty" placeholder="0" min="1"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn btn-p btn-full" onclick="addJurnal()">📝 Simpan Transaksi</button>
+      <button class="btn btn-o" onclick="closeModal('modal-tambah-jurnal')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Jurnal -->
+<div class="overlay" id="modal-edit-jurnal">
+  <div class="modal">
+    <div class="modal-hd">Edit Transaksi <button class="modal-close" onclick="closeModal('modal-edit-jurnal')">×</button></div>
+    <input type="hidden" id="ej-idx">
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Tanggal</label><input class="inp" type="date" id="ej-tgl"></div>
+      <div class="fg"><label class="lbl">Channel</label>
+        <select class="sel" id="ej-ch">
+          <option>SHP.ZENOOT</option><option>SHP. ALLEY</option><option>SHP.ELENZ</option>
+          <option>LAZ.ZENOOT</option><option>TT.ALLEY</option><option>OFFLEN</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">SKU Variasi</label><input class="inp" id="ej-sku"></div>
+      <div class="fg"><label class="lbl">Qty</label><input class="inp" type="number" id="ej-qty" min="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">HPP/pc</label><input class="inp" type="number" id="ej-hpp" readonly style="background:var(--cream);color:var(--dusty)"></div>
+      <div class="fg"><label class="lbl">Harga Jual/pc</label><input class="inp" type="number" id="ej-harga"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-p btn-full" onclick="saveEditJurnal()">💾 Simpan</button>
+      <button class="btn btn-d" onclick="closeModal('modal-edit-jurnal')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Restock Quick -->
+<div class="overlay" id="modal-restock-quick">
+  <div class="modal">
+    <div class="modal-hd">Input Stok Masuk <button class="modal-close" onclick="closeModal('modal-restock-quick')">×</button></div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">SKU Induk</label><select class="sel" id="rq-induk" onchange="populateRqVariasi()"></select></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="rq-variasi"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Jumlah Masuk</label><input class="inp" type="number" id="rq-qty" placeholder="0" min="1"></div>
+      <div class="fg"><label class="lbl">Supplier</label>
+        <select class="sel" id="rq-supplier">
+          <option>ALAN</option><option>H SOLAH</option><option>G. CS</option>
+          <option>PRODUKSI SENDIRI</option><option>LAINNYA</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="inputRestockQuick()">✅ Simpan</button>
+  </div>
+</div>
+
+<!-- Edit Produk -->
+<div class="overlay" id="modal-edit-produk">
+  <div class="modal">
+    <div class="modal-hd">Edit Produk <button class="modal-close" onclick="closeModal('modal-edit-produk')">×</button></div>
+    <input type="hidden" id="ep-idx">
+    <div class="form-row">
+      <div class="fg"><label class="lbl">SKU Induk</label><input class="inp" id="ep-induk"></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><input class="inp" id="ep-variasi"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">HPP / pc</label><input class="inp" type="number" id="ep-hpp"></div>
+      <div class="fg"><label class="lbl">Suplaier</label><input class="inp" id="ep-suplaier"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-p btn-full" onclick="saveEditProduk()">💾 Simpan</button>
+      <button class="btn btn-d" onclick="closeModal('modal-edit-produk')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stok Massal -->
+<div class="overlay" id="modal-stok-massal">
+  <div class="modal" style="max-width:620px;width:95vw">
+    <div class="modal-hd">📋 Input Stok Massal <button class="modal-close" onclick="closeModal('modal-stok-massal')">×</button></div>
+    <p style="font-size:13px;color:var(--dusty);margin:0 0 12px">Format: <strong>SKU_VARIASI [TAB] Jumlah</strong> per baris. Copy dari Excel/Google Sheets.</p>
+    <textarea id="massal-paste-area" class="inp" rows="8" style="width:100%;font-family:monospace;font-size:12px;resize:vertical" placeholder="MAYRA_HITAM&#9;10&#10;STARLA_MARUN&#9;5"></textarea>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn btn-p" onclick="parseMassal()">🔍 Preview</button>
+      <button class="btn btn-s" id="massal-confirm-btn" style="display:none" onclick="doInputMassal()">✅ Simpan</button>
+      <button class="btn btn-o" onclick="closeModal('modal-stok-massal')">Batal</button>
+    </div>
+    <div id="massal-preview" style="display:none;margin-top:14px;">
+      <div id="massal-summary" style="font-size:12px;color:var(--dusty);margin-bottom:8px;"></div>
+      <div style="max-height:200px;overflow-y:auto;">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <thead><tr style="background:var(--cream)"><th style="padding:5px 8px">No</th><th style="padding:5px 8px">SKU</th><th style="padding:5px 8px">+Masuk</th><th style="padding:5px 8px">Status</th></tr></thead>
+          <tbody id="massal-preview-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tambah Channel -->
+<div class="overlay" id="modal-tambah-channel">
+  <div class="modal">
+    <div class="modal-hd">Tambah Channel <button class="modal-close" onclick="closeModal('modal-tambah-channel')">×</button></div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Nama Channel</label><input class="inp" id="ch-nama" placeholder="cth: SHP.TOKO3"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="lbl">Platform</label>
+        <select class="sel" id="ch-platform">
+          <option>Shopee</option><option>Lazada</option><option>TikTok Shop</option>
+          <option>Tokopedia</option><option>Offline</option><option>Lainnya</option>
+        </select>
+      </div>
+      <div class="fg"><label class="lbl">Status</label>
+        <select class="sel" id="ch-status"><option>Aktif</option><option>Nonaktif</option></select>
+      </div>
+    </div>
+    <button class="btn btn-p btn-full" onclick="tambahChannel()">✅ Simpan Channel</button>
+  </div>
+</div>
+
+<!-- Restore / Backup -->
+<div class="overlay" id="modal-restore">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-hd">📥 Restore Backup <button class="modal-close" onclick="closeModal('modal-restore')">×</button></div>
+    <div id="restore-step1">
+      <div id="restore-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:30px;text-align:center;cursor:pointer;" onclick="document.getElementById('restore-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='var(--brown)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handleRestoreDrop(event)">
+        <div style="font-size:2em;margin-bottom:8px;">📂</div>
+        <div style="font-size:13px;font-weight:600;">Drop file backup di sini atau klik untuk pilih</div>
+        <div style="font-size:11px;color:var(--dusty);margin-top:4px;">Format: zenot_backup_YYYY-MM-DD.json</div>
+      </div>
+      <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="previewRestore(this)">
+    </div>
+    <div id="restore-step2" style="display:none">
+      <div id="restore-file-nama" style="margin-bottom:12px;font-size:13px;"></div>
+      <div id="restore-preview" style="margin-bottom:16px;"></div>
+      <div class="alert al-w"><span>⚠️</span><div>Aksi ini akan <strong>menimpa semua data saat ini</strong>.</div></div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-p btn-full" onclick="confirmRestore()">✅ Restore Sekarang</button>
+        <button class="btn btn-o" onclick="resetRestoreModal()">← Batal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SCRIPTS — ORDER MATTERS ══════ -->
+<script src="app_core.js"></script>
+<script src="financial_module.js"></script>
+<script src="trend_engine.js"></script>
+
+</body>
+</html>
