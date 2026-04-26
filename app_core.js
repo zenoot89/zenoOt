@@ -693,9 +693,11 @@ function populateJInduk() {
   _syncChannelDropdowns();
 }
 
+function _normalizeCh(s){ return (s||'').trim().replace(/\.\s+/g,'.').toUpperCase(); }
+
 function _syncChannelDropdowns() {
-  const channels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
-  const defaultCh = ['SHP.ZENOOT','SHP. ALLEY','SHP.ELENZ','LAZ.ZENOOT','TT.ALLEY','OFFLEN'];
+  const channels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>_normalizeCh(c.nama));
+  const defaultCh = ['SHP.ZENOOT','SHP.ALLEY','SHP.ELENZ','LAZ.ZENOOT','TT.ALLEY','OFFLEN'];
   // Gabungkan: dari DB dulu, tambahkan default yang belum ada
   const allCh = [...new Set([...channels, ...defaultCh])];
   const opts = allCh.map(c=>`<option>${c}</option>`).join('');
@@ -749,8 +751,8 @@ function resetJurnalFilter(){
 function _populateJurnalChannelFilter(){
   const sel=document.getElementById('j-fil-ch'); if(!sel)return;
   const cur=sel.value;
-  const fromDB=(DB.channel||[]).map(c=>c.nama.trim());
-  const fromJurnal=DB.jurnal.map(j=>j.ch?j.ch.trim():'');
+  const fromDB=(DB.channel||[]).map(c=>_normalizeCh(c.nama));
+  const fromJurnal=DB.jurnal.map(j=>_normalizeCh(j.ch));
   const channels=[...new Set([...fromDB,...fromJurnal])].filter(Boolean).sort();
   sel.innerHTML='<option value="">Semua Channel</option>'+channels.map(c=>`<option>${c}</option>`).join('');
   if(cur)sel.value=cur;
@@ -761,7 +763,7 @@ function renderJurnal() {
   const q=jurnalQ.toLowerCase();
   const rows=DB.jurnal.filter(r=>{
     if(q && !r.var.toLowerCase().includes(q) && !r.ch.toLowerCase().includes(q)) return false;
-    if(jurnalChFil && (r.ch||'').trim() !== jurnalChFil.trim()) return false;
+    if(jurnalChFil && _normalizeCh(r.ch) !== _normalizeCh(jurnalChFil)) return false;
     if(jurnalDateFrom && r.tgl < jurnalDateFrom) return false;
     if(jurnalDateTo && r.tgl > jurnalDateTo) return false;
     return true;
