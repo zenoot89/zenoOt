@@ -50,8 +50,8 @@ const DataLayer = {
 
   // Helper: hapus semua lalu insert ulang (untuk data yang tidak punya unique key jelas)
   async _replaceAll(table, rows) {
-    // Delete all
-    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=gte.0`, {
+    // Delete all rows (id >= 1 covers all bigserial)
+    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=gte.1`, {
       method: 'DELETE',
       headers: this._headers()
     });
@@ -62,7 +62,10 @@ const DataLayer = {
       headers: { ...this._headers(), 'Prefer': 'return=minimal' },
       body: JSON.stringify(rows)
     });
-    if (!res.ok) throw new Error(`Gagal insert ${table}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gagal insert ${table}: ${errText}`);
+    }
   },
 
   // ── SAVE: kirim semua DB ke Supabase ──
@@ -210,7 +213,7 @@ function saveDB() {
 }
 
 async function pushToCloud() {
-  if (!GAS_URL) return;
+  if (!SUPABASE_URL) return;
   const ok = await DataLayer.save(DB);
   setCloudStatus(ok);
   const ind = document.getElementById('save-indicator');
@@ -226,7 +229,7 @@ function loadFromCloud() {
 }
 
 async function loadDB() {
-  if (GAS_URL) {
+  if (SUPABASE_URL) {
     try {
       showLoadingOverlay('☁️ Memuat data dari cloud...');
       const result = await DataLayer.fetch();
@@ -285,7 +288,7 @@ function _applyCloudData(d) {
 }
 
 async function syncHargaRealtime() {
-  if (!GAS_URL) return false;
+  if (!SUPABASE_URL) return false;
   try { const result = await loadFromCloud(); if (result && result.ok && result.data) { _applyCloudData(result.data); return true; } } catch(e) {}
   return false;
 }
