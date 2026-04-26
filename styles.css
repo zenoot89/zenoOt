@@ -510,7 +510,12 @@ html{scroll-behavior:smooth;}
   .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{min-width:600px;}
 
-  /* Restock layout — handled by .restock-grid CSS */
+  /* Restock — portrait scroll */
+  #page-restock {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
 
   /* Cloud indicator */
   #cloud-indicator-fixed{left:8px;bottom:8px;font-size:10px;}
@@ -556,10 +561,11 @@ html{scroll-behavior:smooth;}
   .page-title{font-size:20px;}
 }
 
-/* ═══ RESTOCK GRID — 65:35 ═══ */
+/* ═══ RESTOCK GRID ═══ */
+/* Desktop: 50:50 */
 .restock-grid {
   display: grid;
-  grid-template-columns: 65fr 35fr;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: start;
 }
@@ -571,35 +577,42 @@ html{scroll-behavior:smooth;}
   font-weight: 700;
   font-size: 13px;
   white-space: normal;
-  word-break: break-all;
-  line-height: 1.3;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
-/* Mobile: stack vertikal */
-@media(max-width:768px) {
+/* Mobile portrait: stack vertikal, SKU restock di atas */
+@media(max-width:768px) and (orientation:portrait) {
   .restock-grid {
     grid-template-columns: 1fr !important;
-    overflow-x: hidden;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px;
   }
-  .restock-left, .restock-right {
-    width: 100%;
-  }
-  /* SKU list scroll di mobile */
+  /* SKU Restock DULU (atas), Input KEMUDIAN (bawah) */
+  .restock-left { order: 1; width: 100%; }
+  .restock-right { order: 2; width: 100%; }
+  /* SKU list tidak perlu max-height ketat di mobile */
   #low-stock-list > div:last-child {
-    max-height: 340px !important;
+    max-height: none !important;
   }
 }
+
+/* Mobile landscape: tetap 2 kolom, tapi sidebar off-canvas jadi tidak menutupi */
 @media(max-width:900px) and (orientation:landscape) {
   .restock-grid {
-    grid-template-columns: 60fr 40fr;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
   }
-  /* Pastikan bisa scroll vertikal dalam landscape */
   #page-restock {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Small phone portrait */
+@media(max-width:480px) and (orientation:portrait) {
+  .restock-grid {
+    grid-template-columns: 1fr !important;
   }
 }
