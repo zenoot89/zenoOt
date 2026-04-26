@@ -477,7 +477,8 @@ label.lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1
 #cloud-indicator-fixed{
   position:fixed;
   bottom:12px;
-  left:12px;
+  right:12px;
+  left:auto;
   width:auto;
   z-index:150;
   display:inline-flex;align-items:center;gap:5px;
@@ -499,6 +500,7 @@ label.lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1
   #cloud-indicator-fixed{
     bottom:60px;
     left:10px;
+    right:auto;
     font-size:10px;
   }
 }
@@ -563,7 +565,7 @@ html{scroll-behavior:smooth;}
   /* Restock layout — handled by .restock-grid CSS */
 
   /* Cloud indicator */
-  #cloud-indicator-fixed{left:8px;bottom:8px;font-size:10px;}
+  #cloud-indicator-fixed{left:8px;right:auto;bottom:8px;font-size:10px;}
 
   /* Form rows stack */
   .form-row{flex-direction:column;gap:10px;}
