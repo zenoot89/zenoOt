@@ -755,6 +755,8 @@ function renderJurnal() {
     return `<tr><td class="mono">${i+1}</td><td class="mono">${r.tgl}</td><td>${chTag(r.ch)}</td><td>${r.var}</td><td class="mono" style="text-align:center">${r.qty}</td><td class="mono">${fmt(r.hpp)}</td><td class="mono" style="color:var(--brown);font-weight:600">${fmt(modalKeluar)}</td><td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button></td></tr>`;
   }).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada transaksi sesuai filter</td></tr>`;
 }
+
+function openEditJurnal(idx) {
   const r=DB.jurnal[idx];
   ['ej-idx','ej-tgl','ej-ch','ej-sku','ej-qty','ej-harga','ej-hpp'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
