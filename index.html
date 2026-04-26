@@ -205,12 +205,12 @@
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
           <div class="card-title" style="margin:0">➕ Input Stok Masuk</div>
-          <button class="btn btn-o" style="padding:8px 16px;font-size:13px;font-weight:700;" onclick="openModal('modal-restock-quick')">📋 Input Massal</button>
+          <button class="btn btn-o" style="padding:8px 16px;font-size:13px;font-weight:700;" onclick="openModal('modal-stok-massal')">📋 Input Massal</button>
         </div>
         <div class="form-row">
           <div class="fg"><label class="lbl">Tanggal</label><input class="inp" type="date" id="rs-tgl"></div>
           <div class="fg"><label class="lbl">Supplier</label>
-            <select class="sel" id="rs-supplier">
+            <select class="sel" id="rs-supplier" onchange="populateRsInduk()">
               <option>ALAN</option><option>H SOLAH</option><option>G. CS</option>
               <option>PRODUKSI SENDIRI</option><option>LAINNYA</option>
             </select>

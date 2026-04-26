@@ -545,8 +545,29 @@ function hapusStok(idx) {
 // ================================================================
 // RESTOCK
 // ================================================================
-function populateRsInduk() { const indukList=[...new Set(DB.produk.map(p=>p.induk))];document.getElementById('rs-sku-induk').innerHTML=indukList.map(s=>`<option>${s}</option>`).join('');populateRsVariasi(); }
-function populateRsVariasi() { const induk=document.getElementById('rs-sku-induk').value;document.getElementById('rs-sku-variasi').innerHTML=DB.produk.filter(p=>p.induk===induk).map(p=>`<option>${p.var}</option>`).join(''); }
+function populateRsInduk() {
+  const supplier = (document.getElementById('rs-supplier')||{}).value || '';
+  // Filter produk berdasarkan supplier yang dipilih
+  const filteredProduk = supplier && supplier !== 'LAINNYA'
+    ? DB.produk.filter(p => (p.suplaier||'').toUpperCase() === supplier.toUpperCase())
+    : DB.produk;
+  const indukList = [...new Set(filteredProduk.map(p=>p.induk))];
+  // Fallback: kalau tidak ada produk untuk supplier itu, tampilkan semua
+  const finalList = indukList.length ? indukList : [...new Set(DB.produk.map(p=>p.induk))];
+  document.getElementById('rs-sku-induk').innerHTML = finalList.map(s=>`<option>${s}</option>`).join('');
+  populateRsVariasi();
+}
+function populateRsVariasi() {
+  const induk = document.getElementById('rs-sku-induk').value;
+  const supplier = (document.getElementById('rs-supplier')||{}).value || '';
+  let variants = DB.produk.filter(p => p.induk === induk);
+  // Kalau supplier dipilih dan ada produk yang cocok, filter lebih lanjut
+  if (supplier && supplier !== 'LAINNYA' && supplier !== 'PRODUKSI SENDIRI') {
+    const supVariants = variants.filter(p => (p.suplaier||'').toUpperCase() === supplier.toUpperCase());
+    if (supVariants.length) variants = supVariants;
+  }
+  document.getElementById('rs-sku-variasi').innerHTML = variants.map(p=>`<option>${p.var}</option>`).join('');
+}
 function populateRqInduk() { const indukList=[...new Set(DB.produk.map(p=>p.induk))];document.getElementById('rq-induk').innerHTML=indukList.map(s=>`<option>${s}</option>`).join('');populateRqVariasi(); }
 function populateRqVariasi() { const induk=document.getElementById('rq-induk').value;document.getElementById('rq-variasi').innerHTML=DB.produk.filter(p=>p.induk===induk).map(p=>`<option>${p.var}</option>`).join(''); }
 

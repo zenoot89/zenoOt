@@ -182,8 +182,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
 .hamburger-fixed span{display:block;width:20px;height:2px;background:var(--cream);border-radius:2px;transition:all .2s;}
 .sidebar-overlay{
   display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,.5);z-index:199;
-  backdrop-filter:blur(2px);
+  background:rgba(0,0,0,.45);z-index:199;
 }
 .sidebar-overlay.open{display:block;}
 .sidebar-footer-burger{display:none;}
@@ -489,12 +488,14 @@ html{scroll-behavior:smooth;}
     padding-top:60px;
     width:100%;
     overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
   }
   .main.expanded{margin-left:0!important;}
 
   /* Fix horizontal scroll — semua konten tidak overflow */
-  body{overflow-x:hidden;}
-  .page{overflow-x:hidden;}
+  body{overflow-x:hidden;overflow-y:auto;touch-action:pan-y;}
+  .page{overflow-x:hidden;pointer-events:auto;position:relative;z-index:1;}
   .card{padding:16px 14px;}
   .topbar{flex-wrap:wrap;gap:8px;}
   .topbar > div{flex-wrap:wrap;}
@@ -529,10 +530,24 @@ html{scroll-behavior:smooth;}
   .sidebar{
     transform:translateX(-100%);
     width:220px!important;
+    z-index:200;
   }
   .sidebar.open{transform:translateX(0);}
-  .main{margin-left:0!important;padding-top:50px;}
-  .hamburger-fixed{display:flex;}
+  .main{
+    margin-left:0!important;
+    padding-top:50px;
+    width:100%;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+  }
+  .main.expanded{margin-left:0!important;}
+  .hamburger-fixed{display:flex!important;}
+  .sidebar-toggle-btn{display:none;}
+  /* Pastikan page content bisa diklik */
+  .page{pointer-events:auto;position:relative;z-index:1;}
+  /* Grid landscape - 2 col lebih compact */
+  .grid2{grid-template-columns:1fr 1fr;}
+  .grid4{grid-template-columns:repeat(4,1fr);}
 }
 
 @media(max-width:480px){
