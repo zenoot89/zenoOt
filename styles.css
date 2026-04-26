@@ -565,9 +565,10 @@ html{scroll-behavior:smooth;}
     box-shadow:6px 0 28px rgba(0,0,0,.45);
     /* Pastikan sidebar penuh tinggi dan footer tidak terpotong */
     height:100vh!important;
+    height:100dvh!important;
     display:flex!important;
     flex-direction:column!important;
-    overflow:hidden!important;
+    overflow:visible!important;
   }
   .sidebar.open{transform:translateX(0) !important;}
   .sidebar.collapsed{transform:translateX(-100%) !important;}
@@ -575,6 +576,7 @@ html{scroll-behavior:smooth;}
   /* Nav scroll — flex:1 agar footer selalu di bawah */
   .sidebar .nav-scroll{
     flex:1!important;
+    min-height:0!important;
     overflow-y:auto!important;
     overflow-x:hidden!important;
     -webkit-overflow-scrolling:touch;
@@ -583,18 +585,18 @@ html{scroll-behavior:smooth;}
 
   /* Garis separator antar section (seperti laptop/Shopee Seller Center) */
   .sidebar .nav-accordion{
-    border-bottom:1px solid rgba(255,255,255,.07);
+    border-bottom:1px solid rgba(255,255,255,.15);
     margin-bottom:0;
   }
   .sidebar .nav-sec{
-    border-top:1px solid rgba(255,255,255,.07);
+    border-top:1px solid rgba(255,255,255,.15);
     margin-top:0;
   }
   .sidebar .nav-sec:first-child{
     border-top:none;
   }
   .sidebar .nav-acc-header{
-    border-bottom:1px solid rgba(255,255,255,.05);
+    border-bottom:1px solid rgba(255,255,255,.10);
   }
 
   /* Footer sidebar — selalu kelihatan di bawah, tidak terpotong */
@@ -693,6 +695,8 @@ html{scroll-behavior:smooth;}
   /* Grid landscape - 2 col lebih compact */
   .grid2{grid-template-columns:1fr 1fr;}
   .grid4{grid-template-columns:repeat(4,1fr);}
+  /* Sembunyikan label section kecil (UTAMA, INVENTORI dll) di landscape */
+  .sidebar .nav-sec{display:none!important;}
 }
 
 @media(max-width:480px){
