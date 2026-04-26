@@ -259,24 +259,24 @@
   <!-- Filter Bar -->
   <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
 
-    <!-- KIRI: Cari, Reset, Sync — 1 baris -->
+    <!-- KIRI: Cari, Sync — 1 baris -->
     <input class="search-bar" id="j-search" style="margin:0;width:120px;height:36px;padding:0 10px;font-size:12px;flex-shrink:0;" placeholder="🔍 Cari..." oninput="filterJurnal(this.value)">
-    <button class="btn btn-o btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;flex-shrink:0;">↺ Reset</button>
     <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal" style="height:36px;padding:0 12px;flex-shrink:0;">🔄 Sync</button>
 
     <!-- Spacer -->
     <div style="flex:1;"></div>
 
-    <!-- KANAN: 2 baris — [Channel][Tambah] atas / [Dari–Sampai] bawah -->
+    <!-- KANAN: 2 baris — [Channel][Tambah] atas / [Dari–Reset–Sampai][Tambah] bawah -->
     <div style="display:flex;gap:6px;align-items:stretch;flex-shrink:0;">
 
-      <!-- Kolom Channel + Tanggal (2 baris) -->
+      <!-- Kolom Channel + Tanggal+Reset (2 baris) -->
       <div style="display:flex;flex-direction:column;gap:6px;">
         <select class="sel" id="j-fil-ch" style="height:36px;width:200px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
         <div style="display:flex;align-items:center;gap:4px;">
           <input class="inp" type="date" id="j-fil-from" style="height:36px;width:95px;" onchange="filterJurnalDate()">
           <span style="color:var(--dusty);font-size:12px;font-weight:600;">–</span>
           <input class="inp" type="date" id="j-fil-to" style="height:36px;width:95px;" onchange="filterJurnalDate()">
+          <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;flex-shrink:0;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);">↺ Reset</button>
         </div>
       </div>
 
