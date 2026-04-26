@@ -864,11 +864,13 @@ html{scroll-behavior:smooth;}
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 12px 0 18px 0;
-  margin-bottom: 4px;
+  padding: 12px 0 16px 0;
+  margin: -30px -34px 20px -34px;   /* breakout dari padding .main */
+  padding-left: 34px;
+  padding-right: 34px;
   border-bottom: 2px solid var(--border);
   position: sticky;
-  top: 0;
+  top: -30px;                        /* kompensasi padding atas .main */
   background: var(--bg);
   z-index: 10;
 }
@@ -1000,4 +1002,24 @@ html{scroll-behavior:smooth;}
   background: #faf7f3;
   border-radius: 0 10px 10px 0;
   margin-bottom: 10px;
+}
+
+/* ── Intel Tab Bar responsive breakout fix ── */
+@media (max-width: 768px) {
+  .intel-tab-bar {
+    /* .main mobile: padding 20px 14px, padding-top:60px */
+    margin: -20px -14px 16px -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    top: -20px;
+  }
+}
+@media (max-width: 480px) {
+  .intel-tab-bar {
+    /* .main 480px: padding-top:50px, sisi tidak explicit = inherit 14px */
+    margin: -14px -14px 14px -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    top: -14px;
+  }
 }
