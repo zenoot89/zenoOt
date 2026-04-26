@@ -490,6 +490,14 @@ label.lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1
   padding:4px 10px;
   transition:opacity .3s;
 }
+/* Desktop override — paksa kanan, tidak bisa di-override kecuali mobile explicit */
+@media(min-width:769px){
+  #cloud-indicator-fixed{
+    right:12px !important;
+    left:auto !important;
+    bottom:12px !important;
+  }
+}
 #backup-badge-fixed{
   font-size:10px;font-weight:600;color:#A8D5BE;
   display:flex;align-items:center;gap:4px;
