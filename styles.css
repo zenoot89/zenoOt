@@ -36,8 +36,8 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
   border-bottom:1px solid rgba(255,255,255,.08);
   display:flex;align-items:center;gap:10px;
 }
-.logo-icon-wrap{flex-shrink:0;width:42px;height:42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);}
-.logo-img{width:42px;height:42px;object-fit:cover;border-radius:50%;}
+.logo-icon-wrap{flex-shrink:0;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:transparent;}
+.logo-img{width:46px;height:46px;object-fit:contain;border-radius:0;}
 .logo-text h1{font-family:'DM Serif Display',serif;font-size:18px;color:var(--cream);letter-spacing:1px;line-height:1.1;}
 .logo-text p{font-size:9px;color:var(--dusty);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;}
 
@@ -92,13 +92,31 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
 
 /* Chevron — rotate saat open */
 .nav-acc-chevron{
-  font-size:11px;color:rgba(255,255,255,.3);
-  transition:transform .25s ease;
+  display:inline-block;
+  width:16px;height:16px;
   flex-shrink:0;
+  position:relative;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  transform:rotate(-90deg);
 }
+.nav-acc-chevron::before,
+.nav-acc-chevron::after{
+  content:'';
+  position:absolute;
+  top:50%;left:50%;
+  width:6px;height:1.5px;
+  background:rgba(255,255,255,.35);
+  border-radius:2px;
+  transition:background .28s ease;
+}
+.nav-acc-chevron::before{ transform:translate(-50%,-50%) translate(-2px,0) rotate(40deg); }
+.nav-acc-chevron::after { transform:translate(-50%,-50%) translate( 2px,0) rotate(-40deg); }
 .nav-acc-header.open .nav-acc-chevron{
-  transform:rotate(180deg);
-  color:var(--gold);
+  transform:rotate(0deg);
+}
+.nav-acc-header.open .nav-acc-chevron::before,
+.nav-acc-header.open .nav-acc-chevron::after{
+  background:var(--gold);
 }
 
 /* Accordion body */
@@ -130,7 +148,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
 .sidebar.collapsed .nav-acc-body,
 .sidebar.collapsed .nav-sec{display:none!important;}
 .sidebar.collapsed .logo{justify-content:center;padding:14px 0;}
-.sidebar.collapsed .logo-img{width:34px;height:34px;}
+.sidebar.collapsed .logo-img{width:36px;height:36px;}
 .sidebar.collapsed .nav-acc-header{justify-content:center;padding:10px 0;}
 .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0;}
 .sidebar.collapsed .nav-item span:first-child,
