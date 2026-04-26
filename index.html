@@ -83,10 +83,14 @@
   </div><!-- /nav-scroll -->
 
   <!-- Footer — fixed bottom -->
+  <div class="sidebar-action-bar">
+    <button class="sidebar-action-btn" onclick="syncHargaManual()" id="btn-sync-harga" title="Sync Data">🔄</button>
+    <button class="sidebar-action-btn" onclick="exportDB()" title="Backup Data">⬇️</button>
+  </div>
   <div class="sidebar-footer-bar">
     <div style="padding:10px 14px;flex:1;">
-      <span class="footer-v">V2.0</span>
-      <span class="footer-by">by</span>
+      <span class="footer-v">V 2.0</span>
+      <span class="footer-by">Conceptualized by</span>
       <span class="footer-name">BURHANMOLOGY</span>
     </div>
     <button class="sidebar-toggle-btn" onclick="toggleSidebarCollapse()">
@@ -117,8 +121,7 @@
     <div class="page-title" id="ph">Dashboard <span>zenOt</span></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <span class="date-badge" id="topbar-date"></span>
-      <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-harga">🔄 Sync</button>
-      <button class="btn btn-o btn-sm" onclick="exportDB()">⬇️ Backup</button>
+
     </div>
   </div>
 
@@ -184,22 +187,22 @@
      PAGE: RE-STOCK
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-restock">
+  <!-- Layout: 65% kiri (SKU Restock) : 35% kanan (Input + Log) -->
   <div class="restock-grid">
 
-    <!-- KIRI — SKU Perlu Restock -->
+    <!-- KIRI 65% — SKU Perlu Restock -->
     <div class="card restock-left">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div class="card-title" style="margin:0">⚠️ SKU Perlu Restock</div>
         <span id="low-stock-counter" style="font-size:11px;color:var(--dusty);font-weight:600;"></span>
       </div>
-      <div id="low-stock-list"></div>
-      <!-- Info box di bawah list -->
-      <div style="font-size:11px;color:var(--dusty);margin-top:12px;background:var(--warn-bg);border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;line-height:1.6;">
+      <div style="font-size:11px;color:var(--dusty);margin-bottom:10px;background:var(--warn-bg);border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;line-height:1.6;">
         💡 Hanya menampilkan SKU yang <strong>pernah terjual</strong> — biar kas tidak terkuras untuk stok yang belum terbukti laku.
       </div>
+      <div id="low-stock-list"></div>
     </div>
 
-    <!-- KANAN — Input + Log Restock -->
+    <!-- KANAN 35% — Input + Log Restock -->
     <div class="restock-right">
 
       <!-- Input Stok Masuk -->
@@ -223,10 +226,9 @@
         </div>
         <div class="form-row">
           <div class="fg"><label class="lbl">Jumlah Masuk (pcs)</label><input class="inp" type="number" id="rs-qty" placeholder="0" min="1"></div>
+          <div class="fg"><label class="lbl">Catatan</label><input class="inp" id="rs-catatan" placeholder="Opsional"></div>
         </div>
-        <!-- rs-catatan hidden, tetap ada untuk JS -->
-        <input type="hidden" id="rs-catatan" value="">
-        <button class="btn btn-p btn-full" style="margin-top:8px;" onclick="inputRestock()">✅ Simpan Restock</button>
+        <button class="btn btn-p btn-full" style="margin-top:4px;" onclick="inputRestock()">✅ Simpan Restock</button>
       </div>
 
       <!-- Log Restock -->
@@ -234,7 +236,7 @@
         <div class="card-title">📋 Log Restock</div>
         <div class="tbl-wrap" style="margin:0;max-height:380px;overflow-y:auto;">
           <table>
-            <thead><tr><th>Tanggal</th><th>SKU Variasi</th><th>Supplier</th><th>+Masuk</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>SKU Variasi</th><th>Supplier</th><th>+Masuk</th><th>Catatan</th><th>Aksi</th></tr></thead>
             <tbody id="restock-body"></tbody>
           </table>
         </div>
