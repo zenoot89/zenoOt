@@ -69,6 +69,23 @@
       </div>
     </div>
 
+    <!-- INTELLIGENCE — Accordion -->
+    <div class="nav-accordion">
+      <div class="nav-acc-header open" onclick="toggleAcc(this)">
+        <div class="nav-acc-label"><span>🧠</span><span>Intelligence</span></div>
+        <span class="nav-acc-chevron">&#8964;</span>
+      </div>
+      <div class="nav-acc-body open">
+        <div class="nav-item" onclick="goIntel('intel-dashboard',this)"><span>🧠</span><span>Intel Dashboard</span></div>
+        <div class="nav-item" onclick="goIntel('intel-sku',this)"><span>🔬</span><span>SKU Breakdown</span></div>
+        <div class="nav-item" onclick="goIntel('intel-revenue',this)"><span>💰</span><span>Revenue Intel</span></div>
+        <div class="nav-item" onclick="goIntel('intel-inventory',this)"><span>📦</span><span>Inventory Intel</span></div>
+        <div class="nav-item" onclick="goIntel('intel-unit-econ',this)"><span>📈</span><span>Unit Economics</span></div>
+        <div class="nav-item" onclick="goIntel('intel-flashsale',this)"><span>⚡</span><span>Flash Sale ROI</span></div>
+        <div class="nav-item" onclick="goIntel('intel-cashflow',this)"><span>🔮</span><span>Cash Flow</span></div>
+      </div>
+    </div>
+
     <!-- TOOLS — Accordion -->
     <div class="nav-accordion">
       <div class="nav-acc-header open" onclick="toggleAcc(this)">
@@ -937,10 +954,78 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════
+     INTELLIGENCE MODULE PAGES
+══════════════════════════════════════════════ -->
+
+<!-- Intel Dashboard -->
+<div class="page" id="page-intel-dashboard">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-dash-content">
+      <div class="intel-empty">Memuat Intelligence Dashboard...</div>
+    </div>
+  </div>
+</div>
+
+<!-- SKU Breakdown Analisis -->
+<div class="page" id="page-intel-sku">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-sku-content">
+      <div class="intel-empty">Memuat SKU Analisis...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue Intelligence -->
+<div class="page" id="page-intel-revenue">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-revenue-content">
+      <div class="intel-empty">Memuat Revenue Intelligence...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory Intelligence -->
+<div class="page" id="page-intel-inventory">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-inventory-content">
+      <div class="intel-empty">Memuat Inventory Intelligence...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Unit Economics -->
+<div class="page" id="page-intel-unit-econ">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-unit-econ-content">
+      <div class="intel-empty">Memuat Unit Economics...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Flash Sale ROI Calculator -->
+<div class="page" id="page-intel-flashsale">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-flashsale-content">
+      <div class="intel-empty">Memuat Flash Sale Calculator...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Cash Flow Projection -->
+<div class="page" id="page-intel-cashflow">
+  <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none;">
+    <div id="intel-cashflow-content">
+      <div class="intel-empty">Memuat Cash Flow Projection...</div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════ SCRIPTS — ORDER MATTERS ══════ -->
 <script src="app_core.js"></script>
 <script src="financial_module.js"></script>
 <script src="trend_engine.js"></script>
+<script src="intelligence_module.js"></script>
 
 </body>
 </html>
