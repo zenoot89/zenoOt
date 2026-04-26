@@ -93,16 +93,14 @@
       </div>
       <div class="nav-acc-body open">
         <div class="nav-item" onclick="go('daily',this)"><span>✅</span><span>Daily Checklist</span></div>
+        <div class="nav-item nav-item-action" onclick="syncHargaManual()" id="nav-btn-sync"><span>🔄</span><span>Sync Data</span></div>
+        <div class="nav-item nav-item-action" onclick="exportDB()"><span>⬇️</span><span>Backup Data</span></div>
       </div>
     </div>
 
   </div><!-- /nav-scroll -->
 
-  <!-- Footer — fixed bottom -->
-  <div class="sidebar-action-bar">
-    <button class="sidebar-action-btn" onclick="syncHargaManual()" id="btn-sync-harga" title="Sync Data">🔄</button>
-    <button class="sidebar-action-btn" onclick="exportDB()" title="Backup Data">⬇️</button>
-  </div>
+  <!-- sidebar-action-bar dihapus — tombol dipindah ke menu Tools -->
   <div class="sidebar-footer-bar">
     <div style="padding:10px 14px;flex:1;">
       <span class="footer-v">V 2.0</span>

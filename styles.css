@@ -158,28 +158,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
 .sidebar.collapsed .sidebar-toggle-btn{border-left:none;width:100%;min-height:48px;padding:0;}
 
 /* ═══ SIDEBAR ACTION BAR — Sync & Backup icon ═══ */
-.sidebar-action-bar{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 14px;
-  border-top:1px solid rgba(255,255,255,.06);
-  flex-shrink:0;
-}
-.sidebar-action-btn{
-  flex:1;
-  background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:8px;
-  color:rgba(255,255,255,.7);
-  font-size:16px;
-  padding:7px 0;
-  cursor:pointer;
-  transition:background .2s, color .2s;
-  text-align:center;
-}
-.sidebar-action-btn:hover{background:rgba(255,255,255,.15);color:var(--cream);}
-.sidebar.collapsed .sidebar-action-bar{display:none;}
+/* sidebar-action-bar & btn dihapus — tombol dipindah ke menu Tools */
 
 /* ═══ SIDEBAR FOOTER — sticky bottom ═══ */
 .sidebar-footer-bar{
@@ -1050,4 +1029,19 @@ html{scroll-behavior:smooth;}
     padding-right: 14px;
     top: -14px;
   }
+}
+
+/* ── Nav Item Action (Backup & Sync di Tools) ── */
+.nav-item.nav-item-action {
+  color: rgba(255,255,255,.45);
+  border-left: 3px solid transparent;
+  font-style: normal;
+}
+.nav-item.nav-item-action:hover {
+  color: #7EC8E3;
+  background: rgba(126,200,227,.08);
+  border-left-color: #7EC8E3;
+}
+.nav-item.nav-item-action span:first-child {
+  font-size: 14px;
 }
