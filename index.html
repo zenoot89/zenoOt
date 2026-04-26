@@ -256,18 +256,19 @@
     <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
   </div>
 
-  <!-- Filter Bar -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+  <!-- Filter Bar — Row 1: Search kiri, Tambah kanan -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
     <input class="search-bar" id="j-search" style="margin:0;flex:1;min-width:160px;" placeholder="🔍 Cari SKU atau channel..." oninput="filterJurnal(this.value)">
+    <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')">➕ Tambah</button>
+  </div>
+  <!-- Filter Bar — Row 2: Sync, Channel, Tanggal dari–sampai, Reset -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+    <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal">🔄 Sync</button>
     <select class="sel" id="j-fil-ch" style="min-width:140px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
     <input class="inp" type="date" id="j-fil-from" style="width:140px;" onchange="filterJurnalDate()" title="Dari tanggal">
     <span style="color:var(--dusty);font-size:12px;font-weight:600;">–</span>
     <input class="inp" type="date" id="j-fil-to" style="width:140px;" onchange="filterJurnalDate()" title="Sampai tanggal">
     <button class="btn btn-o btn-sm" onclick="resetJurnalFilter()">↺ Reset</button>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:14px;">
-    <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')">➕ Tambah</button>
-    <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal">🔄 Sync</button>
   </div>
 
   <div class="tbl-wrap">
