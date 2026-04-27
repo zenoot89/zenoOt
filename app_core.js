@@ -48,6 +48,18 @@ const DataLayer = {
     }
   },
 
+  // Helper: delete satu row by key (uuid atau var)
+  async _deleteByKey(table, key, value) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${key}=eq.${encodeURIComponent(value)}`, {
+      method: 'DELETE',
+      headers: this._headers()
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Gagal delete ${table}: ${err}`);
+    }
+  },
+
   // Helper: generate UUID unik untuk setiap transaksi
   _uuid() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -779,9 +791,14 @@ function inputRestockQuick() {
 
 function deleteRestock(idx) {
   const r=DB.restock[idx]; if(!confirm(`Hapus restock "${r?.var}"?`))return;
+  const uuid=r?.uuid;
   DB.restock.splice(idx,1);
   recalcStok();
-  saveDB(); renderRestock(); renderDashboard(); toast('Log restock dihapus');
+  // Sync delete ke Supabase
+  if (uuid && SUPABASE_URL) {
+    DataLayer._deleteByKey('restock','uuid',uuid).catch(e=>console.warn('Delete restock gagal sync:',e));
+  }
+  saveDB(); renderRestock(); renderDashboard(); toast('✅ Log restock dihapus');
 }
 
 function renderRestock() {
@@ -961,15 +978,27 @@ function saveEditJurnal() {
   const idx=+document.getElementById('ej-idx').value;
   const newQty=+document.getElementById('ej-qty').value||0;
   const newVar=document.getElementById('ej-sku').value;
+  const uuid=DB.jurnal[idx].uuid;
   DB.jurnal[idx]={...DB.jurnal[idx], tgl:document.getElementById('ej-tgl').value, ch:document.getElementById('ej-ch').value, var:newVar, qty:newQty, harga:0, hpp:+document.getElementById('ej-hpp').value||0};
   recalcStok();
-  closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderDashboard(); toast('Transaksi diperbarui!');
+  // Sync edit ke Supabase
+  if (uuid && SUPABASE_URL) {
+    const j=DB.jurnal[idx];
+    DataLayer._upsert('jurnal',[{uuid,tgl:j.tgl,ch:j.ch,var:j.var,qty:j.qty,harga:0,hpp:j.hpp}],'uuid').catch(e=>console.warn('Edit jurnal gagal sync:',e));
+  }
+  closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderDashboard(); toast('✅ Transaksi diperbarui!');
 }
+
 function deleteJurnal(idx) {
   if (!confirm('Hapus transaksi ini?')) return;
+  const uuid=DB.jurnal[idx]?.uuid;
   DB.jurnal.splice(idx,1);
   recalcStok();
-  saveDB(); renderJurnal(); renderDashboard(); toast('Transaksi dihapus');
+  // Sync delete ke Supabase
+  if (uuid && SUPABASE_URL) {
+    DataLayer._deleteByKey('jurnal','uuid',uuid).catch(e=>console.warn('Delete jurnal gagal sync:',e));
+  }
+  saveDB(); renderJurnal(); renderDashboard(); toast('✅ Transaksi dihapus');
 }
 
 // ================================================================
@@ -1013,12 +1042,25 @@ function openEditProduk(idx) {
 }
 function saveEditProduk() {
   const idx=+document.getElementById('ep-idx').value;
+  const oldVar=DB.produk[idx].var;
   DB.produk[idx]={...DB.produk[idx],induk:document.getElementById('ep-induk').value.trim().toUpperCase(),var:document.getElementById('ep-variasi').value.trim().toUpperCase(),hpp:+document.getElementById('ep-hpp').value||0,suplaier:document.getElementById('ep-suplaier').value.trim().toUpperCase()};
-  closeModal('modal-edit-produk'); saveDB(); renderProduk(); renderHarga(); toast('Produk diperbarui!');
+  // Sync edit ke Supabase
+  if (SUPABASE_URL) {
+    const p=DB.produk[idx];
+    DataLayer._upsert('produk',[{var:p.var,induk:p.induk,hpp:p.hpp,suplaier:p.suplaier}],'var').catch(e=>console.warn('Edit produk gagal sync:',e));
+  }
+  closeModal('modal-edit-produk'); saveDB(); renderProduk(); renderHarga(); toast('✅ Produk diperbarui!');
 }
+
 function deleteProduk(idx) {
   if (!confirm(`Hapus produk "${DB.produk[idx].var}"?`)) return;
-  DB.produk.splice(idx,1); saveDB(); renderProduk(); toast('Produk dihapus');
+  const varKey=DB.produk[idx].var;
+  DB.produk.splice(idx,1);
+  // Sync delete ke Supabase
+  if (SUPABASE_URL) {
+    DataLayer._deleteByKey('produk','var',varKey).catch(e=>console.warn('Delete produk gagal sync:',e));
+  }
+  saveDB(); renderProduk(); toast('✅ Produk dihapus');
 }
 function resetProdukSaja() {
   DB.produk=[]; saveDB(); setBackupMode(false); closeModal('modal-reset-produk');
