@@ -698,7 +698,12 @@ function openEditStok(idx) {
 }
 function saveEditStok() {
   const idx=+document.getElementById('es-idx').value;
-  DB.stok[idx]={...DB.stok[idx], awal:+document.getElementById('es-awal').value||0, masuk:+document.getElementById('es-masuk').value||0, keluar:+document.getElementById('es-keluar').value||0, hpp:+document.getElementById('es-hpp').value||0, safety:+document.getElementById('es-safety').value||4};
+  DB.stok[idx]={...DB.stok[idx],
+    awal:+document.getElementById('es-awal').value||0,
+    hpp:+document.getElementById('es-hpp').value||0,
+    safety:+document.getElementById('es-safety').value||4
+  };
+  recalcStok();
   closeModal('modal-edit-stok'); saveDB(); renderStok(); renderDashboard(); toast('Stok diperbarui!');
 }
 function hapusStok(idx) {
@@ -1153,8 +1158,14 @@ function doInputMassal() {
   const raw=document.getElementById('massal-paste-area').value.trim();
   const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
   let updated=0;
-  lines.forEach(line=>{const parts=line.split('\t');const sku=(parts[0]||'').trim().toUpperCase();const qty=parseInt((parts[1]||'0').replace(/[^\d]/g,''))||0;const stok=DB.stok.find(s=>s.var.toUpperCase()===sku);if(stok&&qty>0){stok.masuk=(stok.masuk||0)+qty;updated++;}});
-  if (updated>0) { saveDB();renderStok();renderDashboard();closeModal('modal-stok-massal');document.getElementById('massal-paste-area').value='';document.getElementById('massal-preview').style.display='none';toast(`✅ ${updated} SKU berhasil diupdate!`); }
+  lines.forEach(line=>{
+    const parts=line.split('\t');
+    const sku=(parts[0]||'').trim().toUpperCase();
+    const qty=parseInt((parts[1]||'0').replace(/[^\d]/g,''))||0;
+    const stok=DB.stok.find(s=>s.var.toUpperCase()===sku);
+    if(stok&&qty>0){stok.awal=(stok.awal||0)+qty;updated++;}
+  });
+  if (updated>0) { recalcStok();saveDB();renderStok();renderDashboard();closeModal('modal-stok-massal');document.getElementById('massal-paste-area').value='';document.getElementById('massal-preview').style.display='none';toast(`✅ ${updated} SKU berhasil diupdate!`); }
   else toast('Tidak ada data valid','err');
 }
 
