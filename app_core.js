@@ -237,16 +237,24 @@ function loadFromCloud() {
   return DataLayer.fetch();
 }
 
-// Recalculate keluar di stok berdasarkan data jurnal
-function recalcKeluar() {
-  // Reset semua keluar ke 0 dulu
-  DB.stok.forEach(s => s.keluar = 0);
-  // Hitung ulang dari jurnal
+// Recalculate keluar & masuk di stok berdasarkan jurnal dan restock
+function recalcStok() {
+  // Reset keluar dan masuk ke 0
+  DB.stok.forEach(s => { s.keluar = 0; s.masuk = 0; });
+  // Hitung keluar dari jurnal
   DB.jurnal.forEach(j => {
     const s = DB.stok.find(x => x.var === j.var);
     if (s) s.keluar = (s.keluar || 0) + (j.qty || 0);
   });
+  // Hitung masuk dari restock
+  DB.restock.forEach(r => {
+    const s = DB.stok.find(x => x.var === r.var);
+    if (s) s.masuk = (s.masuk || 0) + (r.qty || 0);
+  });
 }
+
+// Alias untuk backward compatibility
+function recalcKeluar() { recalcStok(); }
 
 async function loadDB() {
   if (SUPABASE_URL) {
@@ -734,10 +742,12 @@ function inputRestock() {
   const tgl=document.getElementById('rs-tgl').value;
   const supplier=document.getElementById('rs-supplier').value;
   if (!varName||qty<=0) { toast('Lengkapi SKU dan Qty','err'); return; }
-  let s=DB.stok.find(x=>x.var===varName);
-  if (s) { s.masuk=(s.masuk||0)+qty; }
-  else { const p=DB.produk.find(x=>x.var===varName); DB.stok.push({var:varName,awal:0,masuk:qty,keluar:0,hpp:p?p.hpp:0,safety:4}); }
+  if (!DB.stok.find(x=>x.var===varName)) {
+    const p=DB.produk.find(x=>x.var===varName);
+    DB.stok.push({var:varName,awal:0,masuk:0,keluar:0,hpp:p?p.hpp:0,safety:4});
+  }
   DB.restock.unshift({uuid: DataLayer._uuid(), tgl, var:varName, supplier, qty, catatan});
+  recalcStok();
   document.getElementById('rs-qty').value='';
   document.getElementById('rs-catatan').value='';
   saveDB(); renderRestock(); renderLowStock(); renderDashboard();
@@ -750,10 +760,12 @@ function inputRestockQuick() {
   const supplier=document.getElementById('rq-supplier').value;
   const tgl=new Date().toISOString().split('T')[0];
   if (!varName||qty<=0) { toast('Lengkapi SKU dan Qty','err'); return; }
-  let s=DB.stok.find(x=>x.var===varName);
-  if (s) { s.masuk=(s.masuk||0)+qty; }
-  else { const p=DB.produk.find(x=>x.var===varName); DB.stok.push({var:varName,awal:0,masuk:qty,keluar:0,hpp:p?p.hpp:0,safety:4}); }
+  if (!DB.stok.find(x=>x.var===varName)) {
+    const p=DB.produk.find(x=>x.var===varName);
+    DB.stok.push({var:varName,awal:0,masuk:0,keluar:0,hpp:p?p.hpp:0,safety:4});
+  }
   DB.restock.unshift({uuid: DataLayer._uuid(), tgl, var:varName, supplier, qty, catatan:'Quick input'});
+  recalcStok();
   document.getElementById('rq-qty').value='';
   closeModal('modal-restock-quick');
   saveDB(); renderRestock(); renderLowStock(); renderDashboard();
@@ -762,9 +774,8 @@ function inputRestockQuick() {
 
 function deleteRestock(idx) {
   const r=DB.restock[idx]; if(!confirm(`Hapus restock "${r?.var}"?`))return;
-  const s=DB.stok.find(x=>x.var===r.var);
-  if (s) s.masuk=Math.max(0,(s.masuk||0)-r.qty);
   DB.restock.splice(idx,1);
+  recalcStok();
   saveDB(); renderRestock(); renderDashboard(); toast('Log restock dihapus');
 }
 
@@ -874,9 +885,8 @@ function addJurnal() {
   if (!tgl||!varName||qty<=0) { toast('Lengkapi Tanggal, SKU, dan Qty','err'); return; }
   const p=DB.produk.find(x=>x.var===varName); const hpp=p?p.hpp:0;
   DB.jurnal.unshift({uuid: DataLayer._uuid(), tgl, ch, var:varName, qty, harga:0, hpp});
-  let s=DB.stok.find(x=>x.var===varName);
-  if (s) { s.keluar=(s.keluar||0)+qty; }
-  else { DB.stok.push({var:varName,awal:0,masuk:0,keluar:qty,hpp,safety:4}); }
+  if (!DB.stok.find(x=>x.var===varName)) DB.stok.push({var:varName,awal:0,masuk:0,keluar:0,hpp,safety:4});
+  recalcStok();
   document.getElementById('j-qty').value='';
   closeModal('modal-tambah-jurnal'); saveDB(); renderJurnal(); renderDashboard();
   toast(`Transaksi ${qty} pcs ${varName} disimpan!`);
@@ -944,18 +954,17 @@ function openEditJurnal(idx) {
 }
 function saveEditJurnal() {
   const idx=+document.getElementById('ej-idx').value;
-  const old=DB.jurnal[idx];
-  const s=DB.stok.find(x=>x.var===old.var); if(s)s.keluar=Math.max(0,(s.keluar||0)-old.qty);
   const newQty=+document.getElementById('ej-qty').value||0;
   const newVar=document.getElementById('ej-sku').value;
-  DB.jurnal[idx]={tgl:document.getElementById('ej-tgl').value,ch:document.getElementById('ej-ch').value,var:newVar,qty:newQty,harga:0,hpp:+document.getElementById('ej-hpp').value||0};
-  const s2=DB.stok.find(x=>x.var===newVar); if(s2)s2.keluar=(s2.keluar||0)+newQty;
+  DB.jurnal[idx]={...DB.jurnal[idx], tgl:document.getElementById('ej-tgl').value, ch:document.getElementById('ej-ch').value, var:newVar, qty:newQty, harga:0, hpp:+document.getElementById('ej-hpp').value||0};
+  recalcStok();
   closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderDashboard(); toast('Transaksi diperbarui!');
 }
 function deleteJurnal(idx) {
   if (!confirm('Hapus transaksi ini?')) return;
-  const r=DB.jurnal[idx]; const s=DB.stok.find(x=>x.var===r.var); if(s)s.keluar=Math.max(0,(s.keluar||0)-r.qty);
-  DB.jurnal.splice(idx,1); saveDB(); renderJurnal(); renderDashboard(); toast('Transaksi dihapus');
+  DB.jurnal.splice(idx,1);
+  recalcStok();
+  saveDB(); renderJurnal(); renderDashboard(); toast('Transaksi dihapus');
 }
 
 // ================================================================
