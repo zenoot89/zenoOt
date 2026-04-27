@@ -237,6 +237,17 @@ function loadFromCloud() {
   return DataLayer.fetch();
 }
 
+// Recalculate keluar di stok berdasarkan data jurnal
+function recalcKeluar() {
+  // Reset semua keluar ke 0 dulu
+  DB.stok.forEach(s => s.keluar = 0);
+  // Hitung ulang dari jurnal
+  DB.jurnal.forEach(j => {
+    const s = DB.stok.find(x => x.var === j.var);
+    if (s) s.keluar = (s.keluar || 0) + (j.qty || 0);
+  });
+}
+
 async function loadDB() {
   if (SUPABASE_URL) {
     try {
@@ -250,6 +261,7 @@ async function loadDB() {
         if (saved.restock) DB.restock = saved.restock;
         if (saved.channel) DB.channel = saved.channel;
         _normalizeJurnalChannel();
+        recalcKeluar();
         DataLayer.saveLocal(DB);
         setCloudStatus(true);
         hideLoadingOverlay(); return;
@@ -265,6 +277,7 @@ async function loadDB() {
     if (saved.restock) DB.restock = saved.restock;
     if (saved.channel) DB.channel = saved.channel;
     _normalizeJurnalChannel();
+    recalcKeluar();
     setCloudStatus(false);
   }
 }
