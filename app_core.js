@@ -155,7 +155,8 @@ const DataLayer = {
             suplaier: p.suplaier, npm: Number(p.npm),
             jual: Number(p.jual), pasang: Number(p.pasang),
             reseller: Number(p.reseller), gm: Number(p.gm),
-            status_produk: p.status_produk||'aktif'
+            status_produk: p.status_produk||'aktif',
+            toko: p.toko||'semua'
           })),
           stok: stok.map(s => ({
             var: s.var, awal: s.awal, masuk: s.masuk,
@@ -325,6 +326,7 @@ function _applyCloudData(d) {
   if      (p==='dashboard' && typeof renderDashboard==='function') renderDashboard();
   else if (p==='produk'    && typeof renderProduk   ==='function') renderProduk();
   else if (p==='stok'      && typeof renderStok     ==='function') renderStok();
+  else if (p==='toko'      && typeof renderTokoManager==='function') renderTokoManager();
   else if (p==='jurnal'    && typeof renderJurnal   ==='function') renderJurnal();
   else if (p==='restock'   && typeof renderRestock  ==='function') { renderRestock(); if(typeof renderLowStock==='function') renderLowStock(); }
   else if (p==='channel'   && typeof renderChannel  ==='function') renderChannel();
@@ -1251,6 +1253,104 @@ function doInputMassal() {
 }
 
 // ================================================================
+// ════════════════════════════════════════════════════════════════
+// TOKO MANAGER
+// ════════════════════════════════════════════════════════════════
+function renderTokoManager() {
+  const channels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
+  const q = (document.getElementById('toko-search')?.value||'').toLowerCase();
+  const filterToko = document.getElementById('toko-filter-select')?.value||'semua';
+
+  // Update dropdown toko
+  const sel = document.getElementById('toko-filter-select');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="semua">🏪 Semua Toko</option>' +
+      channels.map(c=>`<option value="${c}" ${cur===c?'selected':''}>${c}</option>`).join('');
+  }
+
+  // Kartu ringkasan per toko
+  const cards = document.getElementById('toko-cards');
+  if (cards) {
+    cards.innerHTML = channels.map(ch => {
+      const produkToko = DB.produk.filter(p => {
+        const t = p.toko||'semua';
+        return t==='semua' || t.split(',').map(x=>x.trim()).includes(ch);
+      });
+      const jurnalToko = DB.jurnal.filter(j=>j.ch===ch);
+      const omset = jurnalToko.reduce((s,j)=>s+(j.hpp*j.qty),0);
+      const qty = jurnalToko.reduce((s,j)=>s+j.qty,0);
+      return `<div class="card" style="border-left:3px solid var(--brown)">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px">🏪 ${ch}</div>
+        <div style="font-size:12px;color:var(--dusty);margin-bottom:6px">${produkToko.length} produk aktif</div>
+        <div style="font-size:13px">Omset: <strong>${fmt(omset)}</strong></div>
+        <div style="font-size:13px">Terjual: <strong>${qty} pcs</strong> (${jurnalToko.length} transaksi)</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Tabel assign produk
+  let rows = DB.produk.filter(p=>
+    (p.status_produk||'aktif')!=='arsip' &&
+    (p.var.toLowerCase().includes(q) || p.induk.toLowerCase().includes(q))
+  );
+  if (filterToko!=='semua') {
+    rows = rows.filter(p => {
+      const t = p.toko||'semua';
+      return t==='semua' || t.split(',').map(x=>x.trim()).includes(filterToko);
+    });
+  }
+  rows.sort((a,b)=>a.induk.localeCompare(b.induk)||a.var.localeCompare(b.var));
+
+  const summary = document.getElementById('toko-summary');
+  if (summary) summary.textContent = `${rows.length} produk`;
+
+  const tbody = document.getElementById('toko-assign-body');
+  if (!tbody) return;
+  tbody.innerHTML = rows.map((p,i) => {
+    const tokoList = (p.toko||'semua')==='semua' ? channels : (p.toko||'').split(',').map(x=>x.trim());
+    const checks = channels.map(ch =>
+      `<td style="text-align:center"><input type="checkbox" data-var="${p.var}" data-ch="${ch}" ${tokoList.includes(ch)||tokoList.includes('semua')?'checked':''}></td>`
+    ).join('');
+    return `<tr>
+      <td class="mono">${i+1}</td>
+      <td><strong>${p.induk}</strong></td>
+      <td>${p.var}</td>
+      <td class="mono">${fmt(p.hpp)}</td>
+      ${checks}
+    </tr>`;
+  }).join('') || `<tr><td colspan="${4+channels.length}" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk</td></tr>`;
+}
+
+function saveTokoAssign() {
+  const channels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
+  const checkboxes = document.querySelectorAll('#toko-assign-body input[type=checkbox]');
+  
+  // Group by var
+  const tokoMap = {};
+  checkboxes.forEach(cb => {
+    const v = cb.dataset.var;
+    const ch = cb.dataset.ch;
+    if (!tokoMap[v]) tokoMap[v] = [];
+    if (cb.checked) tokoMap[v].push(ch);
+  });
+
+  // Update DB.produk
+  Object.entries(tokoMap).forEach(([varKey, tokoArr]) => {
+    const p = DB.produk.find(x=>x.var===varKey);
+    if (!p) return;
+    // Kalau semua channel diceklis → simpan 'semua'
+    p.toko = tokoArr.length === channels.length ? 'semua' : tokoArr.join(',');
+    // Sync ke Supabase
+    if (SUPABASE_URL) {
+      DataLayer._upsert('produk',[{var:p.var,induk:p.induk,hpp:p.hpp,suplaier:p.suplaier,status_produk:p.status_produk||'aktif',toko:p.toko}],'var')
+        .catch(e=>console.warn('Sync toko gagal:',e));
+    }
+  });
+
+  saveDB(); renderTokoManager(); toast('✅ Assignment toko disimpan!');
+}
+
 // CHANNEL PENJUALAN
 // ================================================================
 function renderChannel() {

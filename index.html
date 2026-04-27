@@ -38,6 +38,7 @@
         <div class="nav-item" onclick="go('stok',this)"><span>📦</span><span>Stok Produk</span></div>
         <div class="nav-item" onclick="go('restock',this)"><span>🔄</span><span>Re-Stock</span></div>
         <div class="nav-item" onclick="go('produk',this)"><span>🏷️</span><span>Kelola Produk</span></div>
+        <div class="nav-item" onclick="go('toko',this)"><span>🏪</span><span>Toko Manager</span></div>
         <div class="nav-item" onclick="go('harga',this)"><span>💰</span><span>Price List</span></div>
       </div>
     </div>
@@ -339,6 +340,47 @@
 <!-- ════════════════════════════════════════════════════════════════
      PAGE: PRICE LIST
 ════════════════════════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: TOKO MANAGER
+════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-toko">
+  <div class="topbar" style="margin-bottom:20px">
+    <div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:28px">Toko <span style="color:var(--brown)">Manager</span></h2>
+      <p style="color:var(--dusty);font-size:13px;margin-top:4px">Assign produk ke toko & lihat performa per toko</p>
+    </div>
+  </div>
+
+  <!-- Filter Toko -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <select class="inp" style="max-width:220px" id="toko-filter-select" onchange="renderTokoManager()">
+      <option value="semua">🏪 Semua Toko</option>
+    </select>
+    <input class="search-bar" style="margin:0;flex:1;max-width:340px" placeholder="🔍 Cari produk..." id="toko-search" oninput="renderTokoManager()">
+    <span id="toko-summary" style="font-size:13px;color:var(--dusty);margin-left:auto"></span>
+  </div>
+
+  <!-- Kartu per Toko -->
+  <div id="toko-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px"></div>
+
+  <!-- Tabel Assign Produk -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <strong style="font-size:15px">📋 Assign Produk ke Toko</strong>
+      <button class="btn btn-p btn-sm" onclick="saveTokoAssign()">💾 Simpan Semua</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>HPP</th>
+          <th>SHP.ALLEY</th><th>SHP.ZENOOT</th><th>TT.ALLEY</th><th>LAZ.ALLEY</th><th>LAZ.ZENOOT</th><th>SHP.ELENZ</th><th>MY OUTFIT</th>
+        </tr></thead>
+        <tbody id="toko-assign-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div class="page" id="page-harga">
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
     <input class="search-bar" style="margin:0;flex:1;max-width:280px" placeholder="🔍 Cari SKU / Induk..." oninput="filterHarga(this.value)" id="harga-search">
