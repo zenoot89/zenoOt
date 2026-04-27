@@ -27,7 +27,7 @@ const DataLayer = {
 
   // Helper: fetch dari satu tabel
   async _getTable(table) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=id.asc`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=id.desc`, {
       headers: { ...this._headers(), 'Prefer': 'return=representation' }
     });
     if (!res.ok) throw new Error(`Gagal fetch ${table}: ${res.status}`);
@@ -162,16 +162,14 @@ const DataLayer = {
             keluar: s.keluar, hpp: Number(s.hpp), safety: s.safety
           })),
           jurnal: jurnal
-            .sort((a, b) => new Date(b.tgl) - new Date(a.tgl))
             .map(j => ({
-              sid: j.id, uuid: j.uuid,  // simpan id & uuid dari Supabase
+              sid: j.id, uuid: j.uuid,
               tgl: j.tgl, ch: j.ch, var: j.var,
               qty: j.qty, harga: Number(j.harga), hpp: Number(j.hpp)
             })),
           restock: restock
-            .sort((a, b) => new Date(b.tgl) - new Date(a.tgl))
             .map(r => ({
-              sid: r.id, uuid: r.uuid,  // simpan id & uuid dari Supabase
+              sid: r.id, uuid: r.uuid,
               tgl: r.tgl, var: r.var, supplier: r.supplier,
               qty: r.qty, catatan: r.catatan
             })),
