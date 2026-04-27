@@ -521,14 +521,14 @@ function toast(msg, type='ok') {
 function renderDashboard() {
   const totalStok=DB.stok.reduce((s,r)=>s+getAkhir(r),0);
   const nilaiStok=DB.stok.reduce((s,r)=>s+(getAkhir(r)*r.hpp),0);
-  const totalRev =DB.jurnal.reduce((s,r)=>s+(r.harga*r.qty),0);
+  const totalRev =DB.jurnal.reduce((s,r)=>s+(r.hpp*r.qty),0);
   const totalLaba=DB.jurnal.reduce((s,r)=>s+((r.harga-r.hpp)*r.qty),0);
   const lowCount =DB.stok.filter(r=>getAkhir(r)<=(r.safety||4)&&getAkhir(r)>0).length;
   const habisCount=DB.stok.filter(r=>getAkhir(r)<=0).length;
   document.getElementById('stat-cards').innerHTML=`
     <div class="stat c1"><div class="stat-label">Total Stok Aktif</div><div class="stat-val">${totalStok.toLocaleString('id-ID')} <span style="font-size:14px">pcs</span></div><div class="stat-sub">${DB.stok.length} SKU terdaftar</div></div>
     <div class="stat c2"><div class="stat-label">Nilai Stok</div><div class="stat-val" style="font-size:18px">${fmt(nilaiStok)}</div><div class="stat-sub">berdasarkan HPP</div></div>
-    <div class="stat c3"><div class="stat-label">Modal Keluar</div><div class="stat-val" style="font-size:18px">${fmt(totalRev)}</div><div class="stat-sub">${DB.jurnal.length} transaksi</div></div>
+    <div class="stat c3"><div class="stat-label">Omset</div><div class="stat-val" style="font-size:18px">${fmt(totalRev)}</div><div class="stat-sub">${DB.jurnal.length} transaksi</div></div>
     <div class="stat c4"><div class="stat-label">Stok Kritis</div><div class="stat-val">${lowCount+habisCount} <span style="font-size:14px">SKU</span></div><div class="stat-sub">${habisCount} habis · ${lowCount} rendah</div></div>`;
   renderChartBars(); renderNotif(); renderProgress(); renderLastSales();
 }
@@ -554,7 +554,7 @@ function renderNotif() {
 function renderProgress() {
   const targetPcs=264,totalKeluar=DB.stok.reduce((s,r)=>s+(r.keluar||0),0);
   const pctVal=Math.min(100,Math.round(totalKeluar/targetPcs*100));
-  const targetRev=33000000,totalRev=DB.jurnal.reduce((s,r)=>s+(r.harga*r.qty),0);
+  const targetRev=33000000,totalRev=DB.jurnal.reduce((s,r)=>s+(r.hpp*r.qty),0);
   const revPct=Math.min(100,Math.round(totalRev/targetRev*100));
   document.getElementById('progress-area').innerHTML=`
     <div class="prog-wrap"><div class="prog-lbl"><span>📦 Volume Produksi</span><span>${totalKeluar}/${targetPcs} pcs</span></div><div class="prog-bar"><div class="prog-fill fb" style="width:${pctVal}%"></div></div></div>
