@@ -1214,3 +1214,17 @@ html{scroll-behavior:smooth;}
 .produk-menu-danger { color: #dc2626 !important; }
 .produk-menu-danger:hover { background: #fff1f0 !important; }
 .produk-row-selected td { background: #fff8f0 !important; }
+
+/* ── Produk grouped rows ── */
+.produk-group-header td {
+  background: var(--cream, #f5f0e8) !important;
+  border-top: 2px solid var(--border, #e8e0d0);
+  border-bottom: 1px solid var(--border, #e8e0d0);
+}
+.produk-group-header:first-child td { border-top: none; }
+.produk-var-row td {
+  padding-left: 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.produk-var-row:hover td { background: #fafafa; }
+.produk-row-selected td { background: #fff8f0 !important; }

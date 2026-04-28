@@ -1060,20 +1060,70 @@ function renderProduk() {
   if(produkStatusFilter!=='semua') rows=rows.filter(r=>(r.status_produk||'aktif')===produkStatusFilter);
   rows=rows.sort((a,b)=>a.induk.localeCompare(b.induk)||a.var.localeCompare(b.var));
   _produkDisplayRows=rows;
-  document.getElementById('produk-body').innerHTML=rows.length?rows.map((r,i)=>{
-    const chk=produkSelectedVars.has(r.var);
-    const dbIdx=DB.produk.indexOf(r);
-    return `<tr class="${chk?'produk-row-selected':''}">
-      <td style="text-align:center;"><input type="checkbox" class="produk-chk" value="${r.var}" ${chk?'checked':''} onchange="produkOnCheck(this)" style="cursor:pointer;width:15px;height:15px;"></td>
-      <td class="mono">${i+1}</td><td><strong>${r.induk}</strong></td><td>${r.var}</td>
-      <td class="mono">${fmt(r.hpp)}</td><td style="font-size:12px;color:var(--dusty)">${r.suplaier||'-'}</td>
-      <td>${getProdukStatusBadge(r.status_produk||'aktif')}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-o btn-sm" onclick="openEditProduk(${dbIdx})">✏️ Edit</button>
-        <button class="btn btn-d btn-sm" onclick="arsipProduk(${dbIdx})" title="Arsipkan">📦</button>
+
+  if(!rows.length){
+    document.getElementById('produk-body').innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk</td></tr>';
+    _syncProdukBulkBar(); return;
+  }
+
+  // Group by induk
+  const groups={};
+  rows.forEach(r=>{ if(!groups[r.induk]) groups[r.induk]=[]; groups[r.induk].push(r); });
+
+  let html=''; let varNo=0;
+  Object.entries(groups).forEach(([induk, vars])=>{
+    // Hitung state checkbox induk
+    const allChk=vars.every(r=>produkSelectedVars.has(r.var));
+    const someChk=vars.some(r=>produkSelectedVars.has(r.var));
+    const indeterminate=someChk&&!allChk;
+    const supplier=vars[0].suplaier||'—';
+    const hppAvg=Math.round(vars.reduce((s,r)=>s+(r.hpp||0),0)/vars.length);
+
+    // Baris induk (group header)
+    html+=`<tr class="produk-group-header">
+      <td style="text-align:center;">
+        <input type="checkbox" class="produk-chk-induk" data-induk="${induk}"
+          ${allChk?'checked':''} onchange="produkToggleInduk(this,'${induk}')"
+          style="cursor:pointer;width:15px;height:15px;"
+          ${indeterminate?'data-indeterminate="true"':''}>
       </td>
+      <td colspan="2" style="padding:10px 12px;">
+        <strong style="font-size:14px;color:var(--brown);">${induk}</strong>
+        <span style="font-size:11px;color:var(--dusty);margin-left:8px;">${vars.length} varian</span>
+      </td>
+      <td style="font-size:12px;color:var(--dusty);font-weight:600;">${supplier}</td>
+      <td style="font-size:12px;color:var(--dusty);">avg ${fmt(hppAvg)}</td>
+      <td colspan="2"></td>
     </tr>`;
-  }).join('')+'':`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk</td></tr>`;
+
+    // Baris variasi
+    vars.forEach(r=>{
+      varNo++;
+      const chk=produkSelectedVars.has(r.var);
+      const dbIdx=DB.produk.indexOf(r);
+      html+=`<tr class="produk-var-row${chk?' produk-row-selected':''}">
+        <td style="text-align:center;">
+          <input type="checkbox" class="produk-chk" value="${r.var}" data-induk="${induk}"
+            ${chk?'checked':''} onchange="produkOnCheck(this)"
+            style="cursor:pointer;width:15px;height:15px;">
+        </td>
+        <td class="mono" style="color:var(--dusty);padding-left:28px;">${varNo}</td>
+        <td style="padding-left:28px;font-size:13px;">${r.var}</td>
+        <td class="mono">${fmt(r.hpp)}</td>
+        <td></td>
+        <td>${getProdukStatusBadge(r.status_produk||'aktif')}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-o btn-sm" onclick="openEditProduk(${dbIdx})">✏️ Edit</button>
+          <button class="btn btn-d btn-sm" onclick="arsipProduk(${dbIdx})" title="Arsipkan">📦</button>
+        </td>
+      </tr>`;
+    });
+  });
+
+  document.getElementById('produk-body').innerHTML=html;
+
+  // Apply indeterminate state (harus setelah render)
+  document.querySelectorAll('.produk-chk-induk[data-indeterminate="true"]').forEach(el=>{el.indeterminate=true;});
   _syncProdukBulkBar();
 }
 
@@ -1081,13 +1131,43 @@ function renderProduk() {
 function produkOnCheck(el){
   if(el.checked) produkSelectedVars.add(el.value);
   else produkSelectedVars.delete(el.value);
+  // Update header checkbox induk
+  const induk=el.dataset.induk;
+  if(induk) _syncIndukCheckbox(induk);
   _syncProdukBulkBar();
-  // sync header checkbox state
+  // sync global header checkbox
+  _syncGlobalCheckbox();
+}
+
+function _syncIndukCheckbox(induk){
+  const vars=DB.produk.filter(r=>r.induk===induk);
+  const allChk=vars.every(r=>produkSelectedVars.has(r.var));
+  const someChk=vars.some(r=>produkSelectedVars.has(r.var));
+  const el=document.querySelector(`.produk-chk-induk[data-induk="${induk}"]`);
+  if(el){el.checked=allChk;el.indeterminate=someChk&&!allChk;}
+}
+
+function _syncGlobalCheckbox(){
   const all=document.querySelectorAll('.produk-chk');
   const checked=[...all].filter(c=>c.checked).length;
   const chkAll=document.getElementById('produk-chk-all');
   if(chkAll){chkAll.checked=checked===all.length&&all.length>0;chkAll.indeterminate=checked>0&&checked<all.length;}
 }
+
+function produkToggleInduk(el, induk){
+  const vars=DB.produk.filter(r=>r.induk===induk);
+  vars.forEach(r=>{ if(el.checked) produkSelectedVars.add(r.var); else produkSelectedVars.delete(r.var); });
+  // Re-render hanya baris variasi yg bersangkutan supaya tidak flicker
+  vars.forEach(r=>{
+    const chkEl=document.querySelector(`.produk-chk[value="${r.var}"]`);
+    const row=chkEl?.closest('tr');
+    if(chkEl) chkEl.checked=el.checked;
+    if(row){ if(el.checked) row.classList.add('produk-row-selected'); else row.classList.remove('produk-row-selected'); }
+  });
+  _syncGlobalCheckbox();
+  _syncProdukBulkBar();
+}
+
 function produkToggleAll(v){
   _produkDisplayRows.forEach(r=>{ if(v) produkSelectedVars.add(r.var); else produkSelectedVars.delete(r.var); });
   renderProduk();
