@@ -292,15 +292,87 @@
       <option value="clearance">🏷️ Clearance</option>
       <option value="arsip">📦 Arsip</option>
     </select>
-    <div style="margin-left:auto;display:flex;gap:8px;">
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <!-- Bulk action bar -->
+      <div id="produk-bulk-bar" style="display:none;align-items:center;gap:6px;background:#fff8f0;border:1px solid #e2c97e;border-radius:8px;padding:4px 10px;">
+        <span id="produk-bulk-count" style="font-size:12px;font-weight:700;color:var(--brown);white-space:nowrap;">0 dipilih</span>
+        <button class="btn btn-sm" style="background:#fff;border:1px solid #ddd;color:#333;font-size:11px;" onclick="produkBulkDeselectAll()">✕ Batal</button>
+      </div>
+      <!-- EDIT dropdown -->
+      <div style="position:relative;" id="produk-edit-wrap">
+        <button class="btn" style="background:#1a1a2e;color:#fff;font-weight:700;padding:8px 16px;display:flex;align-items:center;gap:6px;" onclick="toggleProdukEditMenu(event)">
+          ✏️ EDIT <span style="font-size:10px;opacity:.7;">▾</span>
+        </button>
+        <div id="produk-edit-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1.5px solid #e5e5e5;border-radius:10px;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:999;overflow:hidden;">
+          <div class="produk-menu-item" onclick="produkBulkEditHpp()">💰 Edit HPP</div>
+          <div class="produk-menu-item" onclick="produkBulkEditSupplier()">🏭 Edit Supplier</div>
+          <div class="produk-menu-item" onclick="produkBulkEditStatus()">🔄 Ubah Status</div>
+          <div class="produk-menu-item" onclick="produkBulkArsip()">📦 Arsip</div>
+          <div class="produk-menu-item produk-menu-danger" onclick="produkBulkHapus()">🗑️ Hapus</div>
+        </div>
+      </div>
       <button class="btn btn-p" onclick="openModal('modal-tambah-produk')">➕ Tambah</button>
       <button class="btn btn-o btn-sm" onclick="openModal('modal-import-sheets')">📋 Import Sheets</button>
       <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-produk')">🗑 Reset</button>
     </div>
   </div>
+
+  <!-- Modal Bulk Edit HPP -->
+  <div class="overlay" id="modal-bulk-hpp">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-hd">💰 Edit HPP Massal <button class="modal-close" onclick="closeModal('modal-bulk-hpp')">×</button></div>
+      <p style="font-size:13px;color:var(--dusty);margin-bottom:12px;" id="bulk-hpp-info">—</p>
+      <div class="fg"><label class="lbl">HPP Baru (Rp/pc)</label><input class="inp" type="number" id="bulk-hpp-val" placeholder="0" min="0"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-p btn-full" onclick="execBulkHpp()">✅ Simpan & Sync</button>
+        <button class="btn btn-o" onclick="closeModal('modal-bulk-hpp')">Batal</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Bulk Edit Supplier -->
+  <div class="overlay" id="modal-bulk-supplier">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-hd">🏭 Edit Supplier Massal <button class="modal-close" onclick="closeModal('modal-bulk-supplier')">×</button></div>
+      <p style="font-size:13px;color:var(--dusty);margin-bottom:12px;" id="bulk-sup-info">—</p>
+      <div class="fg"><label class="lbl">Supplier Baru</label>
+        <select class="sel" id="bulk-sup-val">
+          <option>ALAN</option><option>H SOLAH</option><option>G. CS</option>
+          <option>PRODUKSI SENDIRI</option><option>LAINNYA</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-p btn-full" onclick="execBulkSupplier()">✅ Simpan & Sync</button>
+        <button class="btn btn-o" onclick="closeModal('modal-bulk-supplier')">Batal</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Bulk Edit Status -->
+  <div class="overlay" id="modal-bulk-status">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-hd">🔄 Ubah Status Massal <button class="modal-close" onclick="closeModal('modal-bulk-status')">×</button></div>
+      <p style="font-size:13px;color:var(--dusty);margin-bottom:12px;" id="bulk-status-info">—</p>
+      <div class="fg"><label class="lbl">Status Baru</label>
+        <select class="sel" id="bulk-status-val">
+          <option value="aktif">✅ Aktif</option>
+          <option value="slow">⚠️ Slow Moving</option>
+          <option value="deadstock">🔴 Deadstock</option>
+          <option value="clearance">🏷️ Clearance</option>
+          <option value="arsip">📦 Arsip</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-p btn-full" onclick="execBulkStatus()">✅ Simpan & Sync</button>
+        <button class="btn btn-o" onclick="closeModal('modal-bulk-status')">Batal</button>
+      </div>
+    </div>
+  </div>
+
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>HPP/pc</th><th>Supplier</th><th>Status</th><th>Aksi</th></tr></thead>
+      <thead><tr>
+        <th style="width:36px;text-align:center;"><input type="checkbox" id="produk-chk-all" onchange="produkToggleAll(this.checked)" title="Pilih Semua" style="cursor:pointer;width:15px;height:15px;"></th>
+        <th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>HPP/pc</th><th>Supplier</th><th>Status</th><th>Aksi</th>
+      </tr></thead>
       <tbody id="produk-body"></tbody>
     </table>
   </div>

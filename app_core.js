@@ -1045,25 +1045,172 @@ function deleteJurnal(idx) {
 // ================================================================
 let produkQ='';
 let produkStatusFilter='semua';
+let produkSelectedVars=new Set(); // Set of selected SKU Variasi
+let _produkDisplayRows=[]; // current displayed rows (for index lookup)
+
 function filterProdukStatus(v){produkStatusFilter=v;renderProduk();}
 function getProdukStatusBadge(s){
   const map={aktif:'<span class="badge-status badge-aktif">✅ Aktif</span>',slow:'<span class="badge-status badge-slow">⚠️ Slow</span>',deadstock:'<span class="badge-status badge-dead">🔴 Deadstock</span>',clearance:'<span class="badge-status badge-clearance">🏷️ Clearance</span>',arsip:'<span class="badge-status badge-arsip">📦 Arsip</span>'};
   return map[s]||map['aktif'];
 }
+
 function renderProduk() {
   const q=produkQ.toLowerCase();
   let rows=DB.produk.filter(r=>r.var.toLowerCase().includes(q)||r.induk.toLowerCase().includes(q));
   if(produkStatusFilter!=='semua') rows=rows.filter(r=>(r.status_produk||'aktif')===produkStatusFilter);
   rows=rows.sort((a,b)=>a.induk.localeCompare(b.induk)||a.var.localeCompare(b.var));
-  document.getElementById('produk-body').innerHTML=rows.length?rows.map((r,i)=>`<tr>
-    <td class="mono">${i+1}</td><td><strong>${r.induk}</strong></td><td>${r.var}</td>
-    <td class="mono">${fmt(r.hpp)}</td><td style="font-size:12px;color:var(--dusty)">${r.suplaier||'-'}</td>
-    <td>${getProdukStatusBadge(r.status_produk||'aktif')}</td>
-    <td style="white-space:nowrap">
-      <button class="btn btn-o btn-sm" onclick="openEditProduk(${DB.produk.indexOf(r)})">✏️ Edit</button>
-      <button class="btn btn-d btn-sm" onclick="arsipProduk(${DB.produk.indexOf(r)})" title="Arsipkan">📦</button>
-    </td>
-  </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk</td></tr>`;
+  _produkDisplayRows=rows;
+  document.getElementById('produk-body').innerHTML=rows.length?rows.map((r,i)=>{
+    const chk=produkSelectedVars.has(r.var);
+    const dbIdx=DB.produk.indexOf(r);
+    return `<tr class="${chk?'produk-row-selected':''}">
+      <td style="text-align:center;"><input type="checkbox" class="produk-chk" value="${r.var}" ${chk?'checked':''} onchange="produkOnCheck(this)" style="cursor:pointer;width:15px;height:15px;"></td>
+      <td class="mono">${i+1}</td><td><strong>${r.induk}</strong></td><td>${r.var}</td>
+      <td class="mono">${fmt(r.hpp)}</td><td style="font-size:12px;color:var(--dusty)">${r.suplaier||'-'}</td>
+      <td>${getProdukStatusBadge(r.status_produk||'aktif')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-o btn-sm" onclick="openEditProduk(${dbIdx})">✏️ Edit</button>
+        <button class="btn btn-d btn-sm" onclick="arsipProduk(${dbIdx})" title="Arsipkan">📦</button>
+      </td>
+    </tr>`;
+  }).join('')+'':`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk</td></tr>`;
+  _syncProdukBulkBar();
+}
+
+// ── Checkbox helpers ──
+function produkOnCheck(el){
+  if(el.checked) produkSelectedVars.add(el.value);
+  else produkSelectedVars.delete(el.value);
+  _syncProdukBulkBar();
+  // sync header checkbox state
+  const all=document.querySelectorAll('.produk-chk');
+  const checked=[...all].filter(c=>c.checked).length;
+  const chkAll=document.getElementById('produk-chk-all');
+  if(chkAll){chkAll.checked=checked===all.length&&all.length>0;chkAll.indeterminate=checked>0&&checked<all.length;}
+}
+function produkToggleAll(v){
+  _produkDisplayRows.forEach(r=>{ if(v) produkSelectedVars.add(r.var); else produkSelectedVars.delete(r.var); });
+  renderProduk();
+}
+function produkBulkDeselectAll(){produkSelectedVars.clear();renderProduk();}
+function _syncProdukBulkBar(){
+  const n=produkSelectedVars.size;
+  const bar=document.getElementById('produk-bulk-bar');
+  const cnt=document.getElementById('produk-bulk-count');
+  if(bar){bar.style.display=n>0?'flex':'none';}
+  if(cnt) cnt.textContent=`${n} dipilih`;
+}
+
+// ── Dropdown menu toggle ──
+function toggleProdukEditMenu(e){
+  e.stopPropagation();
+  const menu=document.getElementById('produk-edit-menu');
+  menu.style.display=menu.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',()=>{
+  const menu=document.getElementById('produk-edit-menu');
+  if(menu) menu.style.display='none';
+});
+
+// ── Bulk actions ──
+function _getSelectedProdukRows(){
+  return DB.produk.filter(r=>produkSelectedVars.has(r.var));
+}
+function _checkBulkSel(label){
+  if(produkSelectedVars.size===0){toast(`Tandai produk dulu untuk ${label}`,'err');return false;}
+  return true;
+}
+
+function produkBulkEditHpp(){
+  if(!_checkBulkSel('edit HPP')) return;
+  document.getElementById('bulk-hpp-info').textContent=`${produkSelectedVars.size} SKU dipilih — HPP baru berlaku ke semua.`;
+  document.getElementById('bulk-hpp-val').value='';
+  openModal('modal-bulk-hpp');
+}
+async function execBulkHpp(){
+  const hpp=+document.getElementById('bulk-hpp-val').value||0;
+  if(!hpp){toast('Isi HPP dulu','err');return;}
+  const rows=_getSelectedProdukRows();
+  rows.forEach(r=>{r.hpp=hpp;const s=DB.stok.find(x=>x.var===r.var);if(s)s.hpp=hpp;});
+  closeModal('modal-bulk-hpp');
+  if(SUPABASE_URL){
+    try{
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk||'aktif'})),'var');
+      toast(`✅ HPP ${fmt(hpp)} disimpan & sync ke cloud (${rows.length} SKU)`);
+    }catch(e){toast('⚠️ Disimpan lokal, sync cloud gagal','warn');}
+  }
+  produkSelectedVars.clear();
+  saveDB();renderProduk();renderHarga();renderStok();
+}
+
+function produkBulkEditSupplier(){
+  if(!_checkBulkSel('edit Supplier')) return;
+  document.getElementById('bulk-sup-info').textContent=`${produkSelectedVars.size} SKU dipilih — Supplier baru berlaku ke semua.`;
+  openModal('modal-bulk-supplier');
+}
+async function execBulkSupplier(){
+  const sup=document.getElementById('bulk-sup-val').value;
+  const rows=_getSelectedProdukRows();
+  rows.forEach(r=>r.suplaier=sup);
+  closeModal('modal-bulk-supplier');
+  if(SUPABASE_URL){
+    try{
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk||'aktif'})),'var');
+      toast(`✅ Supplier → ${sup} disimpan & sync ke cloud (${rows.length} SKU)`);
+    }catch(e){toast('⚠️ Disimpan lokal, sync cloud gagal','warn');}
+  }
+  produkSelectedVars.clear();
+  saveDB();renderProduk();
+}
+
+function produkBulkEditStatus(){
+  if(!_checkBulkSel('ubah status')) return;
+  document.getElementById('bulk-status-info').textContent=`${produkSelectedVars.size} SKU dipilih — Status baru berlaku ke semua.`;
+  openModal('modal-bulk-status');
+}
+async function execBulkStatus(){
+  const st=document.getElementById('bulk-status-val').value;
+  const rows=_getSelectedProdukRows();
+  rows.forEach(r=>r.status_produk=st);
+  closeModal('modal-bulk-status');
+  if(SUPABASE_URL){
+    try{
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk})),'var');
+      toast(`✅ Status → ${st} disimpan & sync ke cloud (${rows.length} SKU)`);
+    }catch(e){toast('⚠️ Disimpan lokal, sync cloud gagal','warn');}
+  }
+  produkSelectedVars.clear();
+  saveDB();renderProduk();
+}
+
+async function produkBulkArsip(){
+  if(!_checkBulkSel('arsip')) return;
+  if(!confirm(`Arsipkan ${produkSelectedVars.size} SKU yang dipilih?`)) return;
+  const rows=_getSelectedProdukRows();
+  rows.forEach(r=>r.status_produk='arsip');
+  if(SUPABASE_URL){
+    try{
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:'arsip'})),'var');
+      toast(`📦 ${rows.length} SKU diarsipkan & sync ke cloud`);
+    }catch(e){toast('⚠️ Diarsipkan lokal, sync cloud gagal','warn');}
+  }
+  produkSelectedVars.clear();
+  saveDB();renderProduk();
+}
+
+async function produkBulkHapus(){
+  if(!_checkBulkSel('hapus')) return;
+  if(!confirm(`Hapus ${produkSelectedVars.size} SKU yang dipilih? Aksi ini tidak bisa dibatalkan!`)) return;
+  const toDelete=[...produkSelectedVars];
+  DB.produk=DB.produk.filter(r=>!produkSelectedVars.has(r.var));
+  if(SUPABASE_URL){
+    try{
+      await Promise.all(toDelete.map(v=>DataLayer._deleteByKey('produk','var',v)));
+      toast(`🗑️ ${toDelete.length} SKU dihapus & sync ke cloud`);
+    }catch(e){toast('⚠️ Dihapus lokal, sync cloud gagal','warn');}
+  }
+  produkSelectedVars.clear();
+  saveDB();renderProduk();renderStok();renderDashboard();
 }
 function tambahProduk() {
   const induk=document.getElementById('np-induk').value.trim().toUpperCase();

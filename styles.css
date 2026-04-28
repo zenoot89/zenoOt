@@ -1194,3 +1194,23 @@ html{scroll-behavior:smooth;}
 /* Sembunyikan kartu toko dan filter saat scroll dalam tabel */
 #page-toko .tbl-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
 #page-toko .tbl-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
+
+
+/* ── Kelola Produk Bulk Edit ── */
+.produk-menu-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .15s;
+  border-bottom: 1px solid #f5f5f5;
+  color: #1a1a2e;
+}
+.produk-menu-item:last-child { border-bottom: none; }
+.produk-menu-item:hover { background: #f5f5f5; }
+.produk-menu-danger { color: #dc2626 !important; }
+.produk-menu-danger:hover { background: #fff1f0 !important; }
+.produk-row-selected td { background: #fff8f0 !important; }
