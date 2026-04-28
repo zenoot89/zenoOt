@@ -67,13 +67,28 @@ function goIntel(id, el) {
   if (ph) ph.innerHTML = INTEL_TITLES[id] || id;
 
   // ── 6. Render konten sesuai tab ──
-  if (id === 'intel-dashboard')  renderIntelDashboard();
-  if (id === 'intel-sku')        renderSKUAnalisis();
-  if (id === 'intel-revenue')    renderRevenueIntel();
-  if (id === 'intel-inventory')  renderInventoryIntel();
-  if (id === 'intel-unit-econ')  renderUnitEcon();
-  if (id === 'intel-flashsale')  renderFlashSaleROI();
-  if (id === 'intel-cashflow')   renderCashflow();
+  const _intelRenders = {
+    'intel-dashboard': renderIntelDashboard,
+    'intel-sku':       typeof renderSKUAnalisis    === 'function' ? renderSKUAnalisis    : null,
+    'intel-revenue':   typeof renderRevenueIntel   === 'function' ? renderRevenueIntel   : null,
+    'intel-inventory': typeof renderInventoryIntel === 'function' ? renderInventoryIntel : null,
+    'intel-unit-econ': typeof renderUnitEcon       === 'function' ? renderUnitEcon       : null,
+    'intel-flashsale': typeof renderFlashSaleROI   === 'function' ? renderFlashSaleROI   : null,
+    'intel-cashflow':  typeof renderCashflow       === 'function' ? renderCashflow       : null,
+  };
+  const renderFn = _intelRenders[id];
+  if (renderFn) {
+    try { renderFn(); }
+    catch(e) {
+      console.error('[goIntel render error] ' + id + ':', e);
+      const sub = document.getElementById('ipage-' + id);
+      if (sub) sub.innerHTML = '<div style="padding:40px;text-align:center;">' +
+        '<div style="font-size:28px;margin-bottom:10px;">⚠️</div>' +
+        '<div style="font-weight:700;color:var(--charcoal);margin-bottom:6px;">' + id + ' error</div>' +
+        '<div style="font-size:12px;color:var(--dusty);margin-bottom:14px;font-family:monospace;">' + e.message + '</div>' +
+        '<button class="btn btn-p btn-sm" onclick="goIntel(\'' + id + '\',null)">↺ Coba Lagi</button></div>';
+    }
+  }
 }
 
 // Helper: dipanggil dari sidebar — juga close sidebar di mobile
@@ -147,6 +162,18 @@ function _getTotalModal() {
 function renderIntelDashboard() {
   const container = document.getElementById('intel-dash-content');
   if (!container) return;
+  try { _renderIntelDashboardInner(container); }
+  catch(e) {
+    console.error('[renderIntelDashboard]', e);
+    container.innerHTML = '<div style="padding:30px;text-align:center;">' +
+      '<div style="font-size:32px;margin-bottom:12px;">⚠️</div>' +
+      '<div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:8px;">Intelligence Dashboard Error</div>' +
+      '<div style="font-size:12px;color:var(--dusty);margin-bottom:16px;">' + e.message + '</div>' +
+      '<button class="btn btn-p" onclick="renderIntelDashboard()">↺ Coba Lagi</button>' +
+      '</div>';
+  }
+}
+function _renderIntelDashboardInner(container) {
 
   // ── Gunakan data terfilter per toko aktif ──
   const jurnalData = typeof getJurnalFiltered === 'function' ? getJurnalFiltered() : DB.jurnal;
@@ -311,6 +338,8 @@ function renderIntelDashboard() {
 // 2. SKU BREAKDOWN ANALISIS
 // ═══════════════════════════════════════════════════════
 let _skuSelectedVar = null;
+
+}
 
 function renderSKUAnalisis() {
   const container = document.getElementById('intel-sku-content');
