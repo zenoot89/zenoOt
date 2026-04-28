@@ -185,16 +185,10 @@ const DataLayer = {
     }
   },
 
-  // Cache lokal (tetap dipakai sebagai fallback offline)
-  saveLocal(data) {
-    try { localStorage.setItem(DB_KEY, JSON.stringify(data)); } catch(e) {}
-  },
-  loadLocal() {
-    try { const raw = localStorage.getItem(DB_KEY); return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
-  },
-  clearLocal() {
-    try { localStorage.removeItem(DB_KEY); } catch(e) {}
-  }
+  // localStorage dinonaktifkan — pure Supabase
+  saveLocal(data) { /* disabled */ },
+  loadLocal() { return null; },
+  clearLocal() { /* disabled */ }
 };
 
 
@@ -223,10 +217,9 @@ function setCloudStatus(ok) {
 function setBackupMode(on) { _backupModeActive = on; }
 
 function saveDB() {
-  DataLayer.saveLocal(DB);
   const ind = document.getElementById('save-indicator');
   if (ind) {
-    ind.textContent = _cloudConnected ? '☁️ Menyimpan...' : '💾 Cache lokal';
+    ind.textContent = '☁️ Menyimpan...';
     ind.style.display = 'block';
     clearTimeout(window._saveTimer);
     window._saveTimer = setTimeout(() => { ind.style.display='none'; }, 2500);
@@ -284,23 +277,11 @@ async function loadDB() {
         if (saved.channel) DB.channel = saved.channel;
         _normalizeJurnalChannel();
         recalcKeluar();
-        DataLayer.saveLocal(DB);
         setCloudStatus(true);
         hideLoadingOverlay(); return;
       }
     } catch(e) { console.warn('Cloud load gagal:', e.message); }
     setCloudStatus(false); hideLoadingOverlay();
-  }
-  const saved = DataLayer.loadLocal();
-  if (saved) {
-    if (saved.produk)  DB.produk  = saved.produk;
-    if (saved.stok)    DB.stok    = saved.stok;
-    if (saved.jurnal)  DB.jurnal  = saved.jurnal;
-    if (saved.restock) DB.restock = saved.restock;
-    if (saved.channel) DB.channel = saved.channel;
-    _normalizeJurnalChannel();
-    recalcKeluar();
-    setCloudStatus(false);
   }
 }
 
@@ -320,7 +301,6 @@ function _applyCloudData(d) {
   if (d.jurnal)  DB.jurnal  = d.jurnal;
   if (d.restock) DB.restock = d.restock;
   if (d.channel) DB.channel = d.channel;
-  try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); } catch(e) {}
   setCloudStatus(true);
   const p = _currentPage;
   if      (p==='dashboard' && typeof renderDashboard==='function') renderDashboard();
@@ -1597,6 +1577,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
 // Main init
 initDate();
+// Hapus cache localStorage lama — pure Supabase
+try { localStorage.removeItem(DB_KEY); } catch(e) {}
 (async () => {
   await loadDB();
   await cleanChannelData();
