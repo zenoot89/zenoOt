@@ -1189,19 +1189,3 @@ html{scroll-behavior:smooth;}
   background: var(--cream, #F5F0E8);
   box-shadow: 0 2px 4px rgba(0,0,0,.06);
 }
-/* Filter bar sticky */
-#toko-sticky-bar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--cream, #F5F0E8);
-  padding: 10px 0 8px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid rgba(0,0,0,.07);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: box-shadow .2s;
-}
-#toko-sticky-bar.scrolled {
-  box-shadow: 0 3px 12px rgba(0,0,0,.10);
-}
