@@ -298,6 +298,9 @@ function renderIntelDashboard() {
       </button>
     </div>
   `;
+
+  // ── Render AI Drawer di atas semua konten ──
+  renderAIDrawer();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1348,9 +1351,485 @@ function calcCashflow() {
 }
 
 // ═══════════════════════════════════════════════════════
+// AI GEMINI — Config, Parser Shopee, Drawer, Briefing
+// ═══════════════════════════════════════════════════════
+
+// ── State global ──
+window._geminiKey     = null;   // diisi setelah fetch Supabase
+window._shopeeData    = null;   // hasil parse file Shopee
+window._aiResult      = null;   // cache hasil briefing AI terakhir
+window._aiDrawerOpen  = false;
+
+// ── Supabase helpers untuk app_config ──
+async function _configGet(key) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/app_config?key=eq.${encodeURIComponent(key)}&select=value`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows.length ? rows[0].value : null;
+  } catch { return null; }
+}
+
+async function _configSet(key, value) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/app_config?on_conflict=key`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify([{ key, value }])
+    });
+  } catch {}
+}
+
+// ── Load Gemini key dari Supabase saat app init ──
+async function loadGeminiKey() {
+  window._geminiKey = await _configGet('gemini_api_key');
+}
+
+// ── Parse file Excel Shopee (semua sheet relevan) ──
+async function parseShopeeExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        // Pakai SheetJS yang sudah tersedia global via CDN di index.html
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+
+        const result = {
+          periodeFile: file.name.match(/(\d{8})_(\d{8})/)?.[0] || 'unknown',
+          uploadedAt: new Date().toISOString(),
+          performa: [],       // Sheet 1 — parent rows only
+          belumKompetitif: [], // Sheet 3
+          sudahKompetitif: [], // Sheet 4
+          rekomenIklan: [],   // Sheet 5 & 6
+        };
+
+        // ── SHEET 1: Produk dengan Performa Terbaik (parent rows only) ──
+        const ws1 = wb.Sheets[wb.SheetNames[0]];
+        if (ws1) {
+          const rows = XLSX.utils.sheet_to_json(ws1, { defval: null });
+          rows.forEach(r => {
+            // Parent row: kolom "Kode Variasi" (index 3) = '-' atau null
+            const isParent = !r['Kode Variasi'] || r['Kode Variasi'] === '-';
+            if (!isParent) return;
+            const pct = v => parseFloat(String(v||'0').replace(',','.').replace('%','')) || 0;
+            result.performa.push({
+              skuInduk:       r['SKU Induk'] || r['Produk'] || '',
+              produk:         String(r['Produk'] || '').slice(0, 60),
+              penjualan:      Number(String(r['Total Penjualan (Pesanan Dibuat) (IDR)']||'0').replace(/\./g,'').replace(',','.')) || 0,
+              penjualanSiap:  Number(String(r['Penjualan (Pesanan Siap Dikirim) (IDR)']||'0').replace(/\./g,'').replace(',','.')) || 0,
+              views:          Number(r['Jumlah Produk Dilihat']) || 0,
+              klik:           Number(r['Produk Diklik']) || 0,
+              ctr:            pct(r['Persentase Klik']),
+              konversi:       pct(r['Tingkat Konversi Pesanan (Pesanan Dibuat)']),
+              pesananDibuat:  Number(r['Pesanan Dibuat']) || 0,
+              pesananSiap:    Number(r['Pesanan Siap Dikirim']) || 0,
+              keranjang:      Number(r['Pengunjung Produk (Menambahkan Produk ke Keranjang)']) || 0,
+              keranjangProd:  Number(r['Dimasukkan ke Keranjang (Produk)']) || 0,
+              konvKeranjang:  pct(r['Tingkat Konversi Produk Dimasukkan ke Keranjang']),
+              bounceRate:     pct(r['Tingkat Pengunjung Melihat Tanpa Membeli']),
+              repeatRate:     pct(r['Tingkat Pesanan Berulang (Pesanan Dibuat)']),
+              cancelRate:     (() => {
+                const d = Number(r['Pesanan Dibuat']) || 0;
+                const s = Number(r['Pesanan Siap Dikirim']) || 0;
+                return d > 0 ? +((( d - s) / d) * 100).toFixed(1) : 0;
+              })(),
+            });
+          });
+        }
+
+        // ── SHEET 3: Harga Belum Kompetitif ──
+        const ws3 = wb.Sheets[wb.SheetNames[2]];
+        if (ws3) {
+          const rows = XLSX.utils.sheet_to_json(ws3, { defval: null });
+          rows.forEach(r => {
+            result.belumKompetitif.push({
+              produk:   String(r['Produk'] || '').slice(0, 60),
+              harga:    r['Harga Saat Ini'] || 0,
+              variasi:  r['Variasi Belum Kompetitif'] || '',
+              views:    Number(r['Jumlah Produk Dilihat']) || 0,
+              konversi: parseFloat(String(r['Tingkat Konversi Pesanan (Pesanan Dibuat)']||'0').replace(',','.')) || 0,
+            });
+          });
+        }
+
+        // ── SHEET 4: Harga Sudah Kompetitif ──
+        const ws4 = wb.Sheets[wb.SheetNames[3]];
+        if (ws4) {
+          const rows = XLSX.utils.sheet_to_json(ws4, { defval: null });
+          rows.forEach(r => {
+            result.sudahKompetitif.push({
+              produk:  String(r['Produk'] || '').slice(0, 60),
+              harga:   r['Harga Saat Ini'] || 0,
+              variasi: r['Variasi Terbaik'] || '',
+            });
+          });
+        }
+
+        // ── SHEET 5 + 6: Tingkatkan dengan Iklan & Iklankan ──
+        [4, 5].forEach(idx => {
+          const ws = wb.Sheets[wb.SheetNames[idx]];
+          if (!ws) return;
+          const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
+          rows.forEach(r => {
+            result.rekomenIklan.push({
+              produk:   String(r['Produk'] || '').slice(0, 60),
+              penjualan: Number(String(r['Total Penjualan (Pesanan Dibuat) (IDR)']||'0').replace(/\./g,'')) || 0,
+              views:     Number(r['Jumlah Produk Dilihat']) || 0,
+              konversi:  parseFloat(String(r['Tingkat Konversi Pesanan (Pesanan Dibuat)']||'0').replace(',','.')) || 0,
+              sheet:     wb.SheetNames[idx],
+            });
+          });
+        });
+
+        resolve(result);
+      } catch(err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ── Render Collapsible AI Drawer di atas dashboard ──
+function renderAIDrawer() {
+  const existing = document.getElementById('ai-gemini-drawer');
+  if (existing) return; // sudah ada, tidak re-render
+
+  const container = document.getElementById('intel-dash-content');
+  if (!container) return;
+
+  const drawer = document.createElement('div');
+  drawer.id = 'ai-gemini-drawer';
+  drawer.style.cssText = 'margin-bottom:18px;border:1.5px solid #C9A84C;border-radius:14px;overflow:hidden;background:#fffdf7;';
+
+  drawer.innerHTML = `
+    <!-- Header drawer — selalu tampil, bisa diklik untuk toggle -->
+    <div id="ai-drawer-header" onclick="toggleAIDrawer()"
+      style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;background:linear-gradient(90deg,#5C3D2E08,#C9A84C15);user-select:none;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">✨</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:#5C3D2E;">AI Briefing — Powered by Gemini</div>
+          <div id="ai-drawer-status" style="font-size:11px;color:var(--dusty);margin-top:1px;">
+            ${window._shopeeData ? `Data Shopee: ${window._shopeeData.periodeFile} · ${window._shopeeData.performa.length} produk` : 'Belum ada data Shopee — upload file untuk mulai'}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${window._shopeeData && window._geminiKey ? `<button onclick="event.stopPropagation();runGeminiBriefing()" class="btn btn-p btn-sm" style="font-size:11px;padding:5px 12px;">🚀 Generate Briefing</button>` : ''}
+        <span id="ai-drawer-chevron" style="font-size:16px;color:#C9A84C;transition:transform 0.2s;">${window._aiDrawerOpen ? '▲' : '▼'}</span>
+      </div>
+    </div>
+
+    <!-- Body drawer — collapsible -->
+    <div id="ai-drawer-body" style="display:${window._aiDrawerOpen ? 'block' : 'none'};padding:16px 18px;border-top:1px solid #C9A84C30;">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+
+        <!-- Upload File Shopee -->
+        <div style="background:white;border:1px dashed #C9A84C;border-radius:10px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;color:#5C3D2E;margin-bottom:8px;">📂 Upload File Shopee</div>
+          <div style="font-size:10px;color:var(--dusty);margin-bottom:8px;">File: <code>parentskudetail_*.xlsx</code> dari Seller Center</div>
+          <input type="file" id="shopee-file-input" accept=".xlsx"
+            onchange="handleShopeeFileUpload(this)"
+            style="display:none;">
+          <button onclick="document.getElementById('shopee-file-input').click()"
+            class="btn btn-p btn-sm" style="width:100%;font-size:11px;">
+            ${window._shopeeData ? '🔄 Ganti File' : '📤 Pilih File .xlsx'}
+          </button>
+          ${window._shopeeData ? `
+            <div style="margin-top:8px;font-size:10px;color:#2D6A4F;background:#EFF7F3;padding:6px 8px;border-radius:6px;">
+              ✅ ${window._shopeeData.performa.length} produk · ${window._shopeeData.belumKompetitif.length} harga perlu review
+            </div>` : ''}
+          <div id="shopee-upload-status" style="margin-top:6px;font-size:10px;color:var(--dusty);"></div>
+        </div>
+
+        <!-- Gemini API Key -->
+        <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div style="font-size:11px;font-weight:700;color:#5C3D2E;margin-bottom:8px;">🔑 Gemini API Key</div>
+          <div style="font-size:10px;color:var(--dusty);margin-bottom:8px;">Gratis di <a href="https://aistudio.google.com" target="_blank" style="color:#C9A84C;">aistudio.google.com</a></div>
+          <div style="display:flex;gap:6px;">
+            <input type="password" id="gemini-key-input" placeholder="AIza..."
+              value="${window._geminiKey || ''}"
+              style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:monospace;">
+            <button onclick="saveGeminiKey()" class="btn btn-p btn-sm" style="font-size:11px;white-space:nowrap;">Simpan</button>
+          </div>
+          <div id="gemini-key-status" style="margin-top:6px;font-size:10px;color:${window._geminiKey ? '#2D6A4F' : 'var(--dusty)'};">
+            ${window._geminiKey ? '✅ API Key tersimpan di Supabase' : 'Belum ada API Key'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Hasil AI Briefing -->
+      <div id="ai-briefing-result">
+        ${window._aiResult ? _renderAIResultHTML(window._aiResult) : `
+          <div style="text-align:center;padding:20px;color:var(--dusty);font-size:12px;">
+            ${!window._geminiKey ? '⚙️ Masukkan Gemini API Key dulu' :
+              !window._shopeeData ? '📂 Upload file Shopee dulu' :
+              '✨ Klik "Generate Briefing" untuk memulai analisis AI'}
+          </div>`}
+      </div>
+    </div>
+  `;
+
+  // Sisipkan SEBELUM konten dashboard yang sudah ada
+  container.insertBefore(drawer, container.firstChild);
+}
+
+function toggleAIDrawer() {
+  window._aiDrawerOpen = !window._aiDrawerOpen;
+  const body = document.getElementById('ai-drawer-body');
+  const chevron = document.getElementById('ai-drawer-chevron');
+  if (body) body.style.display = window._aiDrawerOpen ? 'block' : 'none';
+  if (chevron) chevron.textContent = window._aiDrawerOpen ? '▲' : '▼';
+}
+
+// ── Handle upload file Shopee ──
+async function handleShopeeFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('shopee-upload-status');
+  if (statusEl) statusEl.textContent = '⏳ Memproses file...';
+
+  try {
+    // Cek SheetJS tersedia
+    if (typeof XLSX === 'undefined') {
+      throw new Error('Library SheetJS belum dimuat. Tambahkan CDN SheetJS di index.html.');
+    }
+    window._shopeeData = await parseShopeeExcel(file);
+
+    // Update status
+    if (statusEl) statusEl.innerHTML = `<span style="color:#2D6A4F;">✅ ${window._shopeeData.performa.length} produk berhasil diparsing</span>`;
+
+    // Re-render drawer biar info terupdate
+    const drawer = document.getElementById('ai-gemini-drawer');
+    if (drawer) drawer.remove();
+    window._aiDrawerOpen = true; // tetap buka
+    renderAIDrawer();
+
+    if (typeof toast === 'function') toast(`✅ File Shopee berhasil diupload — ${window._shopeeData.performa.length} produk`);
+  } catch(err) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#C0392B;">❌ Gagal: ${err.message}</span>`;
+    if (typeof toast === 'function') toast('❌ Gagal parsing file Shopee', 'err');
+  }
+}
+
+// ── Simpan Gemini API Key ke Supabase ──
+async function saveGeminiKey() {
+  const input = document.getElementById('gemini-key-input');
+  const statusEl = document.getElementById('gemini-key-status');
+  if (!input || !input.value.trim()) return;
+
+  const key = input.value.trim();
+  if (statusEl) statusEl.textContent = '⏳ Menyimpan...';
+
+  await _configSet('gemini_api_key', key);
+  window._geminiKey = key;
+
+  if (statusEl) {
+    statusEl.style.color = '#2D6A4F';
+    statusEl.textContent = '✅ API Key tersimpan di Supabase';
+  }
+
+  // Re-render drawer untuk tampilkan tombol Generate
+  const drawer = document.getElementById('ai-gemini-drawer');
+  if (drawer) drawer.remove();
+  window._aiDrawerOpen = true;
+  renderAIDrawer();
+
+  if (typeof toast === 'function') toast('✅ Gemini API Key tersimpan!');
+}
+
+// ── Render hasil AI sebagai HTML ──
+function _renderAIResultHTML(result) {
+  const ts = result.generatedAt ? new Date(result.generatedAt).toLocaleString('id-ID') : '';
+  return `
+    <div style="border-top:1px solid #C9A84C30;padding-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:700;color:#5C3D2E;">✨ Hasil Analisis AI</div>
+        <div style="font-size:10px;color:var(--dusty);">${ts}</div>
+      </div>
+
+      <!-- Narasi Ringkas -->
+      ${result.narasi ? `
+        <div style="background:linear-gradient(135deg,#fffdf7,#fff8e7);border:1px solid #C9A84C40;border-radius:10px;padding:14px;margin-bottom:12px;font-size:13px;line-height:1.7;color:#3a3a3a;">
+          ${result.narasi}
+        </div>` : ''}
+
+      <!-- Action Items -->
+      ${result.actions && result.actions.length ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:#5C3D2E;margin-bottom:8px;">🚀 Action Items Hari Ini</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${result.actions.map((a, i) => `
+              <div style="display:flex;align-items:flex-start;gap:10px;background:white;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+                <span style="background:#5C3D2E;color:white;border-radius:50%;width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px;">${i+1}</span>
+                <span style="font-size:12px;color:#333;line-height:1.5;">${a}</span>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
+
+      <!-- Alert dari AI -->
+      ${result.alerts && result.alerts.length ? `
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#5C3D2E;margin-bottom:8px;">⚠️ Perhatian Khusus</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${result.alerts.map(a => `
+              <div style="display:flex;align-items:flex-start;gap:8px;background:#FEF3C7;border:1px solid #C9A84C50;border-radius:8px;padding:9px 12px;">
+                <span style="font-size:14px;">${a.icon || '⚠️'}</span>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#92400E;">${a.title}</div>
+                  <div style="font-size:11px;color:#78350F;margin-top:2px;">${a.detail}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
+
+      <div style="margin-top:10px;text-align:right;">
+        <button onclick="runGeminiBriefing()" class="btn btn-p btn-sm" style="font-size:11px;">🔄 Refresh Briefing</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── Kirim data ke Gemini & parse hasilnya ──
+async function runGeminiBriefing() {
+  if (!window._geminiKey) {
+    if (typeof toast === 'function') toast('⚙️ Masukkan Gemini API Key dulu', 'err');
+    return;
+  }
+  if (!window._shopeeData) {
+    if (typeof toast === 'function') toast('📂 Upload file Shopee dulu', 'err');
+    return;
+  }
+
+  const resultEl = document.getElementById('ai-briefing-result');
+  if (resultEl) resultEl.innerHTML = `
+    <div style="text-align:center;padding:24px;color:var(--dusty);">
+      <div style="font-size:24px;margin-bottom:8px;">🤖</div>
+      <div style="font-size:13px;font-weight:600;color:#5C3D2E;">Gemini sedang menganalisis data toko kamu...</div>
+      <div style="font-size:11px;margin-top:4px;">Biasanya 5–15 detik</div>
+    </div>`;
+
+  // ── Susun snapshot data untuk dikirim ke Gemini ──
+  const sd = window._shopeeData;
+
+  // Top 5 produk berdasarkan penjualan
+  const top5 = [...sd.performa].sort((a,b) => b.penjualan - a.penjualan).slice(0, 5);
+
+  // Produk dengan CTR rendah tapi views tinggi
+  const lowCTR = sd.performa.filter(p => p.views > 500 && p.ctr < 2).slice(0, 3);
+
+  // Abandon cart tinggi (keranjang >> beli)
+  const highAbandon = sd.performa
+    .filter(p => p.keranjang > 0 && p.pesananDibuat > 0 && p.keranjang / p.pesananDibuat > 3)
+    .sort((a,b) => (b.keranjang/b.pesananDibuat) - (a.keranjang/a.pesananDibuat))
+    .slice(0, 3);
+
+  // Cancel rate tinggi
+  const highCancel = sd.performa.filter(p => p.cancelRate > 10).slice(0, 3);
+
+  const prompt = `Kamu adalah konsultan bisnis e-commerce Shopee yang berpengalaman. 
+Analisis data toko ZENOOT berikut dan buat Morning Briefing dalam Bahasa Indonesia.
+
+PERIODE DATA: ${sd.periodeFile}
+
+## TOP 5 PRODUK (berdasarkan penjualan):
+${top5.map((p,i) => `${i+1}. ${p.skuInduk} — Rp ${p.penjualan.toLocaleString('id-ID')} | CTR: ${p.ctr}% | Konversi: ${p.konversi}% | Cancel: ${p.cancelRate}% | Repeat: ${p.repeatRate}%`).join('\n')}
+
+## PRODUK VIEWS TINGGI TAPI CTR RENDAH (<2%):
+${lowCTR.length ? lowCTR.map(p => `- ${p.skuInduk}: ${p.views} views, CTR hanya ${p.ctr}%`).join('\n') : 'Tidak ada'}
+
+## ABANDON CART TINGGI (keranjang >> beli):
+${highAbandon.length ? highAbandon.map(p => `- ${p.skuInduk}: ${p.keranjang} ke keranjang, hanya ${p.pesananDibuat} beli (ratio ${(p.keranjang/Math.max(p.pesananDibuat,1)).toFixed(1)}x)`).join('\n') : 'Tidak ada'}
+
+## CANCEL RATE TINGGI (>10%):
+${highCancel.length ? highCancel.map(p => `- ${p.skuInduk}: cancel ${p.cancelRate}%`).join('\n') : 'Tidak ada'}
+
+## HARGA BELUM KOMPETITIF:
+${sd.belumKompetitif.length ? sd.belumKompetitif.slice(0,5).map(p => `- ${p.produk.slice(0,40)}`).join('\n') : 'Semua harga sudah kompetitif'}
+
+## REKOMENDASI IKLAN SHOPEE:
+${sd.rekomenIklan.length ? `${sd.rekomenIklan.length} produk direkomendasikan untuk diiklankan` : 'Tidak ada rekomendasi'}
+
+---
+Buat output dalam format JSON seperti ini (HANYA JSON, tanpa teks lain):
+{
+  "narasi": "2-3 kalimat ringkasan performa toko bulan ini, bahasa santai tapi profesional",
+  "actions": [
+    "action item 1 yang spesifik dan bisa langsung dikerjakan hari ini",
+    "action item 2",
+    "action item 3",
+    "action item 4 (maksimal 5)"
+  ],
+  "alerts": [
+    { "icon": "🚨", "title": "Judul alert singkat", "detail": "Penjelasan 1 kalimat kenapa ini perlu diperhatikan" }
+  ]
+}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${window._geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 1024 }
+        })
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Parse JSON dari response — bersihkan markdown fence jika ada
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    window._aiResult = { ...parsed, generatedAt: new Date().toISOString() };
+
+    if (resultEl) resultEl.innerHTML = _renderAIResultHTML(window._aiResult);
+
+    // Update header drawer
+    const headerBtn = document.querySelector('#ai-drawer-header button');
+    if (!headerBtn) {
+      // Re-render drawer header area
+      const drawerStatus = document.getElementById('ai-drawer-status');
+      if (drawerStatus) drawerStatus.textContent = `Data Shopee: ${sd.periodeFile} · Briefing dibuat ${new Date().toLocaleTimeString('id-ID')}`;
+    }
+
+  } catch(err) {
+    if (resultEl) resultEl.innerHTML = `
+      <div style="background:#FEE2E2;border:1px solid #C0392B30;border-radius:8px;padding:12px;font-size:12px;color:#C0392B;">
+        ❌ Gagal generate briefing: <strong>${err.message}</strong><br>
+        <span style="font-size:11px;color:#888;margin-top:4px;display:block;">Cek API key dan koneksi internet, lalu coba lagi.</span>
+      </div>`;
+    if (typeof toast === 'function') toast('❌ Gemini error: ' + err.message, 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
 window.addEventListener('load', () => {
+  // Load Gemini key dari Supabase (background, non-blocking)
+  loadGeminiKey();
+
   // Render intel dashboard jika halaman intel aktif
   const activePage = document.querySelector('.page.active');
   if (activePage && activePage.id === 'page-intel-dashboard') {
