@@ -665,9 +665,14 @@ html{scroll-behavior:smooth;}
 
   /* Cloud indicator — sudah diset di blok sidebar mobile di atas */
 
-  /* Form rows stack */
-  .form-row{flex-direction:column;gap:10px;}
-  .fg{min-width:100%;}
+  /* Form rows — default tetap 2 kolom di mobile, kecuali explicit stack */
+  .form-row{flex-wrap:wrap;gap:10px;}
+  .fg{min-width:calc(50% - 5px);flex:1 1 calc(50% - 5px);}
+  /* Kolom single (full width) */
+  .fg.full{min-width:100%;flex:1 1 100%;}
+  /* Modal form — stack di layar kecil */
+  .modal .form-row{flex-direction:column;gap:8px;}
+  .modal .fg{min-width:100%;}
 
   /* Topbar buttons smaller */
   .btn-sm{padding:6px 10px;font-size:11px;}
@@ -1228,3 +1233,52 @@ html{scroll-behavior:smooth;}
 }
 .produk-var-row:hover td { background: #fafafa; }
 .produk-row-selected td { background: #fff8f0 !important; }
+
+/* ── Mobile: Jurnal filter bar ── */
+@media(max-width:900px){
+  /* Stat cards jurnal — 2x2 grid */
+  #page-jurnal .grid4{grid-template-columns:1fr 1fr!important;}
+  #page-jurnal .stat-val{font-size:18px!important;}
+
+  /* Filter bar jurnal — wrap rapi */
+  #page-jurnal > div[style*="display:flex"]{
+    flex-wrap:wrap!important;
+    gap:8px!important;
+  }
+  #j-search{width:100%!important;max-width:100%!important;box-sizing:border-box;}
+  #btn-sync-jurnal{flex-shrink:0;}
+  #j-fil-ch{width:100%!important;}
+  #j-fil-from, #j-fil-to{flex:1;min-width:0;}
+
+  /* Modal tambah transaksi — pertahankan 2 kolom */
+  #modal-tambah-jurnal .form-row{flex-direction:row!important;flex-wrap:wrap;gap:8px;}
+  #modal-tambah-jurnal .fg{min-width:calc(50% - 4px)!important;flex:1 1 calc(50% - 4px)!important;}
+
+  /* Kelola produk filter */
+  #page-produk > div:first-child{flex-wrap:wrap!important;}
+  #page-produk .search-bar{width:100%!important;max-width:100%!important;}
+
+  /* Toko Manager cards */
+  #toko-cards{grid-template-columns:1fr!important;}
+
+  /* Price list table */
+  #page-harga table{min-width:550px;}
+
+  /* Restock grid */
+  .restock-grid{grid-template-columns:1fr!important;}
+}
+
+@media(max-width:480px){
+  /* Stat cards jurnal — full stack di hp kecil */
+  #page-jurnal .grid4{grid-template-columns:1fr 1fr!important;}
+  #page-jurnal .stat{padding:12px 14px!important;}
+  #page-jurnal .stat-val{font-size:16px!important;}
+
+  /* Modal — full width */
+  .modal{width:95vw!important;padding:16px!important;}
+  .modal-hd{font-size:14px!important;}
+
+  /* Form modal tetap 2 kolom */
+  #modal-tambah-jurnal .form-row{flex-direction:row!important;}
+  #modal-tambah-jurnal .fg{min-width:calc(50% - 4px)!important;}
+}

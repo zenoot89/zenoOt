@@ -239,35 +239,16 @@
     <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
   </div>
 
-  <!-- Filter Bar -->
-  <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
-
-    <!-- KIRI: Cari, Sync — 1 baris -->
-    <input class="search-bar" id="j-search" style="margin:0;width:120px;height:36px;padding:0 10px;font-size:12px;flex-shrink:0;" placeholder="🔍 Cari..." oninput="filterJurnal(this.value)">
+  <!-- Filter Bar — mobile friendly -->
+  <div class="jurnal-filter-bar" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center;">
+    <input class="search-bar" id="j-search" style="margin:0;flex:1;min-width:100px;max-width:160px;height:36px;padding:0 10px;font-size:12px;" placeholder="🔍 Cari..." oninput="filterJurnal(this.value)">
     <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal" style="height:36px;padding:0 12px;flex-shrink:0;">🔄 Sync</button>
-
-    <!-- Spacer -->
-    <div style="flex:1;"></div>
-
-    <!-- KANAN: 2 baris — [Channel][Tambah] atas / [Dari–Reset–Sampai][Tambah] bawah -->
-    <div style="display:flex;gap:6px;align-items:stretch;flex-shrink:0;">
-
-      <!-- Kolom Channel + Tanggal+Reset (2 baris) -->
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <select class="sel" id="j-fil-ch" style="height:36px;width:200px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;flex-shrink:0;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);">↺ Reset</button>
-          <input class="inp" type="date" id="j-fil-from" style="height:36px;width:95px;" onchange="filterJurnalDate()">
-          <span style="color:var(--dusty);font-size:12px;font-weight:600;">–</span>
-          <input class="inp" type="date" id="j-fil-to" style="height:36px;width:95px;" onchange="filterJurnalDate()">
-        </div>
-      </div>
-
-      <!-- Tombol Tambah — tinggi penuh 2 baris -->
-      <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="align-self:stretch;padding:0 18px;white-space:nowrap;">➕ Tambah</button>
-
-    </div>
-
+    <select class="sel" id="j-fil-ch" style="height:36px;flex:1;min-width:130px;max-width:200px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
+    <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;flex-shrink:0;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);">↺ Reset</button>
+    <input class="inp" type="date" id="j-fil-from" style="height:36px;flex:1;min-width:110px;" onchange="filterJurnalDate()">
+    <span style="color:var(--dusty);font-size:12px;font-weight:600;flex-shrink:0;">–</span>
+    <input class="inp" type="date" id="j-fil-to" style="height:36px;flex:1;min-width:110px;" onchange="filterJurnalDate()">
+    <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 18px;white-space:nowrap;flex-shrink:0;">➕ Tambah</button>
   </div>
 
   <div class="tbl-wrap">
