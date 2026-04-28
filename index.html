@@ -69,19 +69,6 @@
       </div>
     </div>
 
-    <!-- AI STRATEGY — Accordion -->
-    <div class="nav-accordion">
-      <div class="nav-acc-header open" onclick="toggleAcc(this)">
-        <div class="nav-acc-label"><span>🤖</span><span>AI Strategy</span></div>
-        <span class="nav-acc-chevron"></span>
-      </div>
-      <div class="nav-acc-body open">
-        <div class="nav-item" onclick="goTE('te-upload',this);document.getElementById('ph').innerHTML='AI Strategy <span>Upload</span>'"><span>📤</span><span>Upload Data</span></div>
-        <div class="nav-item" onclick="goTE('te-blueprint',this);document.getElementById('ph').innerHTML='AI Strategy <span>Blueprint</span>'"><span>📋</span><span>Blueprint</span></div>
-        <div class="nav-item" onclick="goTE('te-profit',this);document.getElementById('ph').innerHTML='AI Strategy <span>Profit Guard</span>'"><span>🛡️</span><span>Profit Guard</span></div>
-        <div class="nav-item nav-item-action" onclick="openAISettings()"><span>⚙️</span><span>AI Settings (API Key)</span></div>
-      </div>
-    </div>
 
     <!-- TOOLS — Accordion -->
     <div class="nav-accordion">
@@ -699,123 +686,6 @@
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════════════
-     PAGE: AI STRATEGY — UPLOAD
-════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-te-upload">
-  <div class="card">
-    <div class="card-title">🤖 AI Strategy &amp; Blueprint — Upload Data Shopee</div>
-    <p style="font-size:13px;color:var(--dusty);margin-bottom:16px;line-height:1.7;">
-      Upload file <strong>Laporan Performa Produk</strong> atau <strong>Pesanan Selesai</strong> dari Shopee Seller Center.
-      Engine akan otomatis parsing, membandingkan dengan stok internal, dan menghasilkan Action Plan.
-    </p>
-    <div class="grid2" style="margin-bottom:16px;">
-      <div>
-        <div class="drop-zone te-drop-zone" data-type="performa">
-          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleTEFileInput(this,'performa')">
-          <div class="drop-zone-icon">📊</div>
-          <div class="drop-zone-title">Performa Produk / SKU</div>
-          <div class="drop-zone-sub">parentskudetail.xlsx atau .csv dari Shopee</div>
-        </div>
-        <p style="font-size:11px;color:var(--dusty);margin-top:8px;">File ini berisi: tayangan, klik, produk terjual, per SKU/variasi</p>
-      </div>
-      <div>
-        <!-- Re-use data pesanan dari tab Upload & Data -->
-        <div style="border:2px solid var(--sage);border-radius:16px;padding:28px 24px;background:#f0fdf4;text-align:center;">
-          <div style="font-size:2em;margin-bottom:8px;">🔗</div>
-          <div style="font-weight:700;font-size:14px;color:var(--sage);margin-bottom:6px;">Data Pesanan Otomatis</div>
-          <div id="te-reuse-status" style="font-size:12px;color:var(--dusty);margin-bottom:12px;">Diambil dari tab <strong>Upload &amp; Data → Pesanan Selesai</strong></div>
-          <button class="btn btn-s btn-sm" onclick="if(reuseRKDataForTE()){runTrendAnalysis();}else{toast('Upload Pesanan Selesai di tab Analisis → Upload & Data dulu!','err');}">
-            🔄 Ambil Data Pesanan
-          </button>
-        </div>
-        <p style="font-size:11px;color:var(--dusty);margin-top:8px;">Data qty & SKU dari pesanan yang sudah diupload di Rasio Keuangan</p>
-      </div>
-    </div>
-    <!-- Settings — Auto dari DB -->
-    <div style="background:var(--cream);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">⚙️ Financial Guard Settings</div>
-      <div id="te-ads-info" style="font-size:12px;color:var(--sage);margin-bottom:10px;padding:8px 12px;background:var(--success-bg);border-radius:8px;display:none;"></div>
-      <div class="form-row">
-        <div class="fg">
-          <label class="lbl">Admin Fee Shopee (%) — override jika perlu</label>
-          <input class="inp" type="number" id="te-admin-pct" value="8.5" min="0" max="30" step="0.1" placeholder="8.5">
-        </div>
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <button class="btn btn-p btn-full" onclick="updateTESettings()">🔄 Update &amp; Analisis Ulang</button>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--dusty);margin-top:6px;">💡 Budget iklan otomatis diambil dari tab <strong>Rasio Keuangan → Upload & Data</strong> jika sudah diisi.</div>
-    </div>
-    <div id="te-parse-status" class="parse-status"></div>
-    <div style="background:var(--warn-bg);border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;margin-top:10px;line-height:1.7;">
-      <strong>💡 Tips:</strong> Pastikan kolom <strong>"Nomor Referensi SKU"</strong> di file Shopee sama persis dengan <strong>SKU Variasi</strong> di Kelola Produk untuk auto-match HPP dan stok.
-    </div>
-  </div>
-  <!-- Summary Bar -->
-  <div id="te-summary-bar" class="summary-bar" style="display:none;"></div>
-  <!-- SKU Cards -->
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div class="card-title" style="margin:0">📦 Analisis Per SKU</div>
-      <button class="btn btn-s btn-sm" onclick="goTE('te-blueprint',null);document.getElementById('ph').innerHTML='AI Strategy &lt;span&gt;Blueprint&lt;/span&gt;'">📋 Lihat Action Plan →</button>
-    </div>
-    <div id="te-sku-grid" class="sku-grid">
-      <div style="text-align:center;padding:40px;color:var(--dusty);grid-column:1/-1;">Upload file Shopee untuk melihat analisis SKU</div>
-    </div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════════
-     PAGE: AI STRATEGY — BLUEPRINT
-════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-te-blueprint">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-    <div>
-      <div style="font-family:'DM Serif Display',serif;font-size:20px;">📋 Step-by-Step Action Plan</div>
-      <div style="font-size:12px;color:var(--dusty);margin-top:3px;">Generated otomatis dari data Shopee + stok internal</div>
-    </div>
-    <button class="btn btn-o btn-sm" onclick="goTE('te-upload',null);document.getElementById('ph').innerHTML='AI Strategy &lt;span&gt;Upload&lt;/span&gt;'">← Kembali ke Upload</button>
-  </div>
-  <div id="te-action-plan">
-    <div style="text-align:center;padding:40px;color:var(--dusty);">Upload file Shopee di tab sebelumnya untuk generate Action Plan otomatis.</div>
-  </div>
-  <div class="card" style="margin-top:0">
-    <div class="card-title">📊 Detail Analisis SKU</div>
-    <div id="te-sku-grid-2" class="sku-grid"></div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════════
-     PAGE: AI STRATEGY — PROFIT GUARD
-════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-te-profit">
-  <div style="margin-bottom:18px;">
-    <div style="font-family:'DM Serif Display',serif;font-size:20px;">💸 Profit Guard — Real Profit per SKU</div>
-    <div style="font-size:12px;color:var(--dusty);margin-top:3px;">Kalkulasi laba bersih setelah admin fee Shopee, HPP, dan alokasi iklan</div>
-  </div>
-  <div class="alert al-w" style="margin-bottom:16px;">
-    <span>💡</span>
-    <div><strong>Formula:</strong> Real Profit = Harga Jual − HPP − Admin Fee Shopee − (Ads ÷ proporsi penjualan). Item merah = margin &lt; 10%.</div>
-  </div>
-  <div id="te-profit-table">
-    <div style="text-align:center;padding:40px;color:var(--dusty);">Upload file Shopee untuk melihat tabel profit per SKU.</div>
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════════
-     PAGE: DAILY CHECKLIST
-════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-daily">
-  <div class="grid2">
-    <div class="card"><div class="card-title">🌅 Checklist Pagi</div><div id="chk-pagi"></div></div>
-    <div class="card"><div class="card-title">🌙 Checklist Malam</div><div id="chk-malam"></div></div>
-    <div class="card"><div class="card-title">💬 Checklist Chat</div><div id="chk-chat"></div></div>
-    <div class="card"><div class="card-title">📊 Evaluasi Harian</div><div id="chk-eval"></div></div>
-  </div>
-</div>
-
-
 <!-- ══════════════════════════════════════════════
      INTELLIGENCE MODULE PAGES
 ══════════════════════════════════════════════ -->
@@ -1170,8 +1040,7 @@
 <script src="app_core.js"></script>
 <script src="financial_module.js"></script>
 <script src="trend_engine.js"></script>
-<script src="intelligence_module.js"></script>
-<script src="ai_module.js"></script>
 
+<script src="intelligence_module.js"></script>
 </body>
 </html>
