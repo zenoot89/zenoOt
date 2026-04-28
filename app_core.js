@@ -1457,20 +1457,29 @@ function parseImportSheets() {
   document.getElementById('import-summary').innerHTML=`Total: <strong>${importParsedRows.length}</strong> baris · Baru: <strong style="color:var(--sage)">${baru}</strong> · Duplikat: <strong style="color:var(--rust)">${dup}</strong>`;
 }
 function backImportStep1() { document.getElementById('import-step-1').style.display='';document.getElementById('import-step-2').style.display='none'; }
-function doImportSheets() {
+async function doImportSheets() {
   const getCol=(row,field)=>importColMap[field]!==undefined?(row[importColMap[field]]||''):'';
   let added=0,skipped=0;
+  const newRows=[];
   importParsedRows.forEach(row=>{
     const induk=getCol(row,'induk').trim().toUpperCase();const varVal=getCol(row,'var').trim().toUpperCase();
     if (!induk&&!varVal) return;
     if (DB.produk.find(p=>p.var.toUpperCase()===varVal)) { skipped++;return; }
     const hpp=parseFloat(getCol(row,'hpp').replace(/\./g,'').replace(',','.').replace(/[^\d.]/g,''))||0;
     const suplaier=getCol(row,'suplaier').trim().toUpperCase();
-    DB.produk.push({induk,var:varVal,hpp,suplaier,npm:10,jual:0,pasang:0,reseller:0,gm:0}); added++;
+    const prod={induk,var:varVal,hpp,suplaier,npm:10,jual:0,pasang:0,reseller:0,gm:0};
+    DB.produk.push(prod); newRows.push(prod); added++;
   });
   const stokAdded=syncStokFromProduk();
   saveDB(); renderProduk(); renderStok(); closeImportSheets();
-  toast(`✅ ${added} produk diimport, ${stokAdded} entry stok baru!`);
+  if(SUPABASE_URL&&newRows.length){
+    try{
+      await DataLayer._upsert('produk',newRows.map(p=>({var:p.var,induk:p.induk,hpp:p.hpp,suplaier:p.suplaier,status_produk:p.status_produk||'aktif'})),'var');
+      toast(`✅ ${added} produk diimport & sync cloud · ${stokAdded} stok baru!`);
+    }catch(e){toast(`✅ ${added} produk diimport · ⚠️ sync cloud gagal`);}
+  } else {
+    toast(`✅ ${added} produk diimport · ${stokAdded} stok baru!`);
+  }
 }
 
 // ================================================================
