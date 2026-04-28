@@ -507,10 +507,16 @@ async function pushToCloud() {
   const ok = await DataLayer.save(DB);
   setCloudStatus(ok);
   const ind = document.getElementById('save-indicator');
-  if (ind && ok) {
-    ind.textContent='☁️ Tersimpan di Cloud';ind.style.color='var(--sage)';
-    ind.style.display='block';clearTimeout(window._saveTimer);
-    window._saveTimer=setTimeout(()=>{ind.style.display='none';},2000);
+  if (ind) {
+    if (ok) {
+      ind.textContent='Tersimpan di Cloud';ind.style.color='var(--sage)';
+      ind.style.display='block';clearTimeout(window._saveTimer);
+      window._saveTimer=setTimeout(()=>{ind.style.display='none';},2000);
+    } else {
+      ind.textContent='Gagal sync cloud — cek console';ind.style.color='var(--rust)';
+      ind.style.display='block';clearTimeout(window._saveTimer);
+      window._saveTimer=setTimeout(()=>{ind.style.display='none';},4000);
+    }
   }
 }
 
@@ -2130,3 +2136,110 @@ try { localStorage.removeItem(DB_KEY); } catch(e) {}
   if (localStorage.getItem('zenot_sidebar_collapsed')==='1') toggleSidebarCollapse();
   startAutoRefreshHarga(2);
 })();
+
+// ================================================================
+// CHANNEL TAB & ASSIGN PRODUK KE CHANNEL
+// ================================================================
+function goChTab(id, el) {
+  document.querySelectorAll('.ch-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ch-sub').forEach(s=>s.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const sub = document.getElementById('chsub-'+id);
+  if (sub) sub.classList.add('active');
+  if (id === 'assign') renderAssignChannel();
+}
+
+function renderAssignChannel() {
+  const wrap = document.getElementById('ch-assign-wrap');
+  if (!wrap) return;
+  const channels = (DB.channel||[]).filter(c=>c.status==='Aktif');
+  const produk   = DB.produk||[];
+  if (!channels.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dusty);font-size:13px;">Belum ada channel aktif. Tambah channel dulu.</div>';
+    return;
+  }
+  const groups = {};
+  produk.forEach(p=>{ if(!groups[p.induk]) groups[p.induk]=[]; groups[p.induk].push(p); });
+  if (!Object.keys(groups).length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dusty);font-size:13px;">Belum ada produk.</div>';
+    return;
+  }
+  const platformColor = {Shopee:'#ee4d2d',Lazada:'#f57c00','TikTok Shop':'#010101',Offline:'#5a7a6a',Lainnya:'#8c7b6b'};
+  let html = '<div class="tbl-wrap"><table class="ch-assign-table"><thead><tr>';
+  html += '<th style="min-width:200px;text-align:left;">SKU Induk</th>';
+  channels.forEach(ch=>{
+    const col = platformColor[ch.platform]||'#888';
+    html += '<th><div style="color:'+col+';font-size:11px;font-weight:800;">'+ch.nama+'</div>';
+    html += '<div style="font-size:10px;opacity:.7;font-weight:500;">'+ch.platform+'</div></th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  const assign = DB.assignChannel||{};
+  Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).forEach(function(entry){
+    const induk = entry[0], vars = entry[1];
+    html += '<tr class="induk-row">';
+    html += '<td><span style="font-size:13px;">'+induk+'</span>';
+    html += '<span style="font-size:11px;color:var(--dusty);margin-left:8px;">'+vars.length+' varian</span></td>';
+    channels.forEach(function(ch){
+      const checked = assign[induk] ? assign[induk][ch.nama] !== false : true;
+      html += '<td style="text-align:center;">';
+      html += '<label class="ch-toggle">';
+      html += '<input type="checkbox" data-induk="'+induk+'" data-ch="'+ch.nama+'"';
+      html += (checked ? ' checked' : '') + ' onchange="onAssignToggle()">';
+      html += '<div class="ch-toggle-track"></div></label></td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  html += '<div id="ch-assign-unsaved" style="display:none;margin-top:12px;padding:8px 14px;';
+  html += 'background:var(--warn-bg);border-radius:8px;font-size:12px;color:var(--brown);font-weight:600;">';
+  html += 'Ada perubahan belum disimpan</div>';
+  wrap.innerHTML = html;
+}
+
+function onAssignToggle() {
+  const el = document.getElementById('ch-assign-unsaved');
+  if (el) el.style.display = 'block';
+}
+
+async function saveAssignChannel() {
+  const checkboxes = document.querySelectorAll('#ch-assign-wrap input[type=checkbox]');
+  if (!DB.assignChannel) DB.assignChannel = {};
+  checkboxes.forEach(function(cb){
+    const induk = cb.dataset.induk;
+    const ch    = cb.dataset.ch;
+    if (!DB.assignChannel[induk]) DB.assignChannel[induk] = {};
+    DB.assignChannel[induk][ch] = cb.checked;
+  });
+  const btn = document.getElementById('btn-save-assign');
+  if (btn) { btn.disabled=true; btn.textContent='Menyimpan...'; }
+  saveDB();
+  if (btn) { btn.disabled=false; btn.textContent='Simpan Semua'; }
+  const unsaved = document.getElementById('ch-assign-unsaved');
+  if (unsaved) unsaved.style.display = 'none';
+  toast('Assign channel tersimpan!');
+}
+
+// ── Juga fix: renderChannel harus cari di chsub-list ──
+const _origRenderChannel = window.renderChannel;
+window.renderChannel = function() {
+  const body = document.getElementById('channel-body');
+  if (!body) return;
+  const channels = DB.channel||[];
+  const platformColor = {Shopee:'#ee4d2d',Lazada:'#f57c00','TikTok Shop':'#010101',Offline:'#5a7a6a',Lainnya:'#8c7b6b'};
+  if (!channels.length) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--dusty)">Belum ada channel.</td></tr>';
+    return;
+  }
+  body.innerHTML = channels.map(function(c,i){
+    return '<tr>' +
+      '<td class="mono">'+(i+1)+'</td>' +
+      '<td><strong>'+c.nama+'</strong></td>' +
+      '<td><span style="background:'+(platformColor[c.platform]||'#888')+';color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'+c.platform+'</span></td>' +
+      '<td><span class="badge '+(c.status==='Aktif'?'bg':'bd')+'">'+c.status+'</span></td>' +
+      '<td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="toggleChannelStatus('+i+')">Ubah Status</button>' +
+      '<button class="btn btn-d btn-sm" onclick="hapusChannel('+i+')">Hapus</button></td>' +
+    '</tr>';
+  }).join('');
+};

@@ -1282,3 +1282,44 @@ html{scroll-behavior:smooth;}
   #modal-tambah-jurnal .form-row{flex-direction:row!important;}
   #modal-tambah-jurnal .fg{min-width:calc(50% - 4px)!important;}
 }
+
+/* ── Channel Tab ── */
+.ch-tab-bar { display:flex; gap:8px; margin-bottom:18px; border-bottom:1px solid var(--border); padding-bottom:0; }
+.ch-tab {
+  padding:8px 18px; border:none; background:none; cursor:pointer;
+  font-size:13px; font-family:'Outfit',sans-serif; font-weight:600;
+  color:var(--dusty); border-bottom:2px solid transparent; margin-bottom:-1px;
+  transition:all .15s;
+}
+.ch-tab.active { color:var(--brown); border-bottom-color:var(--brown); }
+.ch-sub { display:none; }
+.ch-sub.active { display:block; }
+
+/* ── Assign Table ── */
+.ch-assign-table { width:100%; border-collapse:collapse; }
+.ch-assign-table th {
+  background:var(--card); font-size:11px; text-transform:uppercase;
+  letter-spacing:.8px; color:var(--dusty); font-weight:700;
+  padding:10px 12px; border-bottom:1px solid var(--border);
+  white-space:nowrap; text-align:center;
+}
+.ch-assign-table th:first-child { text-align:left; }
+.ch-assign-table td { padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.ch-assign-table tr.induk-row { background:var(--cream); }
+.ch-assign-table tr.induk-row td { font-weight:700; font-size:13px; color:var(--brown); }
+.ch-assign-table tr:hover { background:var(--success-bg); }
+
+/* Toggle switch */
+.ch-toggle { position:relative; width:38px; height:22px; display:inline-block; }
+.ch-toggle input { opacity:0; width:0; height:0; }
+.ch-toggle-track {
+  position:absolute; inset:0; background:var(--border); border-radius:11px;
+  cursor:pointer; transition:background .2s;
+}
+.ch-toggle input:checked + .ch-toggle-track { background:var(--sage); }
+.ch-toggle-track::after {
+  content:''; position:absolute; width:16px; height:16px;
+  left:3px; top:3px; background:white; border-radius:50%;
+  transition:transform .2s;
+}
+.ch-toggle input:checked + .ch-toggle-track::after { transform:translateX(16px); }

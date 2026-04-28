@@ -444,15 +444,35 @@
      PAGE: CHANNEL
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-channel">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-    <button class="btn btn-p" onclick="openModal('modal-tambah-channel')">➕ Tambah Channel</button>
+
+  <!-- ── Tab Bar ── -->
+  <div class="ch-tab-bar">
+    <button class="ch-tab active" id="chtab-list"   onclick="goChTab('list',this)">📋 Daftar Channel</button>
+    <button class="ch-tab"        id="chtab-assign" onclick="goChTab('assign',this)">🗂️ Assign Produk ke Channel</button>
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Nama</th><th>Platform</th><th>Status</th><th>Aksi</th></tr></thead>
-      <tbody id="channel-body"></tbody>
-    </table>
+
+  <!-- ── Sub: Daftar Channel ── -->
+  <div class="ch-sub active" id="chsub-list">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-p" onclick="openModal('modal-tambah-channel')">➕ Tambah Channel</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nama</th><th>Platform</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="channel-body"></tbody>
+      </table>
+    </div>
   </div>
+
+  <!-- ── Sub: Assign Produk ── -->
+  <div class="ch-sub" id="chsub-assign">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--dusty);">Toggle per SKU Induk — pilih channel mana yang jual produk ini</div>
+      <button class="btn btn-p" id="btn-save-assign" onclick="saveAssignChannel()">💾 Simpan Semua</button>
+    </div>
+    <div id="ch-assign-wrap"></div>
+  </div>
+
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
