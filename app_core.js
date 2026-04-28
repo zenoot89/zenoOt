@@ -1687,32 +1687,20 @@ async function arsipProduk(idx) {
 async function deleteProduk(idx) {
   if (!confirm('Hapus produk "'+DB.produk[idx].var+'"? Data akan dihapus permanen.')) return;
   const varKey = DB.produk[idx].var;
-  // Hapus dari local DB dulu
-  const localIdx = DB.produk.findIndex(p => p.var === varKey);
-  if (localIdx > -1) DB.produk.splice(localIdx, 1);
-  // Juga hapus stok entry-nya
-  const stokIdx = DB.stok.findIndex(s => s.var === varKey);
-  if (stokIdx > -1) DB.stok.splice(stokIdx, 1);
-  // Sync ke Supabase: replace all (delete + insert ulang)
   if (SUPABASE_URL) {
     try {
-      const produkRows = DB.produk.map(p => ({
-        induk:p.induk, var:p.var, hpp:p.hpp||0,
-        suplaier:p.suplaier||'', npm:p.npm||10,
-        jual:p.jual||0, pasang:p.pasang||0,
-        reseller:p.reseller||0, gm:p.gm||0,
-        status_produk:p.status_produk||'aktif',
-        toko:p.toko||'semua'
-      }));
-      await DataLayer._replaceAll('produk', produkRows);
+      await DataLayer._deleteByKey('produk', 'var', varKey);
+      await DataLayer._deleteByKey('stok', 'var', varKey);
     } catch(e) {
       toast('Gagal hapus dari cloud: '+e.message, 'err');
-      // Rollback local — muat ulang dari cloud
-      loadDB().then(() => { renderProduk(); renderHarga(); });
       return;
     }
   }
-  saveDB(); renderProduk(); renderHarga();
+  const localIdx = DB.produk.findIndex(p => p.var === varKey);
+  if (localIdx > -1) DB.produk.splice(localIdx, 1);
+  const stokIdx = DB.stok.findIndex(s => s.var === varKey);
+  if (stokIdx > -1) DB.stok.splice(stokIdx, 1);
+  renderProduk(); renderHarga();
   toast('Produk '+varKey+' dihapus');
 }
 function resetProdukSaja() {
