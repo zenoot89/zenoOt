@@ -1607,6 +1607,7 @@ initDate();
   renderChecks();
   populateJInduk();
   populateRsInduk();
+  if (typeof initSkuPerformaToko === 'function') initSkuPerformaToko();
   if (localStorage.getItem('zenot_sidebar_collapsed')==='1') toggleSidebarCollapse();
   startAutoRefreshHarga(2);
 })();

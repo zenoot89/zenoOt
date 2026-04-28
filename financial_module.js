@@ -618,7 +618,6 @@ function renderRekapTable(){
 window.addEventListener('load', () => {
   loadRekap();
   syncRKHppFromZenot();
-  initSkuPerformaToko();
 });
 
 // ═══ SKU PERFORMA — Upload & Parse parentskudetail ═══
