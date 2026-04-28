@@ -199,6 +199,278 @@ let _saveQueue = null;
 let _backupModeActive = false;
 let _currentPage = 'dashboard';
 
+// ================================================================
+// MULTI-TOKO — State & Manager
+// ================================================================
+window._tokoList  = [];          // [{id, nama, platform, warna}]
+window._tokoAktif = null;        // id toko yang sedang aktif (null = semua)
+
+// ── Default warna per toko ──
+const TOKO_COLORS = ['#5C3D2E','#5A7A6A','#3D7EAA','#C9A84C','#7C3AED'];
+
+// ── Load daftar toko dari Supabase (tabel: toko_list) ──
+async function loadTokoList() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/toko_list?select=*&order=urutan.asc`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    window._tokoList = rows.map((r, i) => ({
+      id:       r.id,
+      nama:     r.nama,
+      platform: r.platform || 'Shopee',
+      warna:    r.warna || TOKO_COLORS[i % TOKO_COLORS.length],
+      urutan:   r.urutan || i + 1,
+    }));
+    // Restore toko aktif dari localStorage
+    const saved = localStorage.getItem('zenot_toko_aktif');
+    if (saved && window._tokoList.find(t => t.id == saved)) {
+      window._tokoAktif = Number(saved);
+    } else if (window._tokoList.length > 0) {
+      window._tokoAktif = window._tokoList[0].id;
+      localStorage.setItem('zenot_toko_aktif', window._tokoAktif);
+    }
+    renderTokoDropdown();
+  } catch(e) {
+    console.warn('[loadTokoList]', e.message);
+  }
+}
+
+// ── Simpan toko baru ke Supabase ──
+async function saveToko(nama, platform, warna) {
+  const urutan = window._tokoList.length + 1;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/toko_list`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify([{ nama, platform, warna, urutan }])
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const rows = await res.json();
+  return rows[0];
+}
+
+// ── Hapus toko dari Supabase ──
+async function deleteToko(id) {
+  await fetch(`${SUPABASE_URL}/rest/v1/toko_list?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+}
+
+// ── Switch toko aktif ──
+function switchToko(id) {
+  window._tokoAktif = id ? Number(id) : null;
+  localStorage.setItem('zenot_toko_aktif', id || '');
+  renderTokoDropdown();
+
+  // Re-render halaman aktif dengan filter baru
+  const p = _currentPage;
+  if      (p === 'dashboard' && typeof renderDashboard   === 'function') renderDashboard();
+  else if (p === 'produk'    && typeof renderProduk      === 'function') renderProduk();
+  else if (p === 'stok'      && typeof renderStok        === 'function') renderStok();
+  else if (p === 'jurnal'    && typeof renderJurnal      === 'function') renderJurnal();
+  else if (p === 'restock'   && typeof renderRestock     === 'function') renderRestock();
+  // Intelligence dashboard
+  if (typeof renderIntelDashboard === 'function' && p === 'intel-dashboard') renderIntelDashboard();
+
+  const tokoNama = id ? (window._tokoList.find(t => t.id == id)?.nama || 'Semua Toko') : 'Semua Toko';
+  if (typeof toast === 'function') toast(`🏪 Beralih ke: ${tokoNama}`);
+}
+
+// ── Helper: get nama toko aktif ──
+function getTokoAktifNama() {
+  if (!window._tokoAktif) return 'Semua Toko';
+  return window._tokoList.find(t => t.id === window._tokoAktif)?.nama || 'Semua Toko';
+}
+
+// ── Helper: filter DB.jurnal sesuai toko aktif ──
+// Field toko di jurnal: j.toko (id toko)
+// Produk punya field toko juga → mapping var → toko_id
+function getJurnalFiltered() {
+  if (!window._tokoAktif) return DB.jurnal;
+  return DB.jurnal.filter(j => {
+    // Cek via field toko di jurnal langsung
+    if (j.toko && Number(j.toko) === window._tokoAktif) return true;
+    // Fallback: cek produk.toko
+    const p = DB.produk.find(x => x.var === j.var);
+    if (p && p.toko && Number(p.toko) === window._tokoAktif) return true;
+    // Jika toko di jurnal = null dan toko aktif = toko pertama → include (legacy data)
+    if (!j.toko && !p?.toko && window._tokoList.length > 0 && window._tokoAktif === window._tokoList[0].id) return true;
+    return false;
+  });
+}
+
+function getProdukFiltered() {
+  if (!window._tokoAktif) return DB.produk;
+  return DB.produk.filter(p => {
+    if (!p.toko || p.toko === 'semua') return true; // produk lama tanpa tag toko
+    return Number(p.toko) === window._tokoAktif;
+  });
+}
+
+// ── Render dropdown toko di topbar ──
+function renderTokoDropdown() {
+  const el = document.getElementById('toko-dropdown-wrap');
+  if (!el) return;
+
+  const toko = window._tokoAktif
+    ? window._tokoList.find(t => t.id === window._tokoAktif)
+    : null;
+  const warna = toko?.warna || '#5C3D2E';
+  const nama  = toko?.nama  || 'Semua Toko';
+
+  el.innerHTML = `
+    <div style="position:relative;display:inline-block;">
+      <button id="toko-dd-btn" onclick="toggleTokoMenu()"
+        style="display:flex;align-items:center;gap:7px;background:white;border:1.5px solid var(--border);
+               border-radius:20px;padding:6px 14px 6px 10px;cursor:pointer;font-family:'Outfit',sans-serif;
+               font-size:12px;font-weight:600;color:var(--charcoal);white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+        <span style="width:9px;height:9px;border-radius:50%;background:${warna};flex-shrink:0;"></span>
+        <span id="toko-dd-label">${nama}</span>
+        <span style="font-size:9px;color:var(--dusty);margin-left:2px;">▼</span>
+      </button>
+      <div id="toko-dd-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;
+           background:white;border:1px solid var(--border);border-radius:12px;
+           box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;z-index:200;overflow:hidden;">
+
+        <!-- Semua Toko -->
+        <div onclick="switchToko(null);toggleTokoMenu()"
+          style="display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;
+                 font-size:12px;font-weight:600;color:var(--charcoal);
+                 background:${!window._tokoAktif?'var(--cream)':'white'};
+                 border-bottom:1px solid var(--border);">
+          <span style="width:9px;height:9px;border-radius:50%;background:#8C7B6B;flex-shrink:0;"></span>
+          Semua Toko
+        </div>
+
+        <!-- List toko -->
+        ${window._tokoList.map(t => `
+          <div onclick="switchToko(${t.id});toggleTokoMenu()"
+            style="display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;
+                   font-size:12px;font-weight:600;color:var(--charcoal);
+                   background:${window._tokoAktif===t.id?'var(--cream)':'white'};">
+            <span style="width:9px;height:9px;border-radius:50%;background:${t.warna};flex-shrink:0;"></span>
+            ${t.nama}
+            <span style="margin-left:auto;font-size:10px;color:var(--dusty);">${t.platform}</span>
+          </div>`).join('')}
+
+        <!-- Tambah Toko -->
+        <div onclick="openModalTambahToko()"
+          style="display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;
+                 font-size:12px;color:var(--dusty);border-top:1px solid var(--border);">
+          <span style="font-size:14px;">＋</span> Tambah Toko
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleTokoMenu() {
+  const menu = document.getElementById('toko-dd-menu');
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  // Tutup saat klik di luar
+  if (!isOpen) {
+    setTimeout(() => {
+      document.addEventListener('click', function _close(e) {
+        if (!document.getElementById('toko-dd-btn')?.contains(e.target) &&
+            !document.getElementById('toko-dd-menu')?.contains(e.target)) {
+          if (menu) menu.style.display = 'none';
+          document.removeEventListener('click', _close);
+        }
+      });
+    }, 10);
+  }
+}
+
+// ── Modal tambah toko ──
+function openModalTambahToko() {
+  // Tutup dropdown dulu
+  const menu = document.getElementById('toko-dd-menu');
+  if (menu) menu.style.display = 'none';
+
+  // Buat modal inline jika belum ada
+  let modal = document.getElementById('modal-tambah-toko');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-tambah-toko';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:24px;width:340px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+        <div style="font-size:16px;font-weight:700;color:var(--charcoal);margin-bottom:18px;">🏪 Tambah Toko Baru</div>
+
+        <label style="font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;">Nama Toko</label>
+        <input id="toko-input-nama" class="inp" placeholder="contoh: Zenoot Official" style="width:100%;margin:6px 0 14px;">
+
+        <label style="font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;">Platform</label>
+        <select id="toko-input-platform" class="sel" style="width:100%;margin:6px 0 14px;">
+          <option>Shopee</option>
+          <option>Tokopedia</option>
+          <option>Lazada</option>
+          <option>TikTok Shop</option>
+          <option>Offline</option>
+        </select>
+
+        <label style="font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;">Warna Label</label>
+        <div style="display:flex;gap:8px;margin:8px 0 20px;flex-wrap:wrap;">
+          ${TOKO_COLORS.concat(['#C0392B','#0D9488','#7C3AED']).map((c,i) =>
+            `<div onclick="selectTokoColor('${c}')" id="tc-${i}"
+              style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;
+                     border:3px solid ${i===0?'#000':'transparent'};transition:border .15s;"
+              data-color="${c}"></div>`).join('')}
+        </div>
+        <input type="hidden" id="toko-input-warna" value="${TOKO_COLORS[0]}">
+
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-p" onclick="submitTambahToko()" style="flex:1;">✅ Simpan Toko</button>
+          <button class="btn btn-s" onclick="document.getElementById('modal-tambah-toko').remove()" style="flex:1;">Batal</button>
+        </div>
+        <div id="toko-save-status" style="margin-top:8px;font-size:11px;color:var(--dusty);text-align:center;"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    // Tutup klik di luar
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
+  modal.style.display = 'flex';
+}
+
+function selectTokoColor(color) {
+  document.getElementById('toko-input-warna').value = color;
+  document.querySelectorAll('[id^="tc-"]').forEach(el => {
+    el.style.border = el.dataset.color === color ? '3px solid #000' : '3px solid transparent';
+  });
+}
+
+async function submitTambahToko() {
+  const nama     = document.getElementById('toko-input-nama')?.value.trim();
+  const platform = document.getElementById('toko-input-platform')?.value;
+  const warna    = document.getElementById('toko-input-warna')?.value || TOKO_COLORS[0];
+  const statusEl = document.getElementById('toko-save-status');
+
+  if (!nama) { if (statusEl) statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Nama toko wajib diisi</span>'; return; }
+  if (window._tokoList.length >= 10) { if (statusEl) statusEl.innerHTML = '<span style="color:#C0392B">Maksimal 10 toko</span>'; return; }
+
+  if (statusEl) statusEl.textContent = '⏳ Menyimpan...';
+  try {
+    const row = await saveToko(nama, platform, warna);
+    window._tokoList.push({ id: row.id, nama, platform, warna, urutan: row.urutan });
+    switchToko(row.id);
+    document.getElementById('modal-tambah-toko')?.remove();
+    if (typeof toast === 'function') toast(`✅ Toko "${nama}" berhasil ditambahkan!`);
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#C0392B">❌ Gagal: ${e.message}</span>`;
+  }
+}
+
 function setCloudStatus(ok) {
   _cloudConnected = ok;
   // Badge baru — fixed pojok kiri bawah
@@ -1832,6 +2104,7 @@ initDate();
 try { localStorage.removeItem(DB_KEY); } catch(e) {}
 (async () => {
   await loadDB();
+  await loadTokoList();       // ← multi-toko
   await cleanChannelData();
   syncStokFromProduk();
   renderDashboard();

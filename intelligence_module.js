@@ -148,14 +148,17 @@ function renderIntelDashboard() {
   const container = document.getElementById('intel-dash-content');
   if (!container) return;
 
+  // ── Gunakan data terfilter per toko aktif ──
+  const jurnalData = typeof getJurnalFiltered === 'function' ? getJurnalFiltered() : DB.jurnal;
+  const tokoNama   = typeof getTokoAktifNama  === 'function' ? getTokoAktifNama()  : 'Semua Toko';
+
   // Kalkulasi semua alerts
-  const totalModal = _getTotalModal();
-  const totalRev = _getTotalRevenue();
-  const laba = totalRev - totalModal;
+  const totalModal = jurnalData.reduce((s, j) => s + ((j.hpp || 0) * (j.qty || 0)), 0);
+  const totalRev   = jurnalData.reduce((s, j) => s + ((j.harga || 0) * (j.qty || 0)), 0);
 
   // Revenue concentration risk
   const revenueByInduk = {};
-  DB.jurnal.forEach(j => {
+  jurnalData.forEach(j => {
     const p = DB.produk.find(x => x.var === j.var);
     const induk = p ? p.induk : j.var;
     revenueByInduk[induk] = (revenueByInduk[induk] || 0) + ((j.hpp || 0) * (j.qty || 0));
@@ -182,8 +185,8 @@ function renderIntelDashboard() {
 
   // Morning briefing
   const today = new Date().toISOString().split('T')[0];
-  const todaySales = DB.jurnal.filter(j => j.tgl === today);
-  const todayQty = todaySales.reduce((s, j) => s + j.qty, 0);
+  const todaySales = jurnalData.filter(j => j.tgl === today);
+  const todayQty   = todaySales.reduce((s, j) => s + j.qty, 0);
   const todayModal = todaySales.reduce((s, j) => s + j.hpp * j.qty, 0);
 
   // Render alert cards
@@ -218,8 +221,8 @@ function renderIntelDashboard() {
 
   // Stats summary
   const statCards = [
-    { label: 'Total Modal Keluar', val: fmtI(totalModal), sub: `${DB.jurnal.length} transaksi`, color: '#5C3D2E' },
-    { label: 'SKU Aktif Terjual', val: `${new Set(DB.jurnal.map(j=>j.var)).size}`, sub: `dari ${DB.produk.length} SKU terdaftar`, color: '#5A7A6A' },
+    { label: 'Total Modal Keluar', val: fmtI(totalModal), sub: `${jurnalData.length} transaksi`, color: '#5C3D2E' },
+    { label: 'SKU Aktif Terjual', val: `${new Set(jurnalData.map(j=>j.var)).size}`, sub: `dari ${DB.produk.length} SKU terdaftar`, color: '#5A7A6A' },
     { label: 'Dead Stock', val: `${deadStock.length} SKU`, sub: '>30 hari tidak bergerak', color: deadStock.length > 0 ? '#C0392B' : '#5A7A6A' },
     { label: 'Kritis Restock', val: `${criticalRestock.length} SKU`, sub: 'habis dalam 7 hari', color: criticalRestock.length > 0 ? '#C9A84C' : '#5A7A6A' },
   ];
@@ -246,6 +249,9 @@ function renderIntelDashboard() {
         <div>
           <div class="intel-briefing-greeting">${greeting}</div>
           <div class="intel-briefing-date">${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}</div>
+          <div style="margin-top:4px;display:inline-flex;align-items:center;gap:6px;background:var(--cream);padding:3px 10px;border-radius:20px;font-size:11px;color:var(--dusty);font-weight:600;">
+            🏪 ${tokoNama}
+          </div>
         </div>
         <div class="intel-briefing-today">
           <div class="intel-briefing-today-label">Transaksi Hari Ini</div>
@@ -1712,6 +1718,8 @@ async function runGeminiBriefing() {
     return;
   }
 
+  const tokoNama = typeof getTokoAktifNama === 'function' ? getTokoAktifNama() : 'Semua Toko';
+
   const resultEl = document.getElementById('ai-briefing-result');
   if (resultEl) resultEl.innerHTML = `
     <div style="text-align:center;padding:24px;color:var(--dusty);">
@@ -1741,6 +1749,7 @@ async function runGeminiBriefing() {
   const prompt = `Kamu adalah konsultan bisnis e-commerce Shopee yang berpengalaman. 
 Analisis data toko ZENOOT berikut dan buat Morning Briefing dalam Bahasa Indonesia.
 
+TOKO AKTIF: ${tokoNama}
 PERIODE DATA: ${sd.periodeFile}
 
 ## TOP 5 PRODUK (berdasarkan penjualan):
