@@ -274,6 +274,7 @@ function processShopeeRows(rows, type, headers) {
   const COL_ALIASES = {
     sku:           ['Nama Produk','Product Name','Nama SKU','SKU','Produk','Item Name'],
     sku_ref:       ['Nomor Referensi SKU','Kode Variasi','Model SKU','SKU Referensi','Variasi'],
+    nama_variasi:  ['Nama Variasi','Variation Name','Variasi','Nama Varian'],
     sku_induk:     ['SKU Induk','Parent SKU'],
     views:         ['Jumlah Produk Dilihat','Tayangan Produk','Views','Product Views','Kunjungan Produk'],
     clicks:        ['Produk Diklik','Klik Produk','Clicks','Product Clicks'],
@@ -311,6 +312,7 @@ function processShopeeRows(rows, type, headers) {
 
   const colSku       = findCol(COL_ALIASES.sku);
   const colSkuRef    = findCol(COL_ALIASES.sku_ref);
+  const colNamaVariasi = findCol(COL_ALIASES.nama_variasi);
   const colSkuInduk  = findCol(COL_ALIASES.sku_induk);
   const colViews     = findCol(COL_ALIASES.views);
   const colClicks    = findCol(COL_ALIASES.clicks);
@@ -334,6 +336,7 @@ function processShopeeRows(rows, type, headers) {
   }).map(r => {
     const name         = (r[colSku] || r[colSkuRef] || '').toString().trim();
     const skuRef       = (r[colSkuRef] || '').toString().trim().toUpperCase();
+    const namaVariasi  = (r[colNamaVariasi] || '').toString().trim();
     const skuInduk     = (r[colSkuInduk] || '').toString().trim().toUpperCase();
     const views        = parseNum(r[colViews]);
     const clicks       = parseNum(r[colClicks]);
@@ -350,7 +353,7 @@ function processShopeeRows(rows, type, headers) {
     const visitors     = parseNum(r[colVisitors]) || views;
 
     return {
-      name, skuRef, skuInduk, views, clicks, salesQty, salesRev, prevQty,
+      name, skuRef, namaVariasi, skuInduk, views, clicks, salesQty, salesRev, prevQty,
       keranjang, bounceRate, pesananDibuat, pesananKirim,
       repeatRate, klikPencarian, suka, visitors,
     };
@@ -721,8 +724,8 @@ function renderBlueprintCards() {
       if (sku.isHargaBelumKomp)   signals.push('<span class="sku-signal signal-warn">💰 Cek Harga</span>');
 
       return `<div class="sku-card ${flagClass}">
-        <div class="sku-card-sku">${sku.skuRef || '—'}</div>
-        <div class="sku-card-name">${sku.name.length > 45 ? sku.name.substring(0,45)+'…' : sku.name}</div>
+        <div class="sku-card-sku">${sku.namaVariasi || sku.skuInduk || sku.skuRef || '—'}</div>
+        <div class="sku-card-name" title="${sku.name}">${sku.name.length > 45 ? sku.name.substring(0,45)+'…' : sku.name}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
           <span class="sku-flag flag-${sku.flag}">${flagLabel}</span>
           ${signals.join('')}
