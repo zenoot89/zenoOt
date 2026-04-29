@@ -2382,10 +2382,6 @@ function _renderSplitChannelList() {
               <div class="ch-split-ch-name">${ch.nama}</div>
             </div>
             <div class="ch-split-ch-counter">${aktif}/${allInduk.length} produk</div>
-            <div class="ch-split-ch-actions">
-              <button class="ch-split-ch-action-btn" onclick="event.stopPropagation();_splitToggleStatus(${(DB.channel||[]).findIndex(c=>c.nama===ch.nama)})">${ch.status==='Aktif'?'Nonaktifkan':'Aktifkan'}</button>
-              <button class="ch-split-ch-action-btn danger" onclick="event.stopPropagation();_splitHapus(${(DB.channel||[]).findIndex(c=>c.nama===ch.nama)})">Hapus</button>
-            </div>
           </div>`;
         }).join('')}
       </div>
