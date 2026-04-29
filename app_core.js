@@ -1087,25 +1087,26 @@ function hapusStok(idx) {
 // ================================================================
 function populateRsInduk() {
   const supplier = (document.getElementById('rs-supplier')||{}).value || '';
+  // Filter produk berdasarkan supplier yang dipilih
   const filteredProduk = supplier && supplier !== 'LAINNYA'
     ? DB.produk.filter(p => (p.suplaier||'').toUpperCase() === supplier.toUpperCase())
     : DB.produk;
   const indukList = [...new Set(filteredProduk.map(p=>p.induk))];
+  // Fallback: kalau tidak ada produk untuk supplier itu, tampilkan semua
   const finalList = indukList.length ? indukList : [...new Set(DB.produk.map(p=>p.induk))];
-  const sel = document.getElementById('rs-sku-induk');
-  if (sel) sel.innerHTML = '<option value="">— Pilih Produk —</option>' + finalList.map(i=>`<option value="${i}">${i}</option>`).join('');
+  document.getElementById('rs-sku-induk').innerHTML = finalList.map(s=>`<option>${s}</option>`).join('');
   populateRsVariasi();
 }
 function populateRsVariasi() {
   const induk = document.getElementById('rs-sku-induk').value;
   const supplier = (document.getElementById('rs-supplier')||{}).value || '';
   let variants = DB.produk.filter(p => p.induk === induk);
+  // Kalau supplier dipilih dan ada produk yang cocok, filter lebih lanjut
   if (supplier && supplier !== 'LAINNYA' && supplier !== 'PRODUKSI SENDIRI') {
     const supVariants = variants.filter(p => (p.suplaier||'').toUpperCase() === supplier.toUpperCase());
     if (supVariants.length) variants = supVariants;
   }
-  const sel = document.getElementById('rs-sku-variasi');
-  if (sel) sel.innerHTML = '<option value="">— Pilih Variasi —</option>' + variants.map(p=>`<option value="${p.var}">${p.var}</option>`).join('');
+  document.getElementById('rs-sku-variasi').innerHTML = variants.map(p=>`<option>${p.var}</option>`).join('');
 }
 function populateRqInduk() { const indukList=[...new Set(DB.produk.map(p=>p.induk))];document.getElementById('rq-induk').innerHTML=indukList.map(s=>`<option>${s}</option>`).join('');populateRqVariasi(); }
 function populateRqVariasi() { const induk=document.getElementById('rq-induk').value;document.getElementById('rq-variasi').innerHTML=DB.produk.filter(p=>p.induk===induk).map(p=>`<option>${p.var}</option>`).join(''); }
@@ -1250,10 +1251,13 @@ function populateJInduk() {
 }
 
 // Saat channel berubah → filter SKU Induk yang dijual di channel itu
-// Simpan full list induk untuk keperluan search
 function onJChChange() {
   const chEl = document.getElementById('j-ch');
   const chNama = _normalizeCh(chEl ? chEl.value : '');
+  const indukEl = document.getElementById('j-sku-induk');
+  if (!indukEl) return;
+
+  // Filter produk yang toko-nya include channel ini
   const indukList = [...new Set(DB.produk
     .filter(p => {
       if ((p.status_produk||'aktif') === 'arsip') return false;
@@ -1263,10 +1267,11 @@ function onJChChange() {
     })
     .map(p=>p.induk)
   )].sort();
-  const sel = document.getElementById('j-sku-induk');
-  if (sel) sel.innerHTML = '<option value="">— Pilih Produk —</option>' + indukList.map(i=>`<option value="${i}">${i}</option>`).join('');
-  const varSel = document.getElementById('j-sku-variasi');
-  if (varSel) varSel.innerHTML = '<option value="">— Pilih Variasi —</option>';
+
+  indukEl.innerHTML = indukList.length
+    ? indukList.map(s=>`<option>${s}</option>`).join('')
+    : '<option value="">— Belum ada produk di channel ini —</option>';
+  onJIndukChange();
 }
 
 function _normalizeCh(s){ return (s||'').trim().replace(/\.\s+/g,'.').toUpperCase(); }
@@ -1274,85 +1279,15 @@ function _normalizeCh(s){ return (s||'').trim().replace(/\.\s+/g,'.').toUpperCas
 // Cascade: pilih induk → filter variasi saja (channel sudah difilter duluan via onJChChange)
 function onJIndukChange() {
   const induk = document.getElementById('j-sku-induk')?.value;
-  const varSel = document.getElementById('j-sku-variasi');
-  if (!varSel) return;
-  if (!induk) { varSel.innerHTML = '<option value="">— Pilih Variasi —</option>'; return; }
-  const produkInduk = DB.produk.filter(p=>p.induk===induk && (p.status_produk||'aktif')!=='arsip');
-  varSel.innerHTML = '<option value="">— Pilih Variasi —</option>' +
-    produkInduk.map(p=>`<option value="${p.var}">${p.var}</option>`).join('');
-}
+  if (!induk) return;
 
-// ── Searchable Select Helpers ──
-function _populateSS(wrapId, items, onSelect) {
-  const list = document.getElementById(wrapId.replace('-wrap','-list'));
-  const val  = document.getElementById(wrapId.replace('-wrap',''));
-  const disp = document.getElementById(wrapId.replace('-wrap','-val'));
-  if (!list) return;
-  list._items = items;
-  list._onSelect = onSelect;
-  const wrap = list.closest('.searchable-select');
-  if (wrap) wrap._onSelect = onSelect;
-  _renderSSList(list, items, val, disp, onSelect);
-  // Reset nilai
-  if (val) val.value = '';
-  if (disp) disp.textContent = '— Pilih Produk —';
-}
-
-function _renderSSList(list, items, val, disp, onSelect) {
-  if (!items.length) {
-    list.innerHTML = '<div class="ss-empty">Belum ada produk di channel ini</div>';
-    return;
-  }
-  list.innerHTML = items.map(item => `<div class="ss-item" onclick="_pickSS(this,'${item.replace(/'/g,"\'")}','${val?.id||''}','${disp?.id||''}',event)">${item}</div>`).join('');
-}
-
-function _pickSS(el, value, valId, dispId, e) {
-  if (e) e.stopPropagation();
-  const val  = document.getElementById(valId);
-  const disp = document.getElementById(dispId);
-  if (val)  val.value = value;
-  if (disp) disp.textContent = value;
-  // Mark active
-  el.closest('.ss-list').querySelectorAll('.ss-item').forEach(i => i.classList.remove('active'));
-  el.classList.add('active');
-  // Tutup dropdown
-  el.closest('.searchable-select').classList.remove('open');
-  // Trigger callback
-  const wrap = el.closest('.searchable-select');
-  if (wrap && wrap._onSelect) wrap._onSelect();
-  else onJIndukChange();
-}
-
-function _toggleSS(wrapId) {
-  const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  const isOpen = wrap.classList.contains('open');
-  // Tutup semua dulu
-  document.querySelectorAll('.searchable-select.open').forEach(w => w.classList.remove('open'));
-  if (!isOpen) {
-    wrap.classList.add('open');
-    const search = document.getElementById(wrapId.replace('-wrap','-search'));
-    if (search) { search.value = ''; search.focus(); _filterSS(wrapId); }
+  // Update variasi dropdown
+  const varEl = document.getElementById('j-sku-variasi');
+  if (varEl) {
+    const produkInduk = DB.produk.filter(p=>p.induk===induk && (p.status_produk||'aktif')!=='arsip');
+    varEl.innerHTML = produkInduk.map(p=>`<option>${p.var}</option>`).join('');
   }
 }
-
-function _filterSS(wrapId) {
-  const search = document.getElementById(wrapId.replace('-wrap','-search'));
-  const list   = document.getElementById(wrapId.replace('-wrap','-list'));
-  const val    = document.getElementById(wrapId.replace('-wrap',''));
-  const disp   = document.getElementById(wrapId.replace('-wrap','-val'));
-  if (!list || !list._items) return;
-  const q = (search?.value||'').toLowerCase();
-  const filtered = list._items.filter(i => i.toLowerCase().includes(q));
-  _renderSSList(list, filtered, val, disp, list._onSelect);
-}
-
-// Tutup dropdown saat klik di luar
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.searchable-select')) {
-    document.querySelectorAll('.searchable-select.open').forEach(w => w.classList.remove('open'));
-  }
-});
 
 function _syncChannelDropdowns() {
   // Untuk edit jurnal — tetap tampilkan semua channel
@@ -1368,13 +1303,10 @@ function _syncChannelDropdowns() {
 
 function populateJVariasi() {
   const induk=document.getElementById('j-sku-induk')?.value;
-  const sel=document.getElementById('j-sku-variasi');
-  if(!sel) return;
-  if(!induk) { sel.innerHTML='<option value="">— Pilih Variasi —</option>'; return; }
-  const vars = DB.produk
+  const varEl=document.getElementById('j-sku-variasi');
+  if(varEl && induk) varEl.innerHTML=DB.produk
     .filter(p=>p.induk===induk&&(p.status_produk||'aktif')!=='arsip')
-    .map(p=>p.var);
-  sel.innerHTML = '<option value="">— Pilih Variasi —</option>' + vars.map(v=>`<option value="${v}">${v}</option>`).join('');
+    .map(p=>`<option>${p.var}</option>`).join('');
 }
 
 function addJurnal() {
@@ -1446,17 +1378,10 @@ function renderJurnal() {
 
 function openEditJurnal(idx) {
   const r=DB.jurnal[idx];
-  // Isi field biasa
-  ['ej-idx','ej-tgl','ej-ch','ej-qty','ej-harga','ej-hpp'].forEach(id=>{
+  ['ej-idx','ej-tgl','ej-ch','ej-sku','ej-qty','ej-harga','ej-hpp'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
-    if(id==='ej-idx')el.value=idx; else if(id==='ej-tgl')el.value=r.tgl; else if(id==='ej-ch')el.value=r.ch; else if(id==='ej-qty')el.value=r.qty; else if(id==='ej-harga')el.value=r.harga; else if(id==='ej-hpp')el.value=r.hpp;
+    if(id==='ej-idx')el.value=idx; else if(id==='ej-tgl')el.value=r.tgl; else if(id==='ej-ch')el.value=r.ch; else if(id==='ej-sku')el.value=r.var; else if(id==='ej-qty')el.value=r.qty; else if(id==='ej-harga')el.value=r.harga; else if(id==='ej-hpp')el.value=r.hpp;
   });
-  // Populate select ej-sku dengan semua variasi, set nilai aktif
-  const semuaVar = [...new Set(DB.produk.filter(p=>(p.status_produk||'aktif')!=='arsip').map(p=>p.var))].sort();
-  const ejSel = document.getElementById('ej-sku');
-  if (ejSel) {
-    ejSel.innerHTML = '<option value="">— Pilih Variasi —</option>' + semuaVar.map(v=>`<option value="${v}"${v===r.var?' selected':''}>${v}</option>`).join('');
-  }
   openModal('modal-edit-jurnal');
 }
 function saveEditJurnal() {
@@ -2575,20 +2500,12 @@ function _renderSplitRightBody(chNama) {
   };
 
   const _isProdukAktifDiChannel = (induk, chNama) => {
-    const vars = (groups[induk] || []).filter(p => {
-      const s = (DB.stok||[]).find(s => s.var === p.var);
-      const qty = s ? Math.max(0,(s.awal||0)+(s.masuk||0)-(s.keluar||0)) : 0;
-      return qty > 0;
-    });
+    const vars = groups[induk] || [];
     return vars.some(p => _isVarAktif(p, chNama));
   };
 
   const _isProdukSemuaAktif = (induk, chNama) => {
-    const vars = (groups[induk] || []).filter(p => {
-      const s = (DB.stok||[]).find(s => s.var === p.var);
-      const qty = s ? Math.max(0,(s.awal||0)+(s.masuk||0)-(s.keluar||0)) : 0;
-      return qty > 0;
-    });
+    const vars = groups[induk] || [];
     return vars.length > 0 && vars.every(p => _isVarAktif(p, chNama));
   };
 
@@ -2672,7 +2589,7 @@ function _renderVarianPanel(induk, chNama) {
     const { label, cls } = _getStatusStok(stok);
     const aktif = _isVarAktif(p);
     const isHabis = stok === 0;
-    return `<div class="ch-varian-row">
+    return `<div class="ch-varian-row${isHabis?' disabled':''}">
       <div class="ch-varian-info">
         <div class="ch-varian-nama">${p.var}</div>
         <div class="ch-varian-status ${cls}">
@@ -2680,8 +2597,8 @@ function _renderVarianPanel(induk, chNama) {
           ${label} (${stok}pc)
         </div>
       </div>
-      <label class="ch-split-toggle">
-        <input type="checkbox" ${aktif?'checked':''}
+      <label class="ch-split-toggle" ${isHabis?'style="pointer-events:none;opacity:.4;"':''}>
+        <input type="checkbox" ${aktif&&!isHabis?'checked':''} ${isHabis?'disabled':''}
           onchange="_splitToggleVarian('${p.var}','${induk}','${chNama}',this.checked)">
         <div class="ch-split-toggle-track"></div>
       </label>

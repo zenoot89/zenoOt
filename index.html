@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>zenOt — Operasional V2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
@@ -203,7 +203,7 @@
     <div class="restock-right">
 
       <!-- Input Stok Masuk -->
-      <div class="card" style="overflow:visible;">
+      <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
           <div class="card-title" style="margin:0">➕ Input Stok Masuk</div>
           <button class="btn btn-o" style="padding:6px 12px;font-size:12px;font-weight:700;" onclick="openModal('modal-stok-massal')">📋 Massal</button>
@@ -218,16 +218,8 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="fg"><label class="lbl">SKU Induk</label>
-            <select class="sel" id="rs-sku-induk" onchange="populateRsVariasi()">
-              <option value="">— Pilih Produk —</option>
-            </select>
-          </div>
-          <div class="fg"><label class="lbl">SKU Variasi</label>
-            <select class="sel" id="rs-sku-variasi">
-              <option value="">— Pilih Variasi —</option>
-            </select>
-          </div>
+          <div class="fg"><label class="lbl">SKU Induk</label><select class="sel" id="rs-sku-induk" onchange="populateRsVariasi()"></select></div>
+          <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="rs-sku-variasi"></select></div>
         </div>
         <div class="form-row">
           <div class="fg"><label class="lbl">Jumlah Masuk (pcs)</label><input class="inp" type="number" id="rs-qty" placeholder="0" min="1"></div>
@@ -927,16 +919,8 @@
     </div>
     <!-- Baris 2: SKU Induk | SKU Variasi -->
     <div class="form-row">
-      <div class="fg"><label class="lbl">SKU Induk</label>
-        <select class="sel" id="j-sku-induk" onchange="onJIndukChange()">
-          <option value="">— Pilih Produk —</option>
-        </select>
-      </div>
-      <div class="fg"><label class="lbl">SKU Variasi</label>
-        <select class="sel" id="j-sku-variasi">
-          <option value="">— Pilih Variasi —</option>
-        </select>
-      </div>
+      <div class="fg"><label class="lbl">SKU Induk</label><select class="sel" id="j-sku-induk" onchange="onJIndukChange()"></select></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="j-sku-variasi"></select></div>
     </div>
     <!-- Baris 3: Qty | Simpan sejajar -->
     <div class="form-row" style="align-items:flex-end;">
@@ -961,11 +945,7 @@
       </div>
     </div>
     <div class="form-row">
-      <div class="fg"><label class="lbl">SKU Variasi</label>
-        <select class="sel" id="ej-sku">
-          <option value="">— Pilih Variasi —</option>
-        </select>
-      </div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><input class="inp" id="ej-sku"></div>
       <div class="fg"><label class="lbl">Qty</label><input class="inp" type="number" id="ej-qty" min="1"></div>
     </div>
     <div class="form-row">

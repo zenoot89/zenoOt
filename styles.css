@@ -546,12 +546,6 @@ label.lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1
 
 /* ═══ SMOOTH SCROLL ═══ */
 html{scroll-behavior:smooth;}
-html, body {
-  transition: none;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-* { -webkit-tap-highlight-color: transparent; }
 
 /* ═══ SCROLLBAR — tipis & elegan ═══ */
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -1304,7 +1298,7 @@ html, body {
 /* ── Split Panel: 3 Kolom — CHANNEL | PRODUK | VARIAN ── */
 .ch-split-panel {
   display: grid;
-  grid-template-columns: 380px 380px 340px 1fr;
+  grid-template-columns: 220px 320px 340px 1fr;
   gap: 0;
   height: calc(100vh - 120px);
   min-height: 500px;
@@ -1672,8 +1666,6 @@ html, body {
   border-right: 1px solid var(--border);
   background: var(--card);
   min-width: 0;
-  min-height: 0;
-  overflow: hidden;
 }
 
 /* Header 4 bagian inline */
@@ -1681,12 +1673,11 @@ html, body {
   display: flex;
   align-items: center;
   gap: 0;
-  padding: 0 16px;
+  padding: 0 14px;
   height: 52px;
   border-bottom: 1px solid var(--border);
   background: var(--card);
   flex-shrink: 0;
-  overflow: hidden;
 }
 .ch-hdr-sep {
   width: 1px;
@@ -1732,6 +1723,8 @@ html, body {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ══ PANEL VARIAN ══ */
@@ -1780,6 +1773,8 @@ html, body {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Varian row */
@@ -1795,6 +1790,7 @@ html, body {
 .ch-varian-row:hover { background: var(--cream); }
 .ch-varian-row.disabled {
   opacity: .45;
+  pointer-events: none;
 }
 .ch-varian-info { flex: 1; min-width: 0; }
 .ch-varian-nama {
@@ -1830,25 +1826,15 @@ html, body {
 .status-habis   .ch-varian-status-dot { background: var(--dusty); }
 
 
-@media(max-width:900px) and (orientation:portrait){
+@media(max-width:900px){
   .ch-split-panel { grid-template-columns:1fr; height:auto; }
-  .ch-split-left { border-right:none; border-bottom:1px solid var(--border); max-height:240px; overflow-y:auto; }
+  .ch-split-left { border-right:none; border-bottom:1px solid var(--border); max-height:260px; overflow-y:auto; }
   .ch-panel-produk { border-right:none; border-bottom:1px solid var(--border); }
-  .ch-panel-produk-body { max-height:45vh; overflow-y:auto; }
-  .ch-panel-varian-body { max-height:45vh; overflow-y:auto; }
+  .ch-panel-produk-body { max-height:50vh; overflow-y:auto; }
+  .ch-panel-varian-body { max-height:50vh; overflow-y:auto; }
   .ch-split-ch-actions { display:flex !important; }
   .ch-split-ch-action-btn { padding:5px 10px; font-size:11px; }
   .ch-hdr-nama { max-width:70px; }
-}
-@media(max-width:900px) and (orientation:landscape){
-  .ch-split-panel { grid-template-columns:240px 1fr 280px; height:calc(100vh - 60px); }
-  .ch-split-left { max-height:none; overflow-y:auto; }
-  .ch-panel-produk-body { overflow-y:auto; }
-  .ch-panel-varian-body { overflow-y:auto; }
-  .ch-panel-spacer { display:none; }
-  .ch-hdr-nama { max-width:80px; }
-  .ch-split-ch-actions { display:flex !important; }
-  .ch-split-ch-action-btn { padding:4px 8px; font-size:10px; }
 }
 
 
