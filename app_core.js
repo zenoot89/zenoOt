@@ -588,9 +588,25 @@ async function loadDB() {
             if (chRows && chRows[0] && chRows[0].status) {
               DB.assignChannel = JSON.parse(chRows[0].status);
             } else {
-              // fallback localStorage
+              // Supabase kosong — migrate dari localStorage
               const ac = localStorage.getItem('zenot_assign_channel');
-              if (ac) DB.assignChannel = JSON.parse(ac);
+              if (ac) {
+                try {
+                  DB.assignChannel = JSON.parse(ac);
+                  // Push ke Supabase supaya sync antar device
+                  const assignStr = JSON.stringify(DB.assignChannel);
+                  fetch(`${SUPABASE_URL}/rest/v1/channel`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'apikey': SUPABASE_KEY,
+                      'Authorization': `Bearer ${SUPABASE_KEY}`,
+                      'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify([{ nama: '__assign__', platform: '__data__', status: assignStr }])
+                  }).catch(() => {});
+                } catch(e) {}
+              }
             }
           }
         } catch(e) {
@@ -612,6 +628,11 @@ async function loadDB() {
       if (local.jurnal)  DB.jurnal  = local.jurnal;
       if (local.restock) DB.restock = local.restock;
       if (local.channel) DB.channel = local.channel;
+      // Load assignChannel dari localStorage
+      try {
+        const ac = localStorage.getItem('zenot_assign_channel');
+        if (ac) DB.assignChannel = JSON.parse(ac);
+      } catch(e) {}
       _normalizeJurnalChannel();
       recalcKeluar();
       console.info("Data dimuat dari cache lokal (cloud tidak tersedia)");
