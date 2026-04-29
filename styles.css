@@ -1298,7 +1298,7 @@ html{scroll-behavior:smooth;}
 /* ── Split Panel: 3 Kolom — CHANNEL | PRODUK | VARIAN ── */
 .ch-split-panel {
   display: grid;
-  grid-template-columns: 220px 300px 1fr;
+  grid-template-columns: 400px 400px 400px;
   gap: 0;
   height: calc(100vh - 120px);
   min-height: 500px;
@@ -1427,7 +1427,8 @@ html{scroll-behavior:smooth;}
   display: flex;
   flex-direction: column;
   background: var(--cream);
-  overflow-y: auto;
+  overflow: hidden;
+  height: 100%;
 }
 .ch-split-left-header {
   padding: 14px 16px 12px;
@@ -1666,6 +1667,8 @@ html{scroll-behavior:smooth;}
   border-right: 1px solid var(--border);
   background: var(--card);
   min-width: 0;
+  overflow: hidden;
+  height: 100%;
 }
 
 /* Header 4 bagian inline */
@@ -1734,6 +1737,8 @@ html{scroll-behavior:smooth;}
   background: var(--white);
   min-width: 0;
   border-right: 1px solid var(--border);
+  overflow: hidden;
+  height: 100%;
 }
 
 /* ══ PANEL SPACER ══ */
