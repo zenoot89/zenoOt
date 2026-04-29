@@ -1298,7 +1298,7 @@ html{scroll-behavior:smooth;}
 /* ── Split Panel: 3 Kolom — CHANNEL | PRODUK | VARIAN ── */
 .ch-split-panel {
   display: grid;
-  grid-template-columns: 220px 380px 340px 1fr;
+  grid-template-columns: 380px 380px 340px 1fr;
   gap: 0;
   height: calc(100vh - 120px);
   min-height: 500px;
