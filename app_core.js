@@ -2289,8 +2289,9 @@ function _renderSplitChannelList() {
   list.innerHTML = channels.map((ch, idx) => {
     const cls = platformBadgeClass[ch.platform]||'lainnya';
     const allInduk = Object.keys(groups);
-    const aktif = allInduk.filter(induk => assign[induk] ? assign[induk][ch.nama] !== false : true).length;
-    const total = allInduk.length;
+    const aktif = allInduk.filter(induk => assign[induk] ? assign[induk][ch.nama] !== false : true)
+      .reduce((sum, induk) => sum + (groups[induk]?.length || 0), 0);
+    const total = allInduk.reduce((sum, induk) => sum + (groups[induk]?.length || 0), 0);
     const isActive = _splitActiveChannel === ch.nama ? ' active' : '';
     const isAktif = ch.status === 'Aktif';
     return `<div class="ch-split-ch-item${isActive}" onclick="_splitSelectChannel('${ch.nama}')">
@@ -2333,6 +2334,14 @@ function _splitSelectChannel(chNama) {
   if (badge) {
     badge.textContent = ch.status;
     badge.className = 'ch-split-status-badge' + (ch.status !== 'Aktif' ? ' nonaktif' : '');
+  }
+  // Tombol Nonaktifkan/Aktifkan di header kanan
+  const headerBtn = document.getElementById('ch-split-header-toggle-btn');
+  if (headerBtn) {
+    const chIdx = (DB.channel||[]).findIndex(c => c.nama === chNama);
+    headerBtn.style.display = chIdx >= 0 ? 'inline-flex' : 'none';
+    headerBtn.textContent = ch.status === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan';
+    headerBtn.dataset.idx = chIdx;
   }
   _renderSplitRightBody(chNama);
 }
@@ -2439,6 +2448,13 @@ function _persistAssign() {
       });
     }).catch(e => console.warn('[persistAssign]', e.message));
   }
+}
+
+function _splitToggleActiveChannel() {
+  const btn = document.getElementById('ch-split-header-toggle-btn');
+  if (!btn) return;
+  const idx = parseInt(btn.dataset.idx);
+  _splitToggleStatus(idx);
 }
 
 function _splitToggleStatus(idx) {
