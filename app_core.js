@@ -176,7 +176,9 @@ const DataLayer = {
               tgl: r.tgl, var: r.var, supplier: r.supplier,
               qty: r.qty, catatan: r.catatan
             })),
-          channel: channel.map(c => ({
+          channel: channel
+            .filter(c => c.nama !== '__assign__')  // filter row data assign
+            .map(c => ({
             nama: c.nama, platform: c.platform, status: c.status
           }))
         }
@@ -286,6 +288,7 @@ function switchToko(id) {
   else if (p === 'stok'      && typeof renderStok        === 'function') renderStok();
   else if (p === 'jurnal'    && typeof renderJurnal      === 'function') renderJurnal();
   else if (p === 'restock'   && typeof renderRestock     === 'function') renderRestock();
+  else if (p === 'channel'  && typeof renderSplitPanel  === 'function') { renderChannel(); renderSplitPanel(); }
   // Intelligence dashboard
   if (typeof renderIntelDashboard === 'function' && p === 'intel-dashboard') renderIntelDashboard();
 
@@ -574,11 +577,26 @@ async function loadDB() {
         if (saved.channel) DB.channel = saved.channel;
         // Simpan ke localStorage sebagai cache
         DataLayer.saveLocal(DB);
-        // Load assignChannel dari localStorage (tidak disimpan ke Supabase)
+        // Load assignChannel dari Supabase dulu, fallback localStorage
         try {
-          const ac = localStorage.getItem("zenot_assign_channel");
-          if (ac) DB.assignChannel = JSON.parse(ac);
-        } catch(e){}
+          const chRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/channel?nama=eq.__assign__&select=*`,
+            { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+          );
+          if (chRes.ok) {
+            const chRows = await chRes.json();
+            if (chRows && chRows[0] && chRows[0].status) {
+              DB.assignChannel = JSON.parse(chRows[0].status);
+            } else {
+              // fallback localStorage
+              const ac = localStorage.getItem('zenot_assign_channel');
+              if (ac) DB.assignChannel = JSON.parse(ac);
+            }
+          }
+        } catch(e) {
+          const ac = localStorage.getItem('zenot_assign_channel');
+          if (ac) try { DB.assignChannel = JSON.parse(ac); } catch(e2) {}
+        }
         _normalizeJurnalChannel();
         recalcKeluar();
         setCloudStatus(true);
@@ -619,6 +637,17 @@ function _applyCloudData(d) {
   if (d.jurnal)  DB.jurnal  = d.jurnal;
   if (d.restock) DB.restock = d.restock;
   if (d.channel) DB.channel = d.channel;
+  // Reload assignChannel dari Supabase sekalian saat sync
+  if (SUPABASE_URL) {
+    fetch(`${SUPABASE_URL}/rest/v1/channel?nama=eq.__assign__&select=*`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.ok ? r.json() : [])
+      .then(rows => {
+        if (rows && rows[0] && rows[0].status) {
+          try { DB.assignChannel = JSON.parse(rows[0].status); } catch(e) {}
+        }
+      }).catch(() => {});
+  }
   setCloudStatus(true);
   const p = _currentPage;
   if      (p==='dashboard' && typeof renderDashboard==='function') renderDashboard();
@@ -2086,7 +2115,20 @@ function toggleChannelStatus(idx) {
   saveDB(); renderChannel();
   _syncChannelDropdowns();
 }
-function hapusChannel(idx) { if(!confirm(`Hapus channel "${DB.channel[idx]?.nama}"?`))return;DB.channel.splice(idx,1);saveDB();renderChannel(); }
+function hapusChannel(idx) {
+  if (!confirm(`Hapus channel "${DB.channel[idx]?.nama}"?`)) return;
+  const chNama = DB.channel[idx]?.nama;
+  DB.channel.splice(idx, 1);
+  // Bersihkan assign data untuk channel ini
+  if (DB.assignChannel && chNama) {
+    Object.keys(DB.assignChannel).forEach(induk => {
+      if (DB.assignChannel[induk]) delete DB.assignChannel[induk][chNama];
+    });
+    _persistAssign();
+  }
+  saveDB();
+  renderChannel();
+}
 
 // ================================================================
 // CHECKLIST
@@ -2187,6 +2229,7 @@ function toggleSidebarMobile() {
 // Main init
 initDate();
 // Hapus cache localStorage lama — pure Supabase
+const DB_KEY = 'zenot_db_v1'; // key lama, dihapus saat init
 try { localStorage.removeItem(DB_KEY); } catch(e) {}
 (async () => {
   await loadDB();
@@ -2264,7 +2307,10 @@ function _renderSplitChannelList() {
 
 function _buildProdukGroups() {
   const groups = {};
-  (DB.produk||[]).forEach(p => {
+  // Gunakan getProdukFiltered() agar sinkron dengan toko aktif,
+  // lalu filter produk arsip agar sinkron dengan halaman Kelola Produk
+  const produkAktif = getProdukFiltered().filter(p => (p.status_produk || 'aktif') !== 'arsip');
+  produkAktif.forEach(p => {
     if (!groups[p.induk]) groups[p.induk] = [];
     groups[p.induk].push(p);
   });
@@ -2369,7 +2415,30 @@ function _splitToggleAll(chNama, val) {
 }
 
 function _persistAssign() {
+  // Simpan ke localStorage sebagai cache offline
   try { localStorage.setItem('zenot_assign_channel', JSON.stringify(DB.assignChannel)); } catch(e) {}
+  // Sync ke Supabase — simpan assign sebagai JSON di tabel channel (field assign_json)
+  if (SUPABASE_URL && DB.assignChannel) {
+    const assignStr = JSON.stringify(DB.assignChannel);
+    fetch(`${SUPABASE_URL}/rest/v1/channel?nama=eq.__assign__`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    }).then(() => {
+      return fetch(`${SUPABASE_URL}/rest/v1/channel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify([{ nama: '__assign__', platform: '__data__', status: assignStr }])
+      });
+    }).catch(e => console.warn('[persistAssign]', e.message));
+  }
 }
 
 function _splitToggleStatus(idx) {

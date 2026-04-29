@@ -1504,24 +1504,30 @@ html{scroll-behavior:smooth;}
 }
 
 /* Toggle switch */
-.ch-split-toggle { position:relative; width:42px; height:23px; display:inline-block; flex-shrink:0; }
-.ch-split-toggle input { opacity:0; width:0; height:0; }
+/* iOS/Android toggle fix — pastikan toggle area mudah di-tap */
+.ch-split-toggle { position:relative; width:42px; height:23px; display:inline-block; flex-shrink:0; cursor:pointer; }
+.ch-split-toggle input { opacity:0; width:0; height:0; position:absolute; }
 .ch-split-toggle-track {
-  position:absolute; inset:0; background:var(--border); border-radius:12px;
-  cursor:pointer; transition:background .2s;
+  position:absolute; inset:0; border-radius:23px;
+  background:#D0C9C0; transition:background .2s;
+  -webkit-tap-highlight-color: transparent;
 }
 .ch-split-toggle input:checked + .ch-split-toggle-track { background:var(--sage); }
 .ch-split-toggle-track::after {
-  content:''; position:absolute; width:17px; height:17px;
-  left:3px; top:3px; background:white; border-radius:50%;
-  transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.15);
+  content:''; position:absolute; top:3px; left:3px;
+  width:17px; height:17px; border-radius:50%; background:white;
+  transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
 }
 .ch-split-toggle input:checked + .ch-split-toggle-track::after { transform:translateX(19px); }
 
 /* Responsive */
 @media(max-width:700px){
   .ch-split-panel { grid-template-columns:1fr; height:auto; }
-  .ch-split-left { border-right:none; border-bottom:1px solid var(--border); max-height:220px; }
+  .ch-split-left { border-right:none; border-bottom:1px solid var(--border); max-height:220px; overflow-y:auto; }
+  .ch-split-right { max-height:none; overflow-y:visible; }
+  .ch-split-right-body { max-height:60vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .ch-split-ch-actions { display:flex !important; } /* selalu tampil di mobile — tidak ada hover */
+  .ch-split-ch-action-btn { padding:5px 10px; font-size:11px; }
 }
 
 
