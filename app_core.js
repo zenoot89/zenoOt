@@ -2303,14 +2303,20 @@ function _renderSplitChannelList() {
     return;
   }
   const groups = _buildProdukGroups();
-  const assign = DB.assignChannel||{};
   const platformBadgeClass = {
     'Shopee':'shopee','Lazada':'lazada','TikTok Shop':'tiktok','Offline':'offline','Lainnya':'lainnya'
   };
   list.innerHTML = channels.map((ch, idx) => {
     const cls = platformBadgeClass[ch.platform]||'lainnya';
     const allInduk = Object.keys(groups);
-    const aktif = allInduk.filter(induk => assign[induk] ? assign[induk][ch.nama] === true : false).length;
+    // Baca dari DB.produk.toko — single source of truth
+    const aktif = allInduk.filter(induk => {
+      const vars = groups[induk] || [];
+      return vars.some(p => {
+        const t = p.toko || 'semua';
+        return t === 'semua' || t.split(',').map(x => x.trim()).includes(ch.nama);
+      });
+    }).length;
     const total = allInduk.length;
     const isActive = _splitActiveChannel === ch.nama ? ' active' : '';
     const isAktif = ch.status === 'Aktif';
@@ -2370,14 +2376,22 @@ function _renderSplitRightBody(chNama) {
   const body = document.getElementById('ch-split-right-body');
   if (!body) return;
   const groups = _buildProdukGroups();
-  const assign = DB.assignChannel||{};
   const indukList = Object.keys(groups).sort();
   if (!indukList.length) {
     body.innerHTML = '<div class="ch-split-empty">Belum ada produk. Tambah produk dulu.</div>';
     return;
   }
-  // Hitung semua aktif untuk "Aktifkan semua"
-  const semuaAktif = indukList.length > 0 && indukList.every(induk => assign[induk] ? assign[induk][chNama] === true : false);
+
+  // Cek toggle dari DB.produk.toko — single source of truth
+  const _isProdukAktifDiChannel = (induk, chNama) => {
+    const vars = groups[induk] || [];
+    return vars.some(p => {
+      const t = p.toko || 'semua';
+      return t === 'semua' || t.split(',').map(x => x.trim()).includes(chNama);
+    });
+  };
+
+  const semuaAktif = indukList.length > 0 && indukList.every(induk => _isProdukAktifDiChannel(induk, chNama));
 
   let html = `<div class="ch-split-activate-all">
     <span class="ch-split-activate-all-label">Aktifkan semua</span>
@@ -2389,7 +2403,7 @@ function _renderSplitRightBody(chNama) {
 
   html += indukList.map(induk => {
     const vars = groups[induk];
-    const checked = assign[induk] ? assign[induk][chNama] === true : false;
+    const checked = _isProdukAktifDiChannel(induk, chNama);
     return `<div class="ch-split-produk-row">
       <div>
         <div class="ch-split-produk-name">${induk}</div>
@@ -2407,36 +2421,54 @@ function _renderSplitRightBody(chNama) {
 }
 
 function _splitToggleProduk(induk, chNama, val) {
-  if (!DB.assignChannel) DB.assignChannel = {};
-  if (!DB.assignChannel[induk]) DB.assignChannel[induk] = {};
-  DB.assignChannel[induk][chNama] = val;
-  _persistAssign();
-  // Update counter di kiri
+  // Tulis ke DB.produk.toko — single source of truth
+  const groups = _buildProdukGroups();
+  const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
+  (groups[induk]||[]).forEach(p => {
+    let tokoArr = (p.toko && p.toko !== 'semua')
+      ? p.toko.split(',').map(x=>x.trim())
+      : [...allChannels];
+    if (val) {
+      if (!tokoArr.includes(chNama)) tokoArr.push(chNama);
+    } else {
+      tokoArr = tokoArr.filter(t => t !== chNama);
+    }
+    p.toko = tokoArr.length === allChannels.length ? 'semua' : tokoArr.join(',');
+  });
+  saveDB();
   _renderSplitChannelList();
-  // Re-highlight channel yang aktif
   document.querySelectorAll('.ch-split-ch-item').forEach(el => {
     el.classList.toggle('active', el.querySelector('.ch-split-ch-name')?.textContent === _splitActiveChannel);
   });
   // Update toggle "aktifkan semua"
-  const groups = _buildProdukGroups();
-  const assign = DB.assignChannel||{};
   const indukList = Object.keys(groups).sort();
-  const semuaAktif = indukList.length > 0 && indukList.every(i => assign[i] ? assign[i][chNama] === true : false);
+  const semuaAktif = indukList.every(i => {
+    const vars = groups[i]||[];
+    return vars.some(p => { const t=p.toko||'semua'; return t==='semua'||t.split(',').map(x=>x.trim()).includes(chNama); });
+  });
   const allToggle = document.getElementById('ch-split-all-toggle');
   if (allToggle) allToggle.checked = semuaAktif;
 }
 
 function _splitToggleAll(chNama, val) {
-  if (!DB.assignChannel) DB.assignChannel = {};
   const groups = _buildProdukGroups();
+  const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
   Object.keys(groups).forEach(induk => {
-    if (!DB.assignChannel[induk]) DB.assignChannel[induk] = {};
-    DB.assignChannel[induk][chNama] = val;
+    (groups[induk]||[]).forEach(p => {
+      let tokoArr = (p.toko && p.toko !== 'semua')
+        ? p.toko.split(',').map(x=>x.trim())
+        : [...allChannels];
+      if (val) {
+        if (!tokoArr.includes(chNama)) tokoArr.push(chNama);
+      } else {
+        tokoArr = tokoArr.filter(t => t !== chNama);
+      }
+      p.toko = tokoArr.length === allChannels.length ? 'semua' : tokoArr.join(',');
+    });
   });
-  _persistAssign();
+  saveDB();
   _renderSplitRightBody(chNama);
   _renderSplitChannelList();
-  // Re-highlight
   document.querySelectorAll('.ch-split-ch-item').forEach(el => {
     el.classList.toggle('active', el.querySelector('.ch-split-ch-name')?.textContent === _splitActiveChannel);
   });
