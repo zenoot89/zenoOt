@@ -2289,7 +2289,7 @@ function _renderSplitChannelList() {
   list.innerHTML = channels.map((ch, idx) => {
     const cls = platformBadgeClass[ch.platform]||'lainnya';
     const allInduk = Object.keys(groups);
-    const aktif = allInduk.filter(induk => assign[induk] ? assign[induk][ch.nama] !== false : true)
+    const aktif = allInduk.filter(induk => assign[induk] ? assign[induk][ch.nama] === true : false)
       .reduce((sum, induk) => sum + (groups[induk]?.length || 0), 0);
     const total = allInduk.reduce((sum, induk) => sum + (groups[induk]?.length || 0), 0);
     const isActive = _splitActiveChannel === ch.nama ? ' active' : '';
@@ -2357,7 +2357,7 @@ function _renderSplitRightBody(chNama) {
     return;
   }
   // Hitung semua aktif untuk "Aktifkan semua"
-  const semuaAktif = indukList.every(induk => assign[induk] ? assign[induk][chNama] !== false : true);
+  const semuaAktif = indukList.length > 0 && indukList.every(induk => assign[induk] ? assign[induk][chNama] === true : false);
 
   let html = `<div class="ch-split-activate-all">
     <span class="ch-split-activate-all-label">Aktifkan semua</span>
@@ -2369,7 +2369,7 @@ function _renderSplitRightBody(chNama) {
 
   html += indukList.map(induk => {
     const vars = groups[induk];
-    const checked = assign[induk] ? assign[induk][chNama] !== false : true;
+    const checked = assign[induk] ? assign[induk][chNama] === true : false;
     return `<div class="ch-split-produk-row">
       <div>
         <div class="ch-split-produk-name">${induk}</div>
@@ -2401,7 +2401,7 @@ function _splitToggleProduk(induk, chNama, val) {
   const groups = _buildProdukGroups();
   const assign = DB.assignChannel||{};
   const indukList = Object.keys(groups).sort();
-  const semuaAktif = indukList.every(i => assign[i] ? assign[i][chNama] !== false : true);
+  const semuaAktif = indukList.length > 0 && indukList.every(i => assign[i] ? assign[i][chNama] === true : false);
   const allToggle = document.getElementById('ch-split-all-toggle');
   if (allToggle) allToggle.checked = semuaAktif;
 }
