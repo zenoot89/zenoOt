@@ -1789,7 +1789,6 @@ html{scroll-behavior:smooth;}
 .ch-varian-row:hover { background: var(--cream); }
 .ch-varian-row.disabled {
   opacity: .45;
-  pointer-events: none;
 }
 .ch-varian-info { flex: 1; min-width: 0; }
 .ch-varian-nama {

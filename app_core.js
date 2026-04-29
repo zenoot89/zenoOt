@@ -2589,7 +2589,7 @@ function _renderVarianPanel(induk, chNama) {
     const { label, cls } = _getStatusStok(stok);
     const aktif = _isVarAktif(p);
     const isHabis = stok === 0;
-    return `<div class="ch-varian-row${isHabis?' disabled':''}">
+    return `<div class="ch-varian-row">
       <div class="ch-varian-info">
         <div class="ch-varian-nama">${p.var}</div>
         <div class="ch-varian-status ${cls}">
@@ -2641,7 +2641,14 @@ function _splitToggleProduk(induk, chNama, val) {
   // Tulis ke DB.produk.toko — single source of truth
   const groups = _buildProdukGroups();
   const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
+  const _getStokVar = (varNama) => {
+    const s = (DB.stok||[]).find(s => s.var === varNama);
+    if (!s) return 0;
+    return Math.max(0, (s.awal||0) + (s.masuk||0) - (s.keluar||0));
+  };
   (groups[induk]||[]).forEach(p => {
+    // Kalau aktifkan (val=true), skip varian yang stok 0
+    if (val && _getStokVar(p.var) === 0) return;
     let tokoArr = (p.toko && p.toko !== 'semua')
       ? p.toko.split(',').map(x=>x.trim())
       : [...allChannels];
