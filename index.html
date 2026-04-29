@@ -444,10 +444,10 @@
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-channel">
 
-  <!-- ── Split Panel Utama ── -->
+  <!-- ── Split Panel Utama — 3 kolom ── -->
   <div class="ch-split-panel">
 
-    <!-- KIRI: List Channel -->
+    <!-- PANEL 1: CHANNEL -->
     <div class="ch-split-left">
       <div class="ch-split-left-header">
         <span class="ch-split-left-title">CHANNEL</span>
@@ -458,27 +458,36 @@
       </div>
     </div>
 
-    <!-- KANAN: Produk di Channel -->
-    <div class="ch-split-right">
-      <div class="ch-split-right-header" id="ch-split-right-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);gap:12px;">
-        <!-- KIRI: Nama channel + platform -->
-        <div style="display:flex;flex-direction:column;min-width:0;">
-          <div id="ch-split-right-title" style="font-size:15px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;"></div>
-          <div id="ch-split-right-sub" style="font-size:11px;color:var(--dusty);margin-top:1px;"></div>
-        </div>
-        <!-- TENGAH: Platform badge + counter -->
-        <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-start;padding-left:20px;">
-          <span class="ch-split-status-badge" id="ch-split-status-badge"></span>
-          <span id="ch-split-right-counter" style="font-size:14px;font-weight:700;color:var(--charcoal);white-space:nowrap;"></span>
-        </div>
-        <!-- KANAN: Nonaktifkan + Hapus -->
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+    <!-- PANEL 2: PRODUK -->
+    <div class="ch-panel-produk">
+      <!-- Header 4 bagian inline -->
+      <div class="ch-panel-produk-header" id="ch-split-right-header">
+        <div class="ch-hdr-nama" id="ch-split-right-title">—</div>
+        <div class="ch-hdr-sep"></div>
+        <div class="ch-hdr-platform" id="ch-split-right-sub"></div>
+        <div class="ch-hdr-sep"></div>
+        <div class="ch-hdr-status"><span class="ch-split-status-badge" id="ch-split-status-badge"></span></div>
+        <div class="ch-hdr-sep"></div>
+        <div class="ch-hdr-counter" id="ch-split-right-counter">—</div>
+        <div class="ch-hdr-actions">
           <button class="ch-split-ch-action-btn" id="ch-split-header-toggle-btn" onclick="_splitToggleActiveChannel()" style="display:none;"></button>
           <button id="ch-split-header-hapus-btn" onclick="_splitHapusActive()" style="display:none;font-size:11px;padding:5px 14px;border-radius:6px;border:1.5px solid #E24B4A;color:#E24B4A;background:rgba(226,75,74,0.08);cursor:pointer;font-weight:600;letter-spacing:.3px;">Hapus</button>
         </div>
       </div>
-      <div class="ch-split-right-body" id="ch-split-right-body">
-        <div class="ch-split-empty">← Pilih channel di kiri</div>
+      <!-- Body: list produk induk -->
+      <div class="ch-panel-produk-body" id="ch-split-right-body">
+        <div class="ch-split-empty">← Pilih channel</div>
+      </div>
+    </div>
+
+    <!-- PANEL 3: VARIAN -->
+    <div class="ch-panel-varian">
+      <div class="ch-panel-varian-header">
+        <span class="ch-panel-varian-title">VARIAN SKU</span>
+        <span class="ch-panel-varian-induk" id="ch-varian-induk-label">—</span>
+      </div>
+      <div class="ch-panel-varian-body" id="ch-panel-varian-body">
+        <div class="ch-split-empty">← Pilih produk</div>
       </div>
     </div>
 

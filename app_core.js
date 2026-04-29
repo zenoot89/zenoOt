@@ -2421,29 +2421,37 @@ function _splitSelectChannel(chNama) {
   });
   const ch = (DB.channel||[]).find(c=>c.nama===chNama);
   if (!ch) return;
+
+  // — Header 4 bagian —
   const titleEl   = document.getElementById('ch-split-right-title');
   const subEl     = document.getElementById('ch-split-right-sub');
   const counterEl = document.getElementById('ch-split-right-counter');
   const badge     = document.getElementById('ch-split-status-badge');
   const hapusBtn  = document.getElementById('ch-split-header-hapus-btn');
+
   if (titleEl) titleEl.textContent = chNama;
-  const platformLabel = { Shopee:'Shopee Store', Lazada:'Lazada Store', 'TikTok Shop':'TikTok Shop', Offline:'Offline Store', Lainnya:'Channel' };
+
+  // Platform badge — lebih besar
   const pStyle = _platformStyle(ch.platform);
   if (subEl) {
-    subEl.innerHTML = `<span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${pStyle.bg};color:${pStyle.color};font-weight:700;display:inline-block;">${ch.platform}</span>`;
+    subEl.innerHTML = `<span style="font-size:11px;padding:3px 11px;border-radius:20px;background:${pStyle.bg};color:${pStyle.color};font-weight:700;display:inline-block;letter-spacing:.3px;">${ch.platform}</span>`;
   }
+
+  // Status badge
   if (badge) {
     badge.textContent = ch.status;
     badge.className = 'ch-split-status-badge' + (ch.status !== 'Aktif' ? ' nonaktif' : '');
   }
-  // Counter produk aktif
+
+  // Counter — angka saja, besar
   const groups = _buildProdukGroups();
   const allInduk = Object.keys(groups);
   const aktif = allInduk.filter(induk => {
     const vars = groups[induk]||[];
     return vars.some(p => { const t=p.toko||'semua'; return t==='semua'||t.split(',').map(x=>x.trim()).includes(chNama); });
   }).length;
-  if (counterEl) counterEl.textContent = aktif + '/' + allInduk.length + ' produk aktif';
+  if (counterEl) counterEl.textContent = aktif + '/' + allInduk.length;
+
   // Tombol Nonaktifkan/Aktifkan
   const headerBtn = document.getElementById('ch-split-header-toggle-btn');
   if (headerBtn) {
@@ -2452,17 +2460,25 @@ function _splitSelectChannel(chNama) {
     headerBtn.textContent = ch.status === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan';
     headerBtn.dataset.idx = chIdx;
   }
-  // Tombol Hapus
   if (hapusBtn) {
     const chIdx = (DB.channel||[]).findIndex(c => c.nama === chNama);
     hapusBtn.style.display = chIdx >= 0 ? 'inline-block' : 'none';
     hapusBtn.dataset.idx = chIdx;
   }
+
   _renderSplitRightBody(chNama);
+
+  // Reset panel varian
+  const varianLabel = document.getElementById('ch-varian-induk-label');
+  const varianBody  = document.getElementById('ch-panel-varian-body');
+  if (varianLabel) varianLabel.textContent = '—';
+  if (varianBody)  varianBody.innerHTML = '<div class="ch-split-empty">← Pilih produk</div>';
 }
 
+let _splitActiveInduk = null;
+
 function _renderSplitRightBody(chNama) {
-  const body = document.getElementById('ch-split-right-body');
+  const body = document.getElementById('ch-panel-produk-body') || document.getElementById('ch-split-right-body');
   if (!body) return;
   const groups = _buildProdukGroups();
   const indukList = Object.keys(groups).sort();
@@ -2471,16 +2487,22 @@ function _renderSplitRightBody(chNama) {
     return;
   }
 
-  // Cek toggle dari DB.produk.toko — single source of truth
-  const _isProdukAktifDiChannel = (induk, chNama) => {
-    const vars = groups[induk] || [];
-    return vars.some(p => {
-      const t = p.toko || 'semua';
-      return t === 'semua' || t.split(',').map(x => x.trim()).includes(chNama);
-    });
+  const _isVarAktif = (p, chNama) => {
+    const t = p.toko || 'semua';
+    return t === 'semua' || t.split(',').map(x => x.trim()).includes(chNama);
   };
 
-  const semuaAktif = indukList.length > 0 && indukList.every(induk => _isProdukAktifDiChannel(induk, chNama));
+  const _isProdukAktifDiChannel = (induk, chNama) => {
+    const vars = groups[induk] || [];
+    return vars.some(p => _isVarAktif(p, chNama));
+  };
+
+  const _isProdukSemuaAktif = (induk, chNama) => {
+    const vars = groups[induk] || [];
+    return vars.length > 0 && vars.every(p => _isVarAktif(p, chNama));
+  };
+
+  const semuaAktif = indukList.length > 0 && indukList.every(induk => _isProdukSemuaAktif(induk, chNama));
 
   let html = `<div class="ch-split-activate-all">
     <span class="ch-split-activate-all-label">Aktifkan semua</span>
@@ -2492,15 +2514,85 @@ function _renderSplitRightBody(chNama) {
 
   html += indukList.map(induk => {
     const vars = groups[induk];
-    const checked = _isProdukAktifDiChannel(induk, chNama);
-    return `<div class="ch-split-produk-row">
-      <div>
+    const semuaOn  = _isProdukSemuaAktif(induk, chNama);
+    const sebagian = !semuaOn && _isProdukAktifDiChannel(induk, chNama);
+    const isActiveInduk = _splitActiveInduk === induk ? ' ch-produk-row-active' : '';
+    return `<div class="ch-split-produk-row${isActiveInduk}" onclick="_selectInduk('${induk}','${chNama}',this)">
+      <div style="flex:1;min-width:0;">
         <div class="ch-split-produk-name">${induk}</div>
         <div class="ch-split-produk-varian">${vars.length} varian</div>
       </div>
-      <label class="ch-split-toggle">
-        <input type="checkbox" data-induk="${induk}" data-ch="${chNama}" ${checked?'checked':''}
+      <label class="ch-split-toggle" onclick="event.stopPropagation()">
+        <input type="checkbox" data-induk="${induk}" data-ch="${chNama}"
+          ${semuaOn?'checked':''}
+          ${sebagian?'data-indeterminate="true"':''}
           onchange="_splitToggleProduk('${induk}','${chNama}',this.checked)">
+        <div class="ch-split-toggle-track${sebagian?' indeterminate':''}"></div>
+      </label>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = html;
+
+  // Apply indeterminate state ke checkbox
+  body.querySelectorAll('input[data-indeterminate="true"]').forEach(cb => { cb.indeterminate = true; });
+}
+
+function _selectInduk(induk, chNama, rowEl) {
+  _splitActiveInduk = induk;
+  // Highlight active row
+  document.querySelectorAll('.ch-split-produk-row').forEach(r => r.classList.remove('ch-produk-row-active'));
+  if (rowEl) rowEl.classList.add('ch-produk-row-active');
+  // Update label varian panel
+  const label = document.getElementById('ch-varian-induk-label');
+  if (label) label.textContent = induk;
+  _renderVarianPanel(induk, chNama);
+}
+
+function _renderVarianPanel(induk, chNama) {
+  const body = document.getElementById('ch-panel-varian-body');
+  if (!body) return;
+  const groups = _buildProdukGroups();
+  const vars = groups[induk] || [];
+  if (!vars.length) {
+    body.innerHTML = '<div class="ch-split-empty">Tidak ada varian.</div>';
+    return;
+  }
+
+  const _getStok = (varNama) => {
+    const stokRow = (DB.stok||[]).find(s => s.var === varNama);
+    if (!stokRow) return 0;
+    return Math.max(0, (stokRow.awal||0) + (stokRow.masuk||0) - (stokRow.keluar||0));
+  };
+
+  const _getStatusStok = (qty) => {
+    if (qty === 0) return { label:'Habis', cls:'status-habis' };
+    if (qty <= 2)  return { label:'Kritis', cls:'status-kritis' };
+    if (qty <= 5)  return { label:'Rendah', cls:'status-rendah' };
+    return { label:'Aman', cls:'status-aman' };
+  };
+
+  const _isVarAktif = (p) => {
+    const t = p.toko || 'semua';
+    return t === 'semua' || t.split(',').map(x => x.trim()).includes(chNama);
+  };
+
+  const html = vars.map(p => {
+    const stok = _getStok(p.var);
+    const { label, cls } = _getStatusStok(stok);
+    const aktif = _isVarAktif(p);
+    const isHabis = stok === 0;
+    return `<div class="ch-varian-row${isHabis?' disabled':''}">
+      <div class="ch-varian-info">
+        <div class="ch-varian-nama">${p.var}</div>
+        <div class="ch-varian-status ${cls}">
+          <span class="ch-varian-status-dot"></span>
+          ${label} (${stok}pc)
+        </div>
+      </div>
+      <label class="ch-split-toggle" ${isHabis?'style="pointer-events:none;opacity:.4;"':''}>
+        <input type="checkbox" ${aktif&&!isHabis?'checked':''} ${isHabis?'disabled':''}
+          onchange="_splitToggleVarian('${p.var}','${induk}','${chNama}',this.checked)">
         <div class="ch-split-toggle-track"></div>
       </label>
     </div>`;
@@ -2509,7 +2601,35 @@ function _renderSplitRightBody(chNama) {
   body.innerHTML = html;
 }
 
-function _splitToggleProduk(induk, chNama, val) {
+function _splitToggleVarian(varNama, induk, chNama, val) {
+  const groups = _buildProdukGroups();
+  const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
+  const p = (groups[induk]||[]).find(p => p.var === varNama);
+  if (!p) return;
+  let tokoArr = (p.toko && p.toko !== 'semua')
+    ? p.toko.split(',').map(x=>x.trim())
+    : [...allChannels];
+  if (val) {
+    if (!tokoArr.includes(chNama)) tokoArr.push(chNama);
+  } else {
+    tokoArr = tokoArr.filter(t => t !== chNama);
+  }
+  p.toko = tokoArr.length === allChannels.length ? 'semua' : tokoArr.join(',');
+  saveDB();
+  // Re-render produk panel (update indeterminate state)
+  _renderSplitRightBody(chNama);
+  // Re-highlight active induk
+  document.querySelectorAll('.ch-split-produk-row').forEach(r => {
+    r.classList.toggle('ch-produk-row-active', r.querySelector('.ch-split-produk-name')?.textContent === induk);
+  });
+  // Refresh varian panel
+  _renderVarianPanel(induk, chNama);
+  // Update counter header
+  _updateHeaderCounter(chNama);
+  _renderSplitChannelList();
+}
+
+
   // Tulis ke DB.produk.toko — single source of truth
   const groups = _buildProdukGroups();
   const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
@@ -2602,7 +2722,7 @@ function _updateHeaderCounter(chNama) {
     return vars.some(p => { const t=p.toko||'semua'; return t==='semua'||t.split(',').map(x=>x.trim()).includes(chNama); });
   }).length;
   const counterEl = document.getElementById('ch-split-right-counter');
-  if (counterEl) counterEl.textContent = aktif + '/' + allInduk.length + ' produk aktif';
+  if (counterEl) counterEl.textContent = aktif + '/' + allInduk.length;
 }
 
 function _platformStyle(platform) {
