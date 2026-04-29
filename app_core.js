@@ -2324,13 +2324,20 @@ function _renderSplitChannelList() {
   const produkGroups = _buildProdukGroups();
   const allInduk = Object.keys(produkGroups);
 
-  // Warna blush tipis per platform
+  // Warna blush per platform — header lebih solid, item lebih tipis
   const platformBlush = {
-    'Shopee':      'rgba(238,77,45,0.06)',
-    'Lazada':      'rgba(15,20,109,0.06)',
-    'TikTok Shop': 'rgba(28,28,30,0.07)',
-    'Offline':     'rgba(140,140,140,0.06)',
-    'Lainnya':     'rgba(140,123,107,0.06)',
+    'Shopee':      'rgba(238,77,45,0.13)',
+    'Lazada':      'rgba(15,20,109,0.11)',
+    'TikTok Shop': 'rgba(28,28,30,0.10)',
+    'Offline':     'rgba(140,140,140,0.10)',
+    'Lainnya':     'rgba(140,123,107,0.10)',
+  };
+  const platformBlushItem = {
+    'Shopee':      'rgba(238,77,45,0.04)',
+    'Lazada':      'rgba(15,20,109,0.04)',
+    'TikTok Shop': 'rgba(28,28,30,0.04)',
+    'Offline':     'rgba(140,140,140,0.04)',
+    'Lainnya':     'rgba(140,123,107,0.04)',
   };
   const platformDot = {
     'Shopee':      '#EE4D2D',
@@ -2345,11 +2352,11 @@ function _renderSplitChannelList() {
     const chList = grouped[platform];
     if (!chList.length) return;
 
-    // Default open kalau belum pernah di-set
     if (_platformAccOpen[platform] === undefined) _platformAccOpen[platform] = true;
     const isOpen = _platformAccOpen[platform];
     const dot = platformDot[platform];
     const blush = platformBlush[platform];
+    const blushItem = platformBlushItem[platform];
 
     html += `
     <div class="ch-platform-group">
@@ -2376,7 +2383,7 @@ function _renderSplitChannelList() {
           const statusDot = ch.status === 'Aktif'
             ? '<span class="ch-item-status-dot aktif"></span>'
             : '<span class="ch-item-status-dot nonaktif"></span>';
-          return `<div class="ch-split-ch-item${isActive}" onclick="_splitSelectChannel('${ch.nama}')">
+          return `<div class="ch-split-ch-item${isActive}" style="background:${blushItem};" onclick="_splitSelectChannel('${ch.nama}')">
             <div class="ch-split-ch-item-inner">
               ${statusDot}
               <div class="ch-split-ch-name">${ch.nama}</div>

@@ -1298,7 +1298,7 @@ html{scroll-behavior:smooth;}
 /* ── Split Panel: 3 Kolom — CHANNEL | PRODUK | VARIAN ── */
 .ch-split-panel {
   display: grid;
-  grid-template-columns: 260px 300px 1fr;
+  grid-template-columns: 220px 280px 340px 1fr;
   gap: 0;
   height: calc(100vh - 120px);
   min-height: 500px;
@@ -1324,10 +1324,10 @@ html{scroll-behavior:smooth;}
   border-left: 3px solid transparent;
 }
 .ch-platform-header:hover {
-  filter: brightness(0.97);
+  filter: brightness(0.95);
 }
 .ch-platform-header.open {
-  border-bottom: 1px solid rgba(0,0,0,.05);
+  border-bottom: 1px solid rgba(0,0,0,.06);
 }
 
 .ch-platform-header-left {
@@ -1695,7 +1695,7 @@ html{scroll-behavior:smooth;}
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 90px;
+  max-width: 120px;
   flex-shrink: 0;
 }
 .ch-hdr-platform {
@@ -1732,6 +1732,13 @@ html{scroll-behavior:smooth;}
   flex-direction: column;
   background: var(--white);
   min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+/* ══ PANEL SPACER ══ */
+.ch-panel-spacer {
+  background: var(--cream);
+  opacity: .5;
 }
 .ch-panel-varian-header {
   display: flex;
