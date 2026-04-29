@@ -1599,7 +1599,7 @@ async function execBulkHpp(){
   closeModal('modal-bulk-hpp');
   if(SUPABASE_URL){
     try{
-      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk||'aktif'})),'var');
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk||'aktif',toko:r.toko||'semua'})),'var');
       toast(`✅ HPP ${fmt(hpp)} disimpan & sync ke cloud (${rows.length} SKU)`);
     }catch(e){toast('⚠️ Disimpan lokal, sync cloud gagal','warn');}
   }
@@ -1619,7 +1619,7 @@ async function execBulkSupplier(){
   closeModal('modal-bulk-supplier');
   if(SUPABASE_URL){
     try{
-      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk||'aktif'})),'var');
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk||'aktif',toko:r.toko||'semua'})),'var');
       toast(`✅ Supplier → ${sup} disimpan & sync ke cloud (${rows.length} SKU)`);
     }catch(e){toast('⚠️ Disimpan lokal, sync cloud gagal','warn');}
   }
@@ -1639,7 +1639,7 @@ async function execBulkStatus(){
   closeModal('modal-bulk-status');
   if(SUPABASE_URL){
     try{
-      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk})),'var');
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:r.status_produk,toko:r.toko||'semua'})),'var');
       toast(`✅ Status → ${st} disimpan & sync ke cloud (${rows.length} SKU)`);
     }catch(e){toast('⚠️ Disimpan lokal, sync cloud gagal','warn');}
   }
@@ -1654,7 +1654,7 @@ async function produkBulkArsip(){
   rows.forEach(r=>r.status_produk='arsip');
   if(SUPABASE_URL){
     try{
-      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:'arsip'})),'var');
+      await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:'arsip',toko:r.toko||'semua'})),'var');
       toast(`📦 ${rows.length} SKU diarsipkan & sync ke cloud`);
     }catch(e){toast('⚠️ Diarsipkan lokal, sync cloud gagal','warn');}
   }
@@ -1716,7 +1716,7 @@ async function saveEditProduk() {
   if (btnSave) { btnSave.disabled=true; btnSave.textContent='Menyimpan...'; }
   if (SUPABASE_URL) {
     try {
-      await DataLayer._upsert('produk',[{var:updated.var,induk:updated.induk,hpp:updated.hpp,suplaier:updated.suplaier,status_produk:updated.status_produk}],'var');
+      await DataLayer._upsert('produk',[{var:updated.var,induk:updated.induk,hpp:updated.hpp,suplaier:updated.suplaier,status_produk:updated.status_produk,toko:updated.toko||'semua'}],'var');
     } catch(e) {
       toast('Gagal simpan ke cloud: '+e.message,'err');
       if (btnSave) { btnSave.disabled=false; btnSave.textContent='Simpan'; }
@@ -1886,7 +1886,7 @@ async function doImportSheets() {
   saveDB(); renderProduk(); renderStok(); closeImportSheets();
   if(SUPABASE_URL&&newRows.length){
     try{
-      await DataLayer._upsert('produk',newRows.map(p=>({var:p.var,induk:p.induk,hpp:p.hpp,suplaier:p.suplaier,status_produk:p.status_produk||'aktif'})),'var');
+      await DataLayer._upsert('produk',newRows.map(p=>({var:p.var,induk:p.induk,hpp:p.hpp,suplaier:p.suplaier,status_produk:p.status_produk||'aktif',toko:p.toko||'semua'})),'var');
       toast(`✅ ${added} produk diimport & sync cloud · ${stokAdded} stok baru!`);
     }catch(e){toast(`✅ ${added} produk diimport · ⚠️ sync cloud gagal`);}
   } else {
