@@ -1238,47 +1238,53 @@ function renderLowStock() {
 // JURNAL
 // ================================================================
 function populateJInduk() {
-  const indukList=[...new Set(DB.produk
-    .filter(p=>(p.status_produk||'aktif')!=='arsip')
-    .map(p=>p.induk))].sort();
-  document.getElementById('j-sku-induk').innerHTML=
-    indukList.map(s=>`<option>${s}</option>`).join('');
+  // Isi channel dropdown dulu
+  const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>_normalizeCh(c.nama)).sort();
+  const chEl = document.getElementById('j-ch');
+  if (chEl) {
+    const curCh = chEl.value;
+    chEl.innerHTML = allChannels.map(c=>`<option>${c}</option>`).join('');
+    if (allChannels.includes(curCh)) chEl.value = curCh;
+  }
+  // Filter SKU Induk berdasarkan channel yang dipilih
+  onJChChange();
+}
+
+// Saat channel berubah → filter SKU Induk yang dijual di channel itu
+function onJChChange() {
+  const chEl = document.getElementById('j-ch');
+  const chNama = _normalizeCh(chEl ? chEl.value : '');
+  const indukEl = document.getElementById('j-sku-induk');
+  if (!indukEl) return;
+
+  // Filter produk yang toko-nya include channel ini
+  const indukList = [...new Set(DB.produk
+    .filter(p => {
+      if ((p.status_produk||'aktif') === 'arsip') return false;
+      const t = _normalizeCh(p.toko||'semua');
+      if (t === 'SEMUA') return true;
+      return t.split(',').map(x=>x.trim()).includes(chNama);
+    })
+    .map(p=>p.induk)
+  )].sort();
+
+  indukEl.innerHTML = indukList.length
+    ? indukList.map(s=>`<option>${s}</option>`).join('')
+    : '<option value="">— Belum ada produk di channel ini —</option>';
   onJIndukChange();
 }
 
 function _normalizeCh(s){ return (s||'').trim().replace(/\.\s+/g,'.').toUpperCase(); }
 
-// Cascade: pilih induk → filter channel & variasi berdasarkan toko
+// Cascade: pilih induk → filter variasi saja (channel sudah difilter duluan via onJChChange)
 function onJIndukChange() {
   const induk = document.getElementById('j-sku-induk')?.value;
   if (!induk) return;
 
-  // Ambil semua variasi dari induk ini
-  const produkInduk = DB.produk.filter(p=>p.induk===induk && (p.status_produk||'aktif')!=='arsip');
-
-  // Kumpulkan semua toko yang punya produk induk ini
-  const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>_normalizeCh(c.nama));
-  const tokoSet = new Set();
-  produkInduk.forEach(p => {
-    const t = p.toko||'semua';
-    if (t==='semua') { allChannels.forEach(ch=>tokoSet.add(ch)); }
-    else { t.split(',').map(x=>x.trim()).forEach(ch=>tokoSet.add(_normalizeCh(ch))); }
-  });
-
-  // Update channel dropdown — hanya toko yang punya produk ini
-  const chEl = document.getElementById('j-ch');
-  if (chEl) {
-    const cur = chEl.value;
-    const validCh = allChannels.filter(ch=>tokoSet.has(ch));
-    chEl.innerHTML = validCh.length
-      ? validCh.map(c=>`<option>${c}</option>`).join('')
-      : '<option value="">— Produk belum di-assign ke toko —</option>';
-    if ([...chEl.options].find(o=>o.value===cur)) chEl.value=cur;
-  }
-
   // Update variasi dropdown
   const varEl = document.getElementById('j-sku-variasi');
   if (varEl) {
+    const produkInduk = DB.produk.filter(p=>p.induk===induk && (p.status_produk||'aktif')!=='arsip');
     varEl.innerHTML = produkInduk.map(p=>`<option>${p.var}</option>`).join('');
   }
 }
