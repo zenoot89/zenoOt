@@ -2500,12 +2500,20 @@ function _renderSplitRightBody(chNama) {
   };
 
   const _isProdukAktifDiChannel = (induk, chNama) => {
-    const vars = groups[induk] || [];
+    const vars = (groups[induk] || []).filter(p => {
+      const s = (DB.stok||[]).find(s => s.var === p.var);
+      const qty = s ? Math.max(0,(s.awal||0)+(s.masuk||0)-(s.keluar||0)) : 0;
+      return qty > 0;
+    });
     return vars.some(p => _isVarAktif(p, chNama));
   };
 
   const _isProdukSemuaAktif = (induk, chNama) => {
-    const vars = groups[induk] || [];
+    const vars = (groups[induk] || []).filter(p => {
+      const s = (DB.stok||[]).find(s => s.var === p.var);
+      const qty = s ? Math.max(0,(s.awal||0)+(s.masuk||0)-(s.keluar||0)) : 0;
+      return qty > 0;
+    });
     return vars.length > 0 && vars.every(p => _isVarAktif(p, chNama));
   };
 
@@ -2641,14 +2649,7 @@ function _splitToggleProduk(induk, chNama, val) {
   // Tulis ke DB.produk.toko — single source of truth
   const groups = _buildProdukGroups();
   const allChannels = (DB.channel||[]).filter(c=>c.status==='Aktif').map(c=>c.nama);
-  const _getStokVar = (varNama) => {
-    const s = (DB.stok||[]).find(s => s.var === varNama);
-    if (!s) return 0;
-    return Math.max(0, (s.awal||0) + (s.masuk||0) - (s.keluar||0));
-  };
   (groups[induk]||[]).forEach(p => {
-    // Kalau aktifkan (val=true), skip varian yang stok 0
-    if (val && _getStokVar(p.var) === 0) return;
     let tokoArr = (p.toko && p.toko !== 'semua')
       ? p.toko.split(',').map(x=>x.trim())
       : [...allChannels];
