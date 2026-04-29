@@ -2597,8 +2597,8 @@ function _renderVarianPanel(induk, chNama) {
           ${label} (${stok}pc)
         </div>
       </div>
-      <label class="ch-split-toggle" ${isHabis?'style="pointer-events:none;opacity:.4;"':''}>
-        <input type="checkbox" ${aktif&&!isHabis?'checked':''} ${isHabis?'disabled':''}
+      <label class="ch-split-toggle">
+        <input type="checkbox" ${aktif?'checked':''}
           onchange="_splitToggleVarian('${p.var}','${induk}','${chNama}',this.checked)">
         <div class="ch-split-toggle-track"></div>
       </label>
