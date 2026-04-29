@@ -1295,31 +1295,195 @@ html{scroll-behavior:smooth;}
 .ch-sub { display:none; }
 .ch-sub.active { display:block; }
 
-/* ── Assign Table ── */
-.ch-assign-table { width:100%; border-collapse:collapse; }
-.ch-assign-table th {
-  background:var(--card); font-size:11px; text-transform:uppercase;
-  letter-spacing:.8px; color:var(--dusty); font-weight:700;
-  padding:10px 12px; border-bottom:1px solid var(--border);
-  white-space:nowrap; text-align:center;
+/* ── Split Panel: Assign Produk ke Channel ── */
+.ch-split-panel {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  height: calc(100vh - 200px);
+  min-height: 500px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
 }
-.ch-assign-table th:first-child { text-align:left; }
-.ch-assign-table td { padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
-.ch-assign-table tr.induk-row { background:var(--cream); }
-.ch-assign-table tr.induk-row td { font-weight:700; font-size:13px; color:var(--brown); }
-.ch-assign-table tr:hover { background:var(--success-bg); }
 
-/* Toggle switch */
-.ch-toggle { position:relative; width:38px; height:22px; display:inline-block; }
-.ch-toggle input { opacity:0; width:0; height:0; }
-.ch-toggle-track {
-  position:absolute; inset:0; background:var(--border); border-radius:11px;
+/* KIRI */
+.ch-split-left {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background: var(--charcoal);
+}
+.ch-split-left-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.ch-split-left-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
+.ch-split-left-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+/* Channel item di kiri */
+.ch-split-ch-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background .15s, border-color .15s;
+  position: relative;
+}
+.ch-split-ch-item:hover {
+  background: rgba(255,255,255,.05);
+}
+.ch-split-ch-item.active {
+  background: rgba(255,255,255,.08);
+  border-left-color: var(--gold);
+}
+.ch-split-ch-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 5px;
+  letter-spacing: .3px;
+}
+.ch-split-ch-item.active .ch-split-ch-name {
+  color: var(--gold);
+}
+.ch-split-ch-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-bottom: 4px;
+}
+.ch-split-ch-badge.shopee  { background: #ee4d2d22; color: #ee4d2d; }
+.ch-split-ch-badge.lazada  { background: #f57c0022; color: #f57c00; }
+.ch-split-ch-badge.tiktok  { background: rgba(255,255,255,.1); color: #ccc; }
+.ch-split-ch-badge.offline { background: #5a7a6a22; color: #5a7a6a; }
+.ch-split-ch-badge.lainnya { background: rgba(255,255,255,.08); color: #aaa; }
+.ch-split-ch-counter {
+  font-size: 10px;
+  color: rgba(255,255,255,.35);
+  margin-top: 2px;
+}
+
+/* KANAN */
+.ch-split-right {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  min-width: 0;
+}
+.ch-split-right-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  flex-shrink: 0;
+}
+.ch-split-right-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--charcoal);
+  letter-spacing: .5px;
+}
+.ch-split-right-sub {
+  font-size: 11px;
+  color: var(--dusty);
+  margin-top: 2px;
+}
+.ch-split-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(90,122,106,.12);
+  color: var(--sage);
+}
+.ch-split-status-badge.nonaktif {
+  background: rgba(192,57,43,.1);
+  color: var(--rust);
+}
+.ch-split-right-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* Row produk di kanan */
+.ch-split-activate-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--cream);
+}
+.ch-split-activate-all-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dusty);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.ch-split-produk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+.ch-split-produk-row:hover {
+  background: var(--success-bg);
+}
+.ch-split-produk-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--charcoal);
+  letter-spacing: .3px;
+}
+.ch-split-produk-varian {
+  font-size: 11px;
+  color: var(--dusty);
+  margin-top: 2px;
+}
+.ch-split-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--dusty);
+  font-size: 13px;
+}
+
+/* Toggle switch (reuse + tweak ukuran) */
+.ch-split-toggle { position:relative; width:44px; height:24px; display:inline-block; flex-shrink:0; }
+.ch-split-toggle input { opacity:0; width:0; height:0; }
+.ch-split-toggle-track {
+  position:absolute; inset:0; background:var(--border); border-radius:12px;
   cursor:pointer; transition:background .2s;
 }
-.ch-toggle input:checked + .ch-toggle-track { background:var(--sage); }
-.ch-toggle-track::after {
-  content:''; position:absolute; width:16px; height:16px;
+.ch-split-toggle input:checked + .ch-split-toggle-track { background:var(--sage); }
+.ch-split-toggle-track::after {
+  content:''; position:absolute; width:18px; height:18px;
   left:3px; top:3px; background:white; border-radius:50%;
-  transition:transform .2s;
+  transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
 }
-.ch-toggle input:checked + .ch-toggle-track::after { transform:translateX(16px); }
+.ch-split-toggle input:checked + .ch-split-toggle-track::after { transform:translateX(20px); }
+
+/* Responsive mobile */
+@media(max-width:700px){
+  .ch-split-panel { grid-template-columns:1fr; height:auto; }
+  .ch-split-left { border-right:none; border-bottom:1px solid var(--border); max-height:200px; }
+}
+

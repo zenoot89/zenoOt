@@ -2213,101 +2213,177 @@ function goChTab(id, el) {
   if (el) el.classList.add('active');
   const sub = document.getElementById('chsub-'+id);
   if (sub) sub.classList.add('active');
-  if (id === 'assign') renderAssignChannel();
+  if (id === 'assign') renderSplitPanel();
 }
 
-function renderAssignChannel() {
-  const wrap = document.getElementById('ch-assign-wrap');
-  if (!wrap) return;
+// ================================================================
+// SPLIT PANEL — Assign Produk ke Channel
+// ================================================================
+
+let _splitActiveChannel = null; // nama channel yang sedang dipilih
+
+function renderSplitPanel() {
+  _renderSplitChannelList();
+  // Pilih channel pertama (aktif) otomatis
   const channels = (DB.channel||[]).filter(c=>c.status==='Aktif');
-  const produk   = DB.produk||[];
+  if (channels.length && !_splitActiveChannel) {
+    _splitSelectChannel(channels[0].nama);
+  } else if (_splitActiveChannel) {
+    _splitSelectChannel(_splitActiveChannel);
+  } else {
+    document.getElementById('ch-split-right-body').innerHTML =
+      '<div class="ch-split-empty">Belum ada channel aktif. Tambah channel dulu.</div>';
+  }
+}
+
+function _renderSplitChannelList() {
+  const list = document.getElementById('ch-split-channel-list');
+  if (!list) return;
+  const channels = DB.channel||[];
   if (!channels.length) {
-    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dusty);font-size:13px;">Belum ada channel aktif. Tambah channel dulu.</div>';
+    list.innerHTML = '<div style="padding:20px 16px;color:rgba(255,255,255,.3);font-size:12px;">Belum ada channel.</div>';
     return;
   }
-  const groups = {};
-  produk.forEach(p=>{ if(!groups[p.induk]) groups[p.induk]=[]; groups[p.induk].push(p); });
-  if (!Object.keys(groups).length) {
-    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dusty);font-size:13px;">Belum ada produk.</div>';
-    return;
-  }
-  const platformColor = {Shopee:'#ee4d2d',Lazada:'#f57c00','TikTok Shop':'#010101',Offline:'#5a7a6a',Lainnya:'#8c7b6b'};
-  let html = '<div class="tbl-wrap"><table class="ch-assign-table"><thead><tr>';
-  html += '<th style="min-width:200px;text-align:left;position:sticky;left:0;z-index:3;background:var(--cream);">SKU Induk</th>';
-  channels.forEach(ch=>{
-    const col = platformColor[ch.platform]||'#888';
-    html += '<th><div style="color:'+col+';font-size:11px;font-weight:800;">'+ch.nama+'</div>';
-    html += '<div style="font-size:10px;opacity:.7;font-weight:500;">'+ch.platform+'</div></th>';
-  });
-  html += '</tr></thead><tbody>';
-
+  const groups = _buildProdukGroups();
   const assign = DB.assignChannel||{};
-  Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).forEach(function(entry){
-    const induk = entry[0], vars = entry[1];
-    html += '<tr class="induk-row">';
-    html += '<td style="position:sticky;left:0;z-index:2;background:var(--cream);min-width:200px;"><span style="font-size:13px;font-weight:700;">'+induk+'</span>';
-    html += '<span style="font-size:11px;color:var(--dusty);margin-left:8px;">'+vars.length+' varian</span></td>';
-    channels.forEach(function(ch){
-      const checked = assign[induk] ? assign[induk][ch.nama] !== false : true;
-      html += '<td style="text-align:center;">';
-      html += '<label class="ch-toggle">';
-      html += '<input type="checkbox" data-induk="'+induk+'" data-ch="'+ch.nama+'"';
-      html += (checked ? ' checked' : '') + ' onchange="onAssignToggle()">';
-      html += '<div class="ch-toggle-track"></div></label></td>';
-    });
-    html += '</tr>';
+  const platformBadgeClass = {
+    'Shopee':'shopee','Lazada':'lazada','TikTok Shop':'tiktok','Offline':'offline','Lainnya':'lainnya'
+  };
+  list.innerHTML = channels.map(ch => {
+    const cls = platformBadgeClass[ch.platform]||'lainnya';
+    // Hitung berapa induk yang aktif di channel ini
+    const allInduk = Object.keys(groups);
+    const aktif = allInduk.filter(induk => {
+      return assign[induk] ? assign[induk][ch.nama] !== false : true;
+    }).length;
+    const total = allInduk.length;
+    const isActive = _splitActiveChannel === ch.nama ? ' active' : '';
+    return `<div class="ch-split-ch-item${isActive}" onclick="_splitSelectChannel('${ch.nama}')">
+      <div class="ch-split-ch-name">${ch.nama}</div>
+      <div><span class="ch-split-ch-badge ${cls}">${ch.platform}</span></div>
+      <div class="ch-split-ch-counter">${aktif}/${total} aktif</div>
+    </div>`;
+  }).join('');
+}
+
+function _buildProdukGroups() {
+  const groups = {};
+  (DB.produk||[]).forEach(p => {
+    if (!groups[p.induk]) groups[p.induk] = [];
+    groups[p.induk].push(p);
+  });
+  return groups;
+}
+
+function _splitSelectChannel(chNama) {
+  _splitActiveChannel = chNama;
+
+  // Update active state kiri
+  document.querySelectorAll('.ch-split-ch-item').forEach(el => {
+    el.classList.toggle('active', el.querySelector('.ch-split-ch-name')?.textContent === chNama);
   });
 
-  html += '</tbody></table></div>';
-  html += '<div id="ch-assign-unsaved" style="display:none;margin-top:12px;padding:8px 14px;';
-  html += 'background:var(--warn-bg);border-radius:8px;font-size:12px;color:var(--brown);font-weight:600;">';
-  html += 'Ada perubahan belum disimpan</div>';
-  wrap.innerHTML = html;
+  const ch = (DB.channel||[]).find(c=>c.nama===chNama);
+  if (!ch) return;
+
+  // Update header kanan
+  document.getElementById('ch-split-right-title').textContent = chNama;
+  const platformLabel = { Shopee:'Shopee Store', Lazada:'Lazada Store', 'TikTok Shop':'TikTok Shop', Offline:'Offline Store', Lainnya:'Channel' };
+  document.getElementById('ch-split-right-sub').textContent = platformLabel[ch.platform]||ch.platform;
+  const badge = document.getElementById('ch-split-status-badge');
+  badge.textContent = ch.status;
+  badge.className = 'ch-split-status-badge' + (ch.status !== 'Aktif' ? ' nonaktif' : '');
+
+  // Render produk di kanan
+  _renderSplitRightBody(chNama);
 }
 
-function onAssignToggle() {
-  const el = document.getElementById('ch-assign-unsaved');
-  if (el) el.style.display = 'block';
+function _renderSplitRightBody(chNama) {
+  const body = document.getElementById('ch-split-right-body');
+  if (!body) return;
+  const groups = _buildProdukGroups();
+  const assign = DB.assignChannel||{};
+  const indukList = Object.keys(groups).sort();
+  if (!indukList.length) {
+    body.innerHTML = '<div class="ch-split-empty">Belum ada produk. Tambah produk dulu.</div>';
+    return;
+  }
+  // Hitung semua aktif untuk "Aktifkan semua"
+  const semuaAktif = indukList.every(induk => assign[induk] ? assign[induk][chNama] !== false : true);
+
+  let html = `<div class="ch-split-activate-all">
+    <span class="ch-split-activate-all-label">Aktifkan semua</span>
+    <label class="ch-split-toggle">
+      <input type="checkbox" id="ch-split-all-toggle" ${semuaAktif?'checked':''} onchange="_splitToggleAll('${chNama}', this.checked)">
+      <div class="ch-split-toggle-track"></div>
+    </label>
+  </div>`;
+
+  html += indukList.map(induk => {
+    const vars = groups[induk];
+    const checked = assign[induk] ? assign[induk][chNama] !== false : true;
+    return `<div class="ch-split-produk-row">
+      <div>
+        <div class="ch-split-produk-name">${induk}</div>
+        <div class="ch-split-produk-varian">${vars.length} varian</div>
+      </div>
+      <label class="ch-split-toggle">
+        <input type="checkbox" data-induk="${induk}" data-ch="${chNama}" ${checked?'checked':''}
+          onchange="_splitToggleProduk('${induk}','${chNama}',this.checked)">
+        <div class="ch-split-toggle-track"></div>
+      </label>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = html;
 }
 
-async function saveAssignChannel() {
-  const checkboxes = document.querySelectorAll('#ch-assign-wrap input[type=checkbox]');
+function _splitToggleProduk(induk, chNama, val) {
   if (!DB.assignChannel) DB.assignChannel = {};
-  checkboxes.forEach(function(cb){
-    const induk = cb.dataset.induk;
-    const ch    = cb.dataset.ch;
-    if (!DB.assignChannel[induk]) DB.assignChannel[induk] = {};
-    DB.assignChannel[induk][ch] = cb.checked;
+  if (!DB.assignChannel[induk]) DB.assignChannel[induk] = {};
+  DB.assignChannel[induk][chNama] = val;
+  _persistAssign();
+  // Update counter di kiri
+  _renderSplitChannelList();
+  // Re-highlight channel yang aktif
+  document.querySelectorAll('.ch-split-ch-item').forEach(el => {
+    el.classList.toggle('active', el.querySelector('.ch-split-ch-name')?.textContent === _splitActiveChannel);
   });
-  const btn = document.getElementById('btn-save-assign');
-  if (btn) { btn.disabled=true; btn.textContent='Menyimpan...'; }
-  // Simpan ke localStorage (persist cross-refresh)
-  try { localStorage.setItem('zenot_assign_channel', JSON.stringify(DB.assignChannel)); } catch(e){}
-  if (btn) { btn.disabled=false; btn.textContent='Simpan Semua'; }
-  const unsaved = document.getElementById('ch-assign-unsaved');
-  if (unsaved) unsaved.style.display = 'none';
+  // Update toggle "aktifkan semua"
+  const groups = _buildProdukGroups();
+  const assign = DB.assignChannel||{};
+  const indukList = Object.keys(groups).sort();
+  const semuaAktif = indukList.every(i => assign[i] ? assign[i][chNama] !== false : true);
+  const allToggle = document.getElementById('ch-split-all-toggle');
+  if (allToggle) allToggle.checked = semuaAktif;
+}
+
+function _splitToggleAll(chNama, val) {
+  if (!DB.assignChannel) DB.assignChannel = {};
+  const groups = _buildProdukGroups();
+  Object.keys(groups).forEach(induk => {
+    if (!DB.assignChannel[induk]) DB.assignChannel[induk] = {};
+    DB.assignChannel[induk][chNama] = val;
+  });
+  _persistAssign();
+  _renderSplitRightBody(chNama);
+  _renderSplitChannelList();
+  // Re-highlight
+  document.querySelectorAll('.ch-split-ch-item').forEach(el => {
+    el.classList.toggle('active', el.querySelector('.ch-split-ch-name')?.textContent === _splitActiveChannel);
+  });
+  toast(val ? '✅ Semua produk diaktifkan!' : 'Semua produk dinonaktifkan');
+}
+
+function _persistAssign() {
+  try { localStorage.setItem('zenot_assign_channel', JSON.stringify(DB.assignChannel)); } catch(e) {}
+}
+
+// Fungsi lama dipertahankan untuk kompatibilitas modul lain
+function onAssignToggle() {}
+async function saveAssignChannel() {
+  _persistAssign();
   toast('Assign channel tersimpan!');
 }
 
-// ── Juga fix: renderChannel harus cari di chsub-list ──
-const _origRenderChannel = window.renderChannel;
-window.renderChannel = function() {
-  const body = document.getElementById('channel-body');
-  if (!body) return;
-  const channels = DB.channel||[];
-  const platformColor = {Shopee:'#ee4d2d',Lazada:'#f57c00','TikTok Shop':'#010101',Offline:'#5a7a6a',Lainnya:'#8c7b6b'};
-  if (!channels.length) {
-    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--dusty)">Belum ada channel.</td></tr>';
-    return;
-  }
-  body.innerHTML = channels.map(function(c,i){
-    return '<tr>' +
-      '<td class="mono">'+(i+1)+'</td>' +
-      '<td><strong>'+c.nama+'</strong></td>' +
-      '<td><span style="background:'+(platformColor[c.platform]||'#888')+';color:white;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'+c.platform+'</span></td>' +
-      '<td><span class="badge '+(c.status==='Aktif'?'bg':'bd')+'">'+c.status+'</span></td>' +
-      '<td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="toggleChannelStatus('+i+')">Ubah Status</button>' +
-      '<button class="btn btn-d btn-sm" onclick="hapusChannel('+i+')">Hapus</button></td>' +
-    '</tr>';
-  }).join('');
-};
+// renderChannel tetap dihandle oleh fungsi di atas (renderChannel di app_core)
