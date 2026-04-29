@@ -1094,7 +1094,7 @@ function populateRsInduk() {
   const indukList = [...new Set(filteredProduk.map(p=>p.induk))];
   // Fallback: kalau tidak ada produk untuk supplier itu, tampilkan semua
   const finalList = indukList.length ? indukList : [...new Set(DB.produk.map(p=>p.induk))];
-  document.getElementById('rs-sku-induk').innerHTML = finalList.map(s=>`<option>${s}</option>`).join('');
+  _populateSS('rs-sku-induk-wrap', finalList, populateRsVariasi);
   populateRsVariasi();
 }
 function populateRsVariasi() {
@@ -1106,7 +1106,7 @@ function populateRsVariasi() {
     const supVariants = variants.filter(p => (p.suplaier||'').toUpperCase() === supplier.toUpperCase());
     if (supVariants.length) variants = supVariants;
   }
-  document.getElementById('rs-sku-variasi').innerHTML = variants.map(p=>`<option>${p.var}</option>`).join('');
+  _populateSS('rs-sku-variasi-wrap', variants.map(p=>p.var), ()=>{});
 }
 function populateRqInduk() { const indukList=[...new Set(DB.produk.map(p=>p.induk))];document.getElementById('rq-induk').innerHTML=indukList.map(s=>`<option>${s}</option>`).join('');populateRqVariasi(); }
 function populateRqVariasi() { const induk=document.getElementById('rq-induk').value;document.getElementById('rq-variasi').innerHTML=DB.produk.filter(p=>p.induk===induk).map(p=>`<option>${p.var}</option>`).join(''); }
@@ -1254,8 +1254,6 @@ function populateJInduk() {
 function onJChChange() {
   const chEl = document.getElementById('j-ch');
   const chNama = _normalizeCh(chEl ? chEl.value : '');
-  const indukEl = document.getElementById('j-sku-induk');
-  if (!indukEl) return;
 
   // Filter produk yang toko-nya include channel ini
   const indukList = [...new Set(DB.produk
@@ -1268,10 +1266,8 @@ function onJChChange() {
     .map(p=>p.induk)
   )].sort();
 
-  indukEl.innerHTML = indukList.length
-    ? indukList.map(s=>`<option>${s}</option>`).join('')
-    : '<option value="">— Belum ada produk di channel ini —</option>';
-  onJIndukChange();
+  // Populate searchable select
+  _populateSS('j-sku-induk-wrap', indukList, onJIndukChange);
 }
 
 function _normalizeCh(s){ return (s||'').trim().replace(/\.\s+/g,'.').toUpperCase(); }
@@ -1282,12 +1278,81 @@ function onJIndukChange() {
   if (!induk) return;
 
   // Update variasi dropdown
-  const varEl = document.getElementById('j-sku-variasi');
-  if (varEl) {
-    const produkInduk = DB.produk.filter(p=>p.induk===induk && (p.status_produk||'aktif')!=='arsip');
-    varEl.innerHTML = produkInduk.map(p=>`<option>${p.var}</option>`).join('');
+  const produkInduk = DB.produk.filter(p=>p.induk===induk && (p.status_produk||'aktif')!=='arsip');
+  _populateSS('j-sku-variasi-wrap', produkInduk.map(p=>p.var), ()=>{});
+}
+
+// ── Searchable Select Helpers ──
+function _populateSS(wrapId, items, onSelect) {
+  const list = document.getElementById(wrapId.replace('-wrap','-list'));
+  const val  = document.getElementById(wrapId.replace('-wrap',''));
+  const disp = document.getElementById(wrapId.replace('-wrap','-val'));
+  if (!list) return;
+  list._items = items;
+  list._onSelect = onSelect;
+  const wrap = list.closest('.searchable-select');
+  if (wrap) wrap._onSelect = onSelect;
+  _renderSSList(list, items, val, disp, onSelect);
+  // Reset nilai
+  if (val) val.value = '';
+  if (disp) disp.textContent = '— Pilih Produk —';
+}
+
+function _renderSSList(list, items, val, disp, onSelect) {
+  if (!items.length) {
+    list.innerHTML = '<div class="ss-empty">Belum ada produk di channel ini</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => `<div class="ss-item" onclick="_pickSS(this,'${item.replace(/'/g,"\'")}','${val?.id||''}','${disp?.id||''}',event)">${item}</div>`).join('');
+}
+
+function _pickSS(el, value, valId, dispId, e) {
+  if (e) e.stopPropagation();
+  const val  = document.getElementById(valId);
+  const disp = document.getElementById(dispId);
+  if (val)  val.value = value;
+  if (disp) disp.textContent = value;
+  // Mark active
+  el.closest('.ss-list').querySelectorAll('.ss-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  // Tutup dropdown
+  el.closest('.searchable-select').classList.remove('open');
+  // Trigger callback
+  const wrap = el.closest('.searchable-select');
+  if (wrap && wrap._onSelect) wrap._onSelect();
+  else onJIndukChange();
+}
+
+function _toggleSS(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const isOpen = wrap.classList.contains('open');
+  // Tutup semua dulu
+  document.querySelectorAll('.searchable-select.open').forEach(w => w.classList.remove('open'));
+  if (!isOpen) {
+    wrap.classList.add('open');
+    const search = document.getElementById(wrapId.replace('-wrap','-search'));
+    if (search) { search.value = ''; search.focus(); _filterSS(wrapId); }
   }
 }
+
+function _filterSS(wrapId) {
+  const search = document.getElementById(wrapId.replace('-wrap','-search'));
+  const list   = document.getElementById(wrapId.replace('-wrap','-list'));
+  const val    = document.getElementById(wrapId.replace('-wrap',''));
+  const disp   = document.getElementById(wrapId.replace('-wrap','-val'));
+  if (!list || !list._items) return;
+  const q = (search?.value||'').toLowerCase();
+  const filtered = list._items.filter(i => i.toLowerCase().includes(q));
+  _renderSSList(list, filtered, val, disp, list._onSelect);
+}
+
+// Tutup dropdown saat klik di luar
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.searchable-select')) {
+    document.querySelectorAll('.searchable-select.open').forEach(w => w.classList.remove('open'));
+  }
+});
 
 function _syncChannelDropdowns() {
   // Untuk edit jurnal — tetap tampilkan semua channel
@@ -1303,10 +1368,11 @@ function _syncChannelDropdowns() {
 
 function populateJVariasi() {
   const induk=document.getElementById('j-sku-induk')?.value;
-  const varEl=document.getElementById('j-sku-variasi');
-  if(varEl && induk) varEl.innerHTML=DB.produk
+  if(!induk) return;
+  const vars = DB.produk
     .filter(p=>p.induk===induk&&(p.status_produk||'aktif')!=='arsip')
-    .map(p=>`<option>${p.var}</option>`).join('');
+    .map(p=>p.var);
+  _populateSS('j-sku-variasi-wrap', vars, ()=>{});
 }
 
 function addJurnal() {
@@ -1378,10 +1444,25 @@ function renderJurnal() {
 
 function openEditJurnal(idx) {
   const r=DB.jurnal[idx];
-  ['ej-idx','ej-tgl','ej-ch','ej-sku','ej-qty','ej-harga','ej-hpp'].forEach(id=>{
+  // Isi field biasa
+  ['ej-idx','ej-tgl','ej-ch','ej-qty','ej-harga','ej-hpp'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
-    if(id==='ej-idx')el.value=idx; else if(id==='ej-tgl')el.value=r.tgl; else if(id==='ej-ch')el.value=r.ch; else if(id==='ej-sku')el.value=r.var; else if(id==='ej-qty')el.value=r.qty; else if(id==='ej-harga')el.value=r.harga; else if(id==='ej-hpp')el.value=r.hpp;
+    if(id==='ej-idx')el.value=idx; else if(id==='ej-tgl')el.value=r.tgl; else if(id==='ej-ch')el.value=r.ch; else if(id==='ej-qty')el.value=r.qty; else if(id==='ej-harga')el.value=r.harga; else if(id==='ej-hpp')el.value=r.hpp;
   });
+  // Populate SS ej-sku dengan semua variasi, set nilai aktif
+  const semuaVar = [...new Set(DB.produk.filter(p=>(p.status_produk||'aktif')!=='arsip').map(p=>p.var))].sort();
+  _populateSS('ej-sku-wrap', semuaVar, ()=>{});
+  // Set nilai aktif ke nilai transaksi
+  const ejSkuHidden = document.getElementById('ej-sku');
+  const ejSkuVal    = document.getElementById('ej-sku-val');
+  if (ejSkuHidden) ejSkuHidden.value = r.var;
+  if (ejSkuVal)    ejSkuVal.textContent = r.var;
+  // Highlight active item setelah render
+  setTimeout(() => {
+    document.querySelectorAll('#ej-sku-list .ss-item').forEach(el => {
+      el.classList.toggle('active', el.textContent === r.var);
+    });
+  }, 50);
   openModal('modal-edit-jurnal');
 }
 function saveEditJurnal() {
