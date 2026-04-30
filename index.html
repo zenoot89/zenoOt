@@ -69,6 +69,18 @@
     </div>
 
 
+    <!-- PERENCANAAN — Accordion -->
+    <div class="nav-accordion">
+      <div class="nav-acc-header open" onclick="toggleAcc(this)">
+        <div class="nav-acc-label"><span>🎯</span><span>Perencanaan</span></div>
+        <span class="nav-acc-chevron"></span>
+      </div>
+      <div class="nav-acc-body open">
+        <div class="nav-item" onclick="go('planning-kpi',this)"><span>📊</span><span>Target & KPI</span></div>
+        <div class="nav-item" onclick="go('planning-ops',this)"><span>🏪</span><span>Ops per Toko</span></div>
+      </div>
+    </div>
+
     <!-- TOOLS — Accordion -->
     <div class="nav-accordion">
       <div class="nav-acc-header open" onclick="toggleAcc(this)">
@@ -827,6 +839,16 @@
 <div id="page-intel-cashflow"  style="display:none!important"></div>
 
 <!-- ══════════════════════════════════════════════════
+     PERENCANAAN: TARGET & KPI
+════════════════════════════════════════════════════ -->
+<div class="page" id="page-planning-kpi"></div>
+
+<!-- ══════════════════════════════════════════════════
+     PERENCANAAN: OPS PER TOKO
+════════════════════════════════════════════════════ -->
+<div class="page" id="page-planning-ops"></div>
+
+<!-- ══════════════════════════════════════════════════
      DAILY CHECKLIST PAGE
 ════════════════════════════════════════════════════ -->
 <div class="page" id="page-daily">
@@ -1095,6 +1117,7 @@
 <!-- ══════ SCRIPTS — ORDER MATTERS ══════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="app_core.js"></script>
+<script src="planning_module.js"></script>
 <script src="financial_module.js"></script>
 <script src="trend_engine.js"></script>
 <script src="intelligence_module.js"></script>

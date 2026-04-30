@@ -848,7 +848,8 @@ const ptitles = {
   restock:'Re-Stock <span>Produk</span>',   jurnal:'Jurnal <span>Penjualan</span>',
   produk:'Kelola <span>Produk</span>',       channel:'Channel <span>Penjualan</span>',
   keuangan:'Laporan <span>Keuangan</span>',  blueprint:'Blueprint <span>Strategi</span>',
-  daily:'Daily <span>Checklist</span>',      harga:'Price <span>List</span>',
+  'planning-kpi':'Target <span>&amp; KPI</span>',
+  'planning-ops':'Ops <span>per Toko</span>',
   'analisis-upload':'Analisis <span>&amp; Proyeksi</span>',
   'analisis-blueprint':'AI <span>Blueprint</span>',
   'analisis-profit':'Profit <span>Guard</span>',
@@ -868,6 +869,8 @@ function go(id, el) {
   if (id==='produk')  renderProduk();
   if (id==='restock') { populateRsInduk(); renderRestock(); renderLowStock(); }
   if (id==='channel') { renderChannel(); renderSplitPanel(); }
+  if (id==='planning-kpi') { if (typeof renderPlanningKPI==='function') renderPlanningKPI(); }
+  if (id==='planning-ops') { if (typeof renderPlanningOps==='function') renderPlanningOps(); }
   if (id==='daily') {
     if (typeof renderDailyChecklist === 'function') {
       renderDailyChecklist();
@@ -951,12 +954,16 @@ function renderNotif() {
 }
 
 function renderProgress() {
-  const targetPcs=264,totalKeluar=DB.stok.reduce((s,r)=>s+(r.keluar||0),0);
-  const pctVal=Math.min(100,Math.round(totalKeluar/targetPcs*100));
-  const targetRev=33000000,totalRev=DB.jurnal.reduce((s,r)=>s+(r.hpp*r.qty),0);
-  const revPct=Math.min(100,Math.round(totalRev/targetRev*100));
+  const _planKey = `zenot_planning_${new Date().getFullYear()}_${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const _plan = JSON.parse(localStorage.getItem(_planKey)||'{}');
+  const targetPcs = _plan.targetProduksi || 0;
+  const targetRev = _plan.targetOmset || 0;
+  const totalKeluar = DB.stok.reduce((s,r)=>s+(r.keluar||0),0);
+  const totalRev = DB.jurnal.reduce((s,r)=>s+(r.hpp*r.qty),0);
+  const pctVal = targetPcs > 0 ? Math.min(100,Math.round(totalKeluar/targetPcs*100)) : 0;
+  const revPct = targetRev > 0 ? Math.min(100,Math.round(totalRev/targetRev*100)) : 0;
   document.getElementById('progress-area').innerHTML=`
-    <div class="prog-wrap"><div class="prog-lbl"><span>📦 Volume Produksi</span><span>${totalKeluar}/${targetPcs} pcs</span></div><div class="prog-bar"><div class="prog-fill fb" style="width:${pctVal}%"></div></div></div>
+    <div class="prog-wrap"><div class="prog-lbl"><span>📦 Volume Produksi</span><span>${totalKeluar}/${targetPcs>0?targetPcs:'—'} pcs</span></div><div class="prog-bar"><div class="prog-fill fb" style="width:${pctVal}%"></div></div></div>
     <div class="prog-wrap"><div class="prog-lbl"><span>💰 Target Revenue</span><span>${revPct}%</span></div><div class="prog-bar"><div class="prog-fill fs" style="width:${revPct}%"></div></div></div>`;
 }
 
