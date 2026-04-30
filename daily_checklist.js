@@ -1,8 +1,7 @@
 // ================================================================
 // DAILY CHECKLIST MODULE — zenOt Operasional
-// Hybrid: auto-pull dari DB + manual input
-// Data disimpan ke localStorage per tanggal
 // ================================================================
+(function() {
 
 // ── Helpers ──
 const DC = {
@@ -598,9 +597,7 @@ window.dcTambahKeu          = dcTambahKeu;
 window.dcHapusKeu           = dcHapusKeu;
 
 // Auto-render jika page-daily sudah aktif saat script ini load
-(function() {
-  const el = document.getElementById('page-daily');
-  if (el && el.classList.contains('active')) {
-    renderDailyChecklist();
-  }
-})();
+const _dcEl = document.getElementById('page-daily');
+if (_dcEl && _dcEl.classList.contains('active')) renderDailyChecklist();
+
+})(); // end IIFE
