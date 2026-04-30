@@ -811,7 +811,7 @@ html{scroll-behavior:smooth;}
 
 .intel-card {
   background:var(--card); border:1px solid var(--border); border-radius:12px;
-  padding:16px; margin-bottom:16px;
+  padding:16px; margin-bottom:16px; overflow:hidden; max-width:100%;
 }
 .intel-card-title {
   font-size:13px; font-weight:700; color:var(--charcoal);

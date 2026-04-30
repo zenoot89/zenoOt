@@ -288,6 +288,10 @@ function renderDailyChecklist() {
       border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700;
       margin: 2px; font-family: 'DM Mono', monospace;
     }
+    .dc-chip-wrap {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      overflow: hidden; max-width: 100%;
+    }
     /* Keuangan summary bar */
     .dc-keu-summary {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px;
@@ -405,13 +409,13 @@ function renderDailyChecklist() {
     ${db.stokHabis.length > 0 ? `
       <div style="margin-bottom:10px;">
         <div style="font-size:12px;font-weight:700;color:var(--rust);margin-bottom:6px;">❌ Stok Habis (${db.stokHabis.length} SKU)</div>
-        <div>${db.stokHabis.map(s=>`<span class="dc-stok-habis-chip">${s}</span>`).join('')}</div>
+        <div class="dc-chip-wrap">${db.stokHabis.map(s=>`<span class="dc-stok-habis-chip">${s}</span>`).join('')}</div>
       </div>
     `:''}
     ${db.stokKritis.length > 0 ? `
       <div>
         <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:6px;">⚠️ Stok Kritis (${db.stokKritis.length} SKU)</div>
-        <div>${db.stokKritis.map(s=>`<span class="dc-stok-kritis-chip">${s.sku} (${s.qty})</span>`).join('')}</div>
+        <div class="dc-chip-wrap">${db.stokKritis.map(s=>`<span class="dc-stok-kritis-chip">${s.sku} (${s.qty})</span>`).join('')}</div>
       </div>
     `:''}
   </div>
