@@ -619,7 +619,7 @@ async function loadDB() {
         setCloudStatus(true);
         hideLoadingOverlay(); return;
       }
-    } catch(e) { console.warn("Cloud load gagal:", e.message); }
+    } catch(e) { console.warn("Cloud load gagal:", e.message); hideLoadingOverlay(); }
 
     // Fallback: coba load dari localStorage
     const local = DataLayer.loadLocal();
@@ -709,6 +709,8 @@ async function resetDB() {
 }
 
 function showLoadingOverlay(msg) {
+  // Bersihkan safety timer sebelumnya jika ada
+  if (window._loadingOverlayTimer) { clearTimeout(window._loadingOverlayTimer); window._loadingOverlayTimer = null; }
   let el = document.getElementById('cloud-loading');
   if (!el) {
     el = document.createElement('div'); el.id='cloud-loading';
@@ -717,8 +719,14 @@ function showLoadingOverlay(msg) {
     document.body.appendChild(el);
     if (!document.getElementById('cloud-loading-style')) { const s=document.createElement('style');s.id='cloud-loading-style';s.textContent='@keyframes loadbar{0%{width:0%}60%{width:85%}100%{width:100%}}';document.head.appendChild(s); }
   } else { document.getElementById('cloud-loading-msg').textContent=msg; el.style.display='flex'; }
+  // Safety timeout 12 detik — overlay PASTI hilang meski ada error tak terduga
+  window._loadingOverlayTimer = setTimeout(() => { hideLoadingOverlay(); }, 12000);
 }
-function hideLoadingOverlay() { const el=document.getElementById('cloud-loading'); if(el)el.style.display='none'; }
+function hideLoadingOverlay() {
+  if (window._loadingOverlayTimer) { clearTimeout(window._loadingOverlayTimer); window._loadingOverlayTimer = null; }
+  const el = document.getElementById('cloud-loading');
+  if (el) el.style.display = 'none';
+}
 
 // ================================================================
 // DATA STORE
