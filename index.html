@@ -965,9 +965,10 @@
     </div>
     <div class="form-row">
       <div class="fg"><label class="lbl">Stok Awal</label><input class="inp" type="number" id="es-awal" min="0"></div>
-      <div class="fg"><label class="lbl">Stok Masuk</label><input class="inp" type="number" id="es-masuk" min="0"></div>
-      <div class="fg"><label class="lbl">Stok Keluar</label><input class="inp" type="number" id="es-keluar" min="0"></div>
+      <div class="fg"><label class="lbl">Stok Masuk</label><input class="inp" type="number" id="es-masuk" min="0" readonly style="background:var(--cream);color:var(--dusty)" title="Dihitung otomatis dari log restock"></div>
+      <div class="fg"><label class="lbl">Stok Keluar</label><input class="inp" type="number" id="es-keluar" min="0" readonly style="background:var(--cream);color:var(--dusty)" title="Dihitung otomatis dari jurnal penjualan"></div>
     </div>
+    <div style="font-size:11px;color:var(--dusty);margin-bottom:10px;">📌 Masuk & Keluar otomatis dari log restock &amp; jurnal — tidak bisa diedit manual.</div>
     <div class="form-row">
       <div class="fg"><label class="lbl">HPP / pc</label><input class="inp" type="number" id="es-hpp" min="0"></div>
       <div class="fg"><label class="lbl">Safety Stock</label><input class="inp" type="number" id="es-safety" min="0"></div>
