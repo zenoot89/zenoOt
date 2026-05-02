@@ -2165,7 +2165,16 @@ function parseMassal() {
   if (!raw) { toast('Paste data dulu!','err'); return; }
   const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
   let valid=0,notFound=0;
-  const html=lines.map((line,i)=>{const parts=line.split('\t');const sku=(parts[0]||'').trim().toUpperCase();const qty=parseInt((parts[1]||'0').replace(/[^\d]/g,''))||0;const found=DB.stok.find(s=>s.var.toUpperCase()===sku);if(found&&qty>0)valid++;else notFound++;return `<tr><td style="padding:5px 8px">${i+1}</td><td style="padding:5px 8px">${sku}</td><td style="padding:5px 8px">${qty}</td><td style="padding:5px 8px"><span class="badge ${found&&qty>0?'bg':'br'}">${found&&qty>0?'✅ Siap':!found?'SKU tdk ada':'Qty 0'}</span></td></tr>`;}).join('');
+  const html=lines.map((line,i)=>{
+    const parts=line.split('\t');
+    const sku=(parts[0]||'').trim().toUpperCase();
+    const qty=parseInt((parts[1]||'0').replace(/[^\d]/g,''))||0;
+    const found=DB.stok.find(s=>s.var.toUpperCase()===sku);
+    const produk=DB.produk.find(p=>p.var.toUpperCase()===sku);
+    const supplier=produk&&produk.suplaier?produk.suplaier:'—';
+    if(found&&qty>0)valid++;else notFound++;
+    return `<tr><td style="padding:5px 8px">${i+1}</td><td style="padding:5px 8px">${sku}</td><td style="padding:5px 8px">${qty}</td><td style="padding:5px 8px;color:var(--dusty)">${supplier}</td><td style="padding:5px 8px"><span class="badge ${found&&qty>0?'bg':'br'}">${found&&qty>0?'✅ Siap':!found?'SKU tdk ada':'Qty 0'}</span></td></tr>`;
+  }).join('');
   document.getElementById('massal-preview-body').innerHTML=html;
   document.getElementById('massal-summary').innerHTML=`Total: <strong>${lines.length}</strong> · Siap: <strong style="color:var(--sage)">${valid}</strong> · Dilewati: <strong style="color:var(--rust)">${notFound}</strong>`;
   document.getElementById('massal-preview').style.display='block';
@@ -2175,20 +2184,20 @@ function doInputMassal() {
   const raw=document.getElementById('massal-paste-area').value.trim();
   const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
   const tgl = new Date().toISOString().split('T')[0];
-  const supEl = document.getElementById('bulk-sup-val');
-  const supplier = supEl ? supEl.value : '';
   let updated=0;
   lines.forEach(line=>{
     const parts=line.split('\t');
     const sku=(parts[0]||'').trim().toUpperCase();
     const qty=parseInt((parts[1]||'0').replace(/[^\d]/g,''))||0;
     const stok=DB.stok.find(s=>s.var.toUpperCase()===sku);
+    const produk=DB.produk.find(p=>p.var.toUpperCase()===sku);
+    const supplier=produk&&produk.suplaier?produk.suplaier:'';
     if(stok&&qty>0){
       DB.restock = DB.restock||[];
       DB.restock.push({
         uuid: DataLayer._uuid(),
         tgl, var: stok.var,
-        supplier: supplier||'', qty, catatan: 'Input Massal'
+        supplier, qty, catatan: 'Input Massal'
       });
       updated++;
     }
