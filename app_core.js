@@ -2947,17 +2947,15 @@ function _platformStyle(platform) {
 
 function _confirmHapusChannel() {
   if (!_splitActiveChannel) return;
-  const dialog = document.getElementById('ch-dialog-hapus');
   const namaEl = document.getElementById('ch-dialog-hapus-nama');
   if (namaEl) namaEl.textContent = '"' + _splitActiveChannel + '"';
-  if (dialog) { dialog.style.display = 'flex'; }
+  openModal('ch-dialog-hapus');
 }
 function _cancelHapusChannel() {
-  const dialog = document.getElementById('ch-dialog-hapus');
-  if (dialog) dialog.style.display = 'none';
+  closeModal('ch-dialog-hapus');
 }
 function _confirmExecHapus() {
-  _cancelHapusChannel();
+  closeModal('ch-dialog-hapus');
   _splitHapusActive();
 }
 
