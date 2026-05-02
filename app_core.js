@@ -1530,7 +1530,7 @@ function addJurnal() {
   if (!DB.stok.find(x=>x.var===varName)) DB.stok.push({var:varName,awal:0,masuk:0,keluar:0,hpp,safety:4});
   recalcStok();
   document.getElementById('j-qty').value='';
-  closeModal('modal-tambah-jurnal'); saveDB(); renderJurnal(); renderDashboard();
+  closeModal('modal-tambah-jurnal'); saveDB(); renderJurnal(); renderStok(); renderDashboard();
   toast(`Transaksi ${qty} pcs ${varName} disimpan!`);
 }
 
@@ -1653,7 +1653,7 @@ function saveEditJurnal() {
     const j=DB.jurnal[idx];
     DataLayer._upsert('jurnal',[{uuid,tgl:j.tgl,ch:j.ch,var:j.var,qty:j.qty,harga:0,hpp:j.hpp}],'uuid').catch(e=>console.warn('Edit jurnal gagal sync:',e));
   }
-  closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderDashboard(); toast('✅ Transaksi diperbarui!');
+  closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderStok(); renderDashboard(); toast('✅ Transaksi diperbarui!');
 }
 
 function deleteJurnal(idx) {
@@ -1674,7 +1674,7 @@ function deleteJurnal(idx) {
       saveDB();
     }
   }
-  saveDB(); renderJurnal(); renderDashboard(); toast('✅ Transaksi dihapus');
+  saveDB(); renderJurnal(); renderStok(); renderDashboard(); toast('✅ Transaksi dihapus');
 }
 
 // ================================================================
