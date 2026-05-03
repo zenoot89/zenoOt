@@ -1,5 +1,5 @@
 // ================================================================
-// PLANNING MODULE — zenOt Operasional
+// PLANNING MODULE — zenOt Operasional — build 2026.05.03b
 // Target & KPI Global + Operasional per Toko
 // Storage: Supabase (tabel planning) + localStorage fallback
 // ================================================================
@@ -62,9 +62,27 @@ const PLAN = {
 
   async load(toko='global', bulan=null) {
     const b = bulan || PLAN.keyBulan();
+    // 1. Supabase
     const sb = await PLAN._sbLoad(toko, b);
     if (sb) { PLAN._lsSave(toko, b, sb); return sb; }
-    return PLAN._lsLoad(toko, b) || {};
+    // 2. localStorage key baru
+    const nd = PLAN._lsLoad(toko, b);
+    if (nd) return nd;
+    // 3. Fallback key lama (format lama: zenot_planning_2026_05)
+    if (toko === 'global') {
+      try {
+        const old = JSON.parse(localStorage.getItem(`zenot_planning_${b.replace('-','_')}`)||'null');
+        if (old) { PLAN._lsSave(toko, b, old); return old; }
+      } catch(e) {}
+    }
+    // 4. Fallback key ops toko lama (format: zenot_ops_toko_SHP.ZENOOT)
+    if (toko !== 'global') {
+      try {
+        const old = JSON.parse(localStorage.getItem(`zenot_ops_toko_${toko}`)||'null');
+        if (old) { PLAN._lsSave(toko, b, old); return old; }
+      } catch(e) {}
+    }
+    return {};
   },
 
   async save(toko='global', bulan=null, data) {
@@ -75,7 +93,23 @@ const PLAN = {
 
   loadSync(toko='global', bulan=null) {
     const b = bulan || PLAN.keyBulan();
-    return PLAN._lsLoad(toko, b) || {};
+    const nd = PLAN._lsLoad(toko, b);
+    if (nd) return nd;
+    // Fallback key lama global
+    if (toko === 'global') {
+      try {
+        const old = JSON.parse(localStorage.getItem(`zenot_planning_${b.replace('-','_')}`)||'null');
+        if (old) return old;
+      } catch(e) {}
+    }
+    // Fallback key lama ops toko
+    if (toko !== 'global') {
+      try {
+        const old = JSON.parse(localStorage.getItem(`zenot_ops_toko_${toko}`)||'null');
+        if (old) return old;
+      } catch(e) {}
+    }
+    return {};
   }
 };
 
