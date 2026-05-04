@@ -388,7 +388,7 @@ function renderLaporan() {
 
   el.innerHTML = `
   <style>
-    .lap-wrap { display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start; }
+    .lap-wrap { display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start; }
     .lap-card { background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px; }
     .lap-title { font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dusty);margin-bottom:14px; }
     .lap-upload-box { border:2px dashed var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;margin-bottom:10px; }
@@ -437,7 +437,18 @@ function renderLaporan() {
 
   <div class="lap-wrap">
 
-    <!-- PANEL KIRI: Upload + Config -->
+    <!-- PANEL KIRI: Hasil Laporan -->
+    <div id="lap-hasil-wrap">
+      ${_laporanState.parsed ? _renderHasil(_laporanState.parsed) : `
+        <div class="lap-card" style="text-align:center;padding:60px 20px;">
+          <div style="font-size:40px;margin-bottom:16px;">📊</div>
+          <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:8px;">Belum ada laporan</div>
+          <div style="font-size:12px;color:var(--dusty);">Upload file & klik Proses untuk generate laporan keuangan</div>
+        </div>
+      `}
+    </div>
+
+    <!-- PANEL KANAN: Upload + Config -->
     <div>
       <!-- Pilih Toko & Bulan -->
       <div class="lap-card">
@@ -528,16 +539,6 @@ function renderLaporan() {
       </div>
     </div>
 
-    <!-- PANEL KANAN: Hasil -->
-    <div id="lap-hasil-wrap">
-      ${_laporanState.parsed ? _renderHasil(_laporanState.parsed) : `
-        <div class="lap-card" style="text-align:center;padding:60px 20px;">
-          <div style="font-size:40px;margin-bottom:16px;">📊</div>
-          <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:8px;">Belum ada laporan</div>
-          <div style="font-size:12px;color:var(--dusty);">Upload file & klik Proses untuk generate laporan keuangan</div>
-        </div>
-      `}
-    </div>
 
   </div>
   `;
