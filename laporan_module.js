@@ -163,125 +163,81 @@ function parseOrderFile(wb) {
 
 // ─── PARSE ADS CSV ──────────────────────────────────────────────
 function parseAdsFile(csvText, bulan) {
-  // bulan format: "YYYY-MM" misal "2026-03"
-  // Hanya hitung pengeluaran iklan yang terjadi di bulan tersebut
+  // Format CSV Shopee Adwords Bill:
+  // Baris 0-4 : metadata (Riwayat Transaksi, Username, Tanggal, dll)
+  // Baris 6   : header → Urutan,Waktu,Deskripsi,Jumlah,Catatan
+  // Baris 7+  : data   → 1,31/03/2026,Iklan Produk Otomatis,-2808,-
+  //
+  // Yang dihitung: semua baris dengan Jumlah NEGATIF dan Deskripsi = iklan
+  // Keywords iklan: 'Iklan', 'Ads', 'Ad ', 'Deduction for Product'
+  // SKIP       : 'Isi Saldo', 'Bonus Saldo', kredit/positif apapun
+
   let total = 0;
-
-  // Deteksi separator
   const lines = csvText.split('\n');
-  const sample = lines.slice(0, 10).join('');
-  const sep = (sample.split(';').length > sample.split(',').length) ? ';' : ',';
 
-  // Siapkan filter bulan
-  // Format tanggal di CSV Shopee: "YYYY-MM-DD" atau "DD/MM/YYYY" atau "MM/YYYY"
+  // Siapkan filter bulan dari parameter (format "YYYY-MM", misal "2026-03")
   let filterYear = '', filterMonth = '';
-  if (bulan && bulan.match(/^\d{4}-\d{2}$/)) {
-    filterYear  = bulan.split('-')[0]; // "2026"
-    filterMonth = bulan.split('-')[1]; // "03"
+  if (bulan && /^\d{4}-\d{2}$/.test(bulan)) {
+    [filterYear, filterMonth] = bulan.split('-');
   }
 
-  // Helper: cek apakah string tanggal masuk bulan yang dicari
-  function isInBulan(dateStr) {
-    if (!filterYear || !filterMonth) return true; // jika bulan tidak diketahui, ambil semua
-    const d = String(dateStr || '').trim();
-    // Format YYYY-MM-DD
-    if (d.match(/^\d{4}-\d{2}-\d{2}/)) {
-      return d.startsWith(`${filterYear}-${filterMonth}`);
-    }
-    // Format DD/MM/YYYY
-    if (d.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-      const parts = d.split('/');
-      return parts[2] === filterYear && parts[1] === filterMonth;
-    }
-    // Format D/M/YYYY atau M/YYYY
-    if (d.match(/\d+\/\d+\/\d{4}/)) {
-      const parts = d.split('/');
-      const m = String(parts[parts.length-2]).padStart(2,'0');
-      const y = parts[parts.length-1];
-      return y === filterYear && m === filterMonth;
-    }
-    // Format teks bulan bahasa Indonesia/Inggris: "Maret 2026" / "March 2026"
-    const bulanID = ['januari','februari','maret','april','mei','juni',
-                     'juli','agustus','september','oktober','november','desember'];
-    const bulanEN = ['january','february','march','april','may','june',
-                     'july','august','september','october','november','december'];
-    const dLow = d.toLowerCase();
-    const mIdxID = bulanID.findIndex(b => dLow.includes(b));
-    const mIdxEN = bulanEN.findIndex(b => dLow.includes(b));
-    const mIdx = mIdxID >= 0 ? mIdxID : mIdxEN;
-    if (mIdx >= 0 && dLow.includes(filterYear)) {
-      return String(mIdx + 1).padStart(2,'0') === filterMonth;
-    }
-    return true; // tidak bisa parse tanggal → sertakan saja
-  }
-
-  // Cari header row: temukan kolom tanggal & kolom nominal
-  let dateCol = -1, amountCol = -1;
-  let headerFound = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i].trim();
-    if (!raw) continue;
-    const parts = raw.split(sep).map(p => p.trim().replace(/^"|"$/g, ''));
+  // Cari index kolom dari header row
+  let colWaktu = 1, colDesc = 2, colJumlah = 3; // default posisi
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g,''));
     const lower = parts.map(p => p.toLowerCase());
-
-    if (!headerFound) {
-      // Deteksi header row
-      const dateCandidates   = ['tanggal', 'date', 'waktu', 'time', 'periode'];
-      const amountCandidates = ['jumlah tagihan', 'tagihan', 'pengeluaran', 'debit',
-                                'total biaya', 'biaya', 'amount', 'total'];
-      let foundAny = false;
-      for (const c of dateCandidates) {
-        const idx = lower.findIndex(p => p.includes(c));
-        if (idx >= 0) { dateCol = idx; foundAny = true; break; }
-      }
-      for (const c of amountCandidates) {
-        const idx = lower.findIndex(p => p.includes(c));
-        if (idx >= 0) { amountCol = idx; foundAny = true; break; }
-      }
-      if (foundAny) { headerFound = true; continue; }
-      // Kalau belum ketemu header, cek apakah baris ini punya pola tanggal di kolom pertama
-      if (parts[0] && parts[0].match(/^\d{4}-\d{2}|^\d{2}\/\d{2}/)) {
-        // Langsung baris data tanpa header — dateCol=0, cari kolom angka terbesar
-        dateCol = 0;
-        let maxVal = 0, maxIdx = -1;
-        for (let j = 1; j < parts.length; j++) {
-          const n = parseFloat(String(parts[j]).replace(/[^0-9.]/g, ''));
-          if (!isNaN(n) && n > maxVal) { maxVal = n; maxIdx = j; }
-        }
-        amountCol = maxIdx >= 0 ? maxIdx : 1;
-        headerFound = true;
-        // Proses baris ini juga sebagai data
-      }
-      if (!headerFound) continue;
-    }
-
-    // Baris data
-    // Cek tanggal jika kolom tanggal ditemukan
-    const dateVal = dateCol >= 0 ? parts[dateCol] : '';
-    if (dateCol >= 0 && !isInBulan(dateVal)) continue; // skip bulan lain
-
-    // Cek apakah baris ini adalah pengeluaran iklan (bukan topup / kredit masuk)
-    const rowLower = raw.toLowerCase();
-    const isAdsRow = rowLower.includes('iklan') || rowLower.includes('ads') ||
-                     rowLower.includes('produk') || rowLower.includes('campaign') ||
-                     rowLower.includes('search') || rowLower.includes('discovery') ||
-                     rowLower.includes('sponsored');
-
-    // Jika ada kolom tanggal & amount, ikut sertakan semua debit di bulan itu
-    // (beberapa format CSV tidak punya label 'iklan' per baris, semua sudah iklan)
-    const shouldInclude = isAdsRow || (dateCol >= 0 && amountCol >= 0);
-    if (!shouldInclude) continue;
-
-    if (amountCol >= 0 && parts[amountCol]) {
-      const numStr = String(parts[amountCol]).replace(/[^0-9]/g, '');
-      const val = parseFloat(numStr);
-      // Hanya ambil nilai positif (debit/pengeluaran) yang masuk akal
-      if (!isNaN(val) && val >= 100) total += val;
+    if (lower.includes('waktu') || lower.includes('tanggal') || lower.includes('date')) {
+      colWaktu  = lower.findIndex(p => p === 'waktu' || p === 'tanggal' || p === 'date' || p === 'time');
+      colDesc   = lower.findIndex(p => p === 'deskripsi' || p === 'description' || p === 'keterangan');
+      colJumlah = lower.findIndex(p => p === 'jumlah' || p === 'amount' || p === 'debit' || p === 'tagihan' || p.includes('jumlah'));
+      if (colWaktu < 0) colWaktu = 1;
+      if (colDesc  < 0) colDesc  = 2;
+      if (colJumlah < 0) colJumlah = 3;
+      break;
     }
   }
 
-  return Math.round(total);
+  for (const line of lines) {
+    const raw = line.trim();
+    if (!raw) continue;
+    const parts = raw.split(',').map(p => p.trim().replace(/^"|"$/g,''));
+    // Baris data harus punya kolom cukup dan kolom pertama berupa angka (urutan)
+    if (parts.length < 4 || !/^\d+$/.test(parts[0])) continue;
+
+    const waktu  = parts[colWaktu]  || '';
+    const desc   = parts[colDesc]   || '';
+    const jumlah = parts[colJumlah] || '';
+
+    // Filter bulan — format tanggal CSV: DD/MM/YYYY
+    if (filterYear && filterMonth) {
+      // DD/MM/YYYY → split by /
+      const tParts = waktu.split('/');
+      if (tParts.length === 3) {
+        const tMonth = tParts[1].padStart(2,'0');
+        const tYear  = tParts[2];
+        if (tYear !== filterYear || tMonth !== filterMonth) continue;
+      }
+    }
+
+    // Cek deskripsi: harus keyword iklan
+    const descLow = desc.toLowerCase();
+    const isIklan = descLow.includes('iklan') ||
+                    descLow.includes('ads')   ||
+                    descLow.includes('deduction for product') ||
+                    descLow.includes('product ad') ||
+                    descLow.includes('sponsored');
+
+    if (!isIklan) continue;
+
+    // Ambil nilai — harus negatif (pengeluaran)
+    const val = parseInt(jumlah.replace(/[^0-9-]/g, ''), 10);
+    if (!isNaN(val) && val < 0) {
+      total += Math.abs(val);
+    }
+  }
+
+  console.log('[parseAdsFile] bulan:', bulan, '| total iklan:', total);
+  return total;
 }
 
 // ─── GET HPP dari DB.produk ──────────────────────────────────────
