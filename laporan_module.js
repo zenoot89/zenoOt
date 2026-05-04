@@ -388,7 +388,7 @@ function renderLaporan() {
 
   el.innerHTML = `
   <style>
-    .lap-wrap { display:grid;grid-template-columns:1fr 280px 280px;gap:16px;align-items:start; }
+    .lap-wrap { display:grid;grid-template-columns:1fr 360px 360px;gap:16px;align-items:start; }
     .lap-card { background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px; }
     .lap-title { font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dusty);margin-bottom:14px; }
     .lap-upload-box { border:2px dashed var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;margin-bottom:10px; }
@@ -983,9 +983,9 @@ function _autoFillFromPlanning() {
     const opsEl   = document.getElementById('lap-ops');
     // Prioritas: localStorage toko ini → iklan dari CSV yang baru di-upload → 0
     if (iklanEl) {
-      const savedIklan = d.budgetIklan || 0;
-      const csvIklan   = _laporanState.iklanFromCsv || 0;
-      iklanEl.value = savedIklan || csvIklan || 0;
+      // Iklan HANYA dari CSV yang diupload
+      const csvIklan = _laporanState.iklanFromCsv || 0;
+      iklanEl.value = csvIklan;
     }
     if (opsEl) {
       // Ops global dari planning
@@ -1006,11 +1006,8 @@ function _autoFillFromPlanning() {
 
 function _getLaporanOps(type) {
   const toko = _laporanState.toko;
-  const key = `zenot_ops_toko_${toko}`;
-  try {
-    const d = JSON.parse(localStorage.getItem(key)||'{}');
-    if (type === 'iklan') return d.budgetIklan || 0;
-  } catch(e) {}
+  // Iklan HANYA dari CSV yang diupload, bukan dari localStorage/planning
+  if (type === 'iklan') return _laporanState.iklanFromCsv || 0;
 
   // Ops dari field operasional ops-per-toko (prioritas utama)
   if (type === 'operasional') {
