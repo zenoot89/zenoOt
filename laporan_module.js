@@ -469,6 +469,31 @@ function renderLaporan() {
         </div>
       </div>
 
+      <!-- Ops per Toko -->
+      <div class="lap-card" id="lap-opstoko-card">
+        <div class="lap-title">⚙️ Ops per Toko</div>
+        <div class="lap-manual" style="margin-bottom:10px;">
+          <div class="lap-field">
+            <label>Operasional (Rp)</label>
+            <input type="number" id="lap-opstoko-ops" placeholder="0"
+              oninput="_lapOpsTokoChange()">
+          </div>
+          <div class="lap-field">
+            <label>Rasio Ops / Omset</label>
+            <div id="lap-opstoko-rasio" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--dusty);background:var(--cream);min-height:40px;box-sizing:border-box;">—</div>
+          </div>
+        </div>
+        <div class="lap-field" style="margin-bottom:10px;">
+          <label>Target Omset (Rp)</label>
+          <input type="number" id="lap-opstoko-omset" placeholder="0"
+            oninput="_lapOpsTokoChange()">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+          <div style="font-size:10px;color:var(--dusty);">💾 Auto-save ke Ops per Toko</div>
+          <div id="lap-opstoko-status" style="font-size:10px;color:var(--sage);font-weight:700;"></div>
+        </div>
+      </div>
+
       <!-- Upload 4 File -->
       <div class="lap-card">
         <div class="lap-title">📁 Upload File Shopee</div>
@@ -847,6 +872,108 @@ function _laporanSetBulan(val) {
   _autoFillFromPlanning();
 }
 
+// ─── OPS PER TOKO (blok panel kanan) ──────────────────────────────
+async function _lapOpsTokoLoad() {
+  const toko = _laporanState.toko;
+  const bulan = _laporanState.bulan;
+  if (!toko) return;
+
+  const opsEl    = document.getElementById('lap-opstoko-ops');
+  const omsetEl  = document.getElementById('lap-opstoko-omset');
+  const rasioEl  = document.getElementById('lap-opstoko-rasio');
+  if (!opsEl) return;
+
+  // Load dari PLAN (Supabase → localStorage fallback)
+  let d = {};
+  try {
+    if (typeof PLAN !== 'undefined') {
+      d = await PLAN.load(toko, bulan) || {};
+    } else {
+      const key = `zenot_ops_toko_${toko}`;
+      d = JSON.parse(localStorage.getItem(key) || '{}');
+    }
+  } catch(e) {}
+
+  opsEl.value   = d.operasional   || '';
+  if (omsetEl) omsetEl.value = d.targetOmset || '';
+
+  _lapOpsTokoUpdateRasio();
+}
+
+function _lapOpsTokoUpdateRasio() {
+  const opsEl   = document.getElementById('lap-opstoko-ops');
+  const omsetEl = document.getElementById('lap-opstoko-omset');
+  const rasioEl = document.getElementById('lap-opstoko-rasio');
+  if (!rasioEl) return;
+
+  const ops   = parseFloat(opsEl?.value) || 0;
+  const omset = parseFloat(omsetEl?.value) || 0;
+
+  if (ops > 0 && omset > 0) {
+    const pct = (ops / omset * 100).toFixed(2);
+    rasioEl.textContent = pct + '%';
+    rasioEl.style.color = pct > 30 ? '#C83232' : 'var(--sage)';
+  } else {
+    rasioEl.textContent = '—';
+    rasioEl.style.color = 'var(--dusty)';
+  }
+}
+
+let _lapOpsTokoTimer = null;
+function _lapOpsTokoChange() {
+  _lapOpsTokoUpdateRasio();
+  // Debounce save 800ms
+  clearTimeout(_lapOpsTokoTimer);
+  _lapOpsTokoTimer = setTimeout(_lapOpsTokoSave, 800);
+}
+
+async function _lapOpsTokoSave() {
+  const toko  = _laporanState.toko;
+  const bulan = _laporanState.bulan;
+  if (!toko) return;
+
+  const ops   = parseFloat(document.getElementById('lap-opstoko-ops')?.value)   || 0;
+  const omset = parseFloat(document.getElementById('lap-opstoko-omset')?.value) || 0;
+
+  // Merge dengan data existing (jangan overwrite field lain)
+  let existing = {};
+  try {
+    if (typeof PLAN !== 'undefined') {
+      existing = await PLAN.load(toko, bulan) || {};
+    } else {
+      existing = JSON.parse(localStorage.getItem(`zenot_ops_toko_${toko}`) || '{}');
+    }
+  } catch(e) {}
+
+  const merged = { ...existing, operasional: ops, targetOmset: omset };
+
+  try {
+    if (typeof PLAN !== 'undefined') {
+      await PLAN.save(toko, bulan, merged);
+    } else {
+      localStorage.setItem(`zenot_ops_toko_${toko}`, JSON.stringify(merged));
+    }
+  } catch(e) {}
+
+  // Update field lap-ops (Input Manual) supaya proses ikut terbaru
+  const lapOpsEl = document.getElementById('lap-ops');
+  if (lapOpsEl) { lapOpsEl.value = ops; }
+
+  // Status feedback
+  const statusEl = document.getElementById('lap-opstoko-status');
+  if (statusEl) {
+    statusEl.textContent = '✅ Tersimpan';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000);
+  }
+
+  // Jika laporan sudah ter-render, trigger re-render dengan nilai baru
+  if (_laporanState.parsed) {
+    _laporanState.parsed.operasional = ops;
+    const hasilWrap = document.getElementById('lap-hasil-wrap');
+    if (hasilWrap) hasilWrap.innerHTML = _renderHasil(_laporanState.parsed);
+  }
+}
+
 // Auto-fill iklan & ops dari Perencanaan → Ops per Toko
 function _autoFillFromPlanning() {
   const toko = _laporanState.toko;
@@ -873,6 +1000,9 @@ function _autoFillFromPlanning() {
       } catch(e) {}
     }
   } catch(e) {}
+
+  // Load blok Ops per Toko
+  _lapOpsTokoLoad();
 }
 
 function _getLaporanOps(type) {
@@ -883,8 +1013,14 @@ function _getLaporanOps(type) {
     if (type === 'iklan') return d.budgetIklan || 0;
   } catch(e) {}
 
-  // Ops dari planning global
+  // Ops dari field operasional ops-per-toko (prioritas utama)
   if (type === 'operasional') {
+    try {
+      const tKey = `zenot_ops_toko_${toko}`;
+      const td = JSON.parse(localStorage.getItem(tKey)||'{}');
+      if (td.operasional) return td.operasional;
+    } catch(e) {}
+    // Fallback: planning global
     const bulan = _laporanState.bulan;
     const y = bulan.split('-')[0]; const m = bulan.split('-')[1];
     const pKey = `zenot_planning_${y}_${m}`;
@@ -1064,6 +1200,9 @@ window._laporanUpload          = _laporanUpload;
 window._laporanSetToko         = _laporanSetToko;
 window._laporanSetBulan        = _laporanSetBulan;
 window._laporanSaveOps         = _laporanSaveOps;
+window._lapOpsTokoLoad         = _lapOpsTokoLoad;
+window._lapOpsTokoChange       = _lapOpsTokoChange;
+window._lapOpsTokoSave         = _lapOpsTokoSave;
 window._laporanProses          = _laporanProses;
 window._laporanLoadFromHistory = _laporanLoadFromHistory;
 window._laporanExport          = _laporanExport;
