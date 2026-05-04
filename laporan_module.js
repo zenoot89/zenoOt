@@ -1,5 +1,5 @@
 // ================================================================
-// LAPORAN MODULE — zenOt Operasional
+// LAPORAN MODULE — zenOt Operasional — build 2026.05.04
 // Laporan Keuangan Bulanan per Toko
 // Formula: persis RKS-ZENOOT (validated Burhanmology)
 // Storage: Supabase (tabel laporan_keuangan)
@@ -397,6 +397,9 @@ function renderLaporan() {
           <span class="lap-upload-sub">${_laporanState.files.income ? '✅ '+_laporanState.files.income.name : 'Keuangan → Penghasilan → Export'}</span>
           <input type="file" class="lap-upload-input" accept=".xlsx" onchange="_laporanUpload('income',this)">
         </div>
+        <div id="lap-autodetect-info" style="font-size:11px;color:var(--sage);font-weight:600;padding:4px 2px;min-height:18px;">
+          ${_laporanState.toko && _laporanState.files.income ? `🔍 Terdeteksi: ${_laporanState.toko} | ${_laporanState.bulan}` : ''}
+        </div>
 
         <div class="lap-upload-box ${_laporanState.files.order1?'done':''}" id="box-order1">
           <span class="lap-upload-icon">📦</span>
@@ -600,6 +603,119 @@ function _laporanUpload(type, input) {
   if (box) {
     box.classList.add('done');
     box.querySelector('.lap-upload-sub').textContent = '✅ ' + file.name;
+  }
+
+  // Auto-detect toko & bulan dari Income file
+  if (type === 'income') {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const summarySheet = wb.Sheets['Summary'];
+        if (!summarySheet) return;
+        const rows = XLSX.utils.sheet_to_json(summarySheet, { header: 1, defval: '' });
+
+        // Cari username (Penjual) & periode dari Summary
+        let username = '', dariTgl = '', keTgl = '';
+        for (const row of rows) {
+          const r0 = String(row[0]||'').trim();
+          const r1 = String(row[1]||'').trim();
+          // Username biasanya di baris dengan label "Username (Penjual)"
+          if (r0 === 'Username (Penjual)' || r0.toLowerCase().includes('username')) {
+            username = String(row[1]||row[2]||'').trim();
+          }
+          // Periode: "Dari" dan "ke"
+          if (r0 === 'Dari' || r1 === 'Dari') {
+            const idx = r0==='Dari' ? 1 : 2;
+            dariTgl = String(row[idx]||'').trim();
+          }
+        }
+
+        // Coba dari Income sheet langsung
+        const incSheet = wb.Sheets['Income'];
+        if (incSheet) {
+          const incRows = XLSX.utils.sheet_to_json(incSheet, { header: 1, defval: '' });
+          // Cari header row untuk username & periode
+          for (let i = 0; i < Math.min(10, incRows.length); i++) {
+            const row = incRows[i];
+            if (row.includes('Username (Penjual)')) {
+              const uCol = row.indexOf('Username (Penjual)');
+              if (incRows[i+1] && incRows[i+1][uCol]) {
+                username = String(incRows[i+1][uCol]).trim();
+              }
+            }
+            if (row.includes('Dari')) {
+              const dCol = row.indexOf('Dari');
+              if (incRows[i+1] && incRows[i+1][dCol]) {
+                dariTgl = String(incRows[i+1][dCol]).trim();
+              }
+            }
+          }
+        }
+
+        // Kalau Summary punya langsung
+        if (!username || !dariTgl) {
+          for (const row of rows) {
+            for (let c = 0; c < row.length; c++) {
+              const v = String(row[c]||'').trim();
+              if (!username && v.toLowerCase().match(/^[a-z0-9_]+shopee|zenoot|alley|elenz/i)) {
+                username = v;
+              }
+              if (!dariTgl && v.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                dariTgl = v;
+              }
+            }
+          }
+        }
+
+        // Auto-set bulan dari tanggal "Dari"
+        if (dariTgl) {
+          const m = dariTgl.match(/(\d{4})-(\d{2})/);
+          if (m) {
+            const bulanVal = `${m[1]}-${m[2]}`;
+            _laporanState.bulan = bulanVal;
+            const bulanEl = document.getElementById('lap-bulan');
+            if (bulanEl) bulanEl.value = bulanVal;
+          }
+        }
+
+        // Auto-match toko dari username
+        if (username) {
+          const channels = (typeof DB !== 'undefined' ? DB.channel||[] : [])
+            .filter(c => c.nama !== '__assign__' && c.status === 'Aktif');
+          // Cari channel yang namanya paling cocok dengan username
+          const uLow = username.toLowerCase().replace(/[^a-z0-9]/g,'');
+          let bestMatch = null, bestScore = 0;
+          for (const ch of channels) {
+            const cLow = ch.nama.toLowerCase().replace(/[^a-z0-9]/g,'');
+            // Hitung kecocokan kata kunci
+            let score = 0;
+            if (uLow.includes(cLow.replace('shp','').replace('laz','').replace('tt',''))) score += 3;
+            if (cLow.includes('zenoot') && uLow.includes('zenoot')) score += 5;
+            if (cLow.includes('alley') && uLow.includes('alley')) score += 5;
+            if (cLow.includes('elenz') && uLow.includes('elenz')) score += 5;
+            if (cLow.includes('dimi') && uLow.includes('dimi')) score += 5;
+            if (score > bestScore) { bestScore = score; bestMatch = ch.nama; }
+          }
+          if (bestMatch && bestScore > 0) {
+            _laporanState.toko = bestMatch;
+            const tokoEl = document.getElementById('lap-toko');
+            if (tokoEl) tokoEl.value = bestMatch;
+            _autoFillFromPlanning();
+          }
+        }
+
+        // Update label info
+        const infoEl = document.getElementById('lap-autodetect-info');
+        if (infoEl) {
+          infoEl.textContent = username
+            ? `🔍 Terdeteksi: ${username} → ${_laporanState.toko} | ${_laporanState.bulan}`
+            : '';
+        }
+
+      } catch(e) { console.warn('[autodetect]', e); }
+    };
+    reader.readAsArrayBuffer(file);
   }
 }
 
