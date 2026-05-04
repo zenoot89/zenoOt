@@ -340,6 +340,7 @@ let _laporanState = {
   toko: '',
   bulan: '',
   files: { income: null, order1: null, order2: null, ads: null },
+  iklanFromCsv: 0,
   parsed: null,
   history: [],
   loading: false,
@@ -660,10 +661,14 @@ function _laporanUpload(type, input) {
     reader.onload = e => {
       try {
         const totalIklan = parseAdsFile(e.target.result);
-        const iklanEl = document.getElementById('lap-iklan');
-        if (iklanEl && totalIklan > 0) {
-          iklanEl.value = totalIklan;
-          _laporanSaveOps();
+        if (totalIklan > 0) {
+          // Simpan ke state agar tidak hilang saat toko di-switch
+          _laporanState.iklanFromCsv = totalIklan;
+          const iklanEl = document.getElementById('lap-iklan');
+          if (iklanEl) {
+            iklanEl.value = totalIklan;
+            _laporanSaveOps(); // simpan ke localStorage toko aktif
+          }
           if (typeof toast === 'function') toast(`\u2705 Iklan terbaca: Rp ${totalIklan.toLocaleString('id-ID')}`);
         }
       } catch(err) { console.warn('[parseAds]', err); }
@@ -750,19 +755,40 @@ function _laporanUpload(type, input) {
         if (username) {
           const channels = (typeof DB !== 'undefined' ? DB.channel||[] : [])
             .filter(c => c.nama !== '__assign__' && c.status === 'Aktif');
-          // Cari channel yang namanya paling cocok dengan username
           const uLow = username.toLowerCase().replace(/[^a-z0-9]/g,'');
+
+          // Deteksi platform dari nama file / username
+          const isShopee = uLow.includes('shp') || files.income?.name?.toLowerCase().includes('income.sudah.dilepas');
+          const isLazada = uLow.includes('laz') || files.income?.name?.toLowerCase().includes('lazada');
+          const isTiktok = uLow.includes('tt') || uLow.includes('tiktok');
+
           let bestMatch = null, bestScore = 0;
           for (const ch of channels) {
             const cLow = ch.nama.toLowerCase().replace(/[^a-z0-9]/g,'');
-            // Hitung kecocokan kata kunci
             let score = 0;
-            if (uLow.includes(cLow.replace('shp','').replace('laz','').replace('tt',''))) score += 3;
-            if (cLow.includes('zenoot') && uLow.includes('zenoot')) score += 5;
-            if (cLow.includes('alley') && uLow.includes('alley')) score += 5;
-            if (cLow.includes('elenz') && uLow.includes('elenz')) score += 5;
-            if (cLow.includes('dimi') && uLow.includes('dimi')) score += 5;
-            if (score > bestScore) { bestScore = score; bestMatch = ch.nama; }
+
+            // Bonus brand match (zenoot, alley, elenz, dst)
+            const brands = ['zenoot','alley','elenz','dimi','garasi','toko'];
+            for (const brand of brands) {
+              if (cLow.includes(brand) && uLow.includes(brand)) score += 10;
+            }
+
+            // Bonus/penalti platform — harus cocok platformnya
+            const chIsShp = ch.nama.toLowerCase().includes('shp') || ch.nama.toLowerCase().includes('shopee');
+            const chIsLaz = ch.nama.toLowerCase().includes('laz') || ch.nama.toLowerCase().includes('lazada');
+            const chIsTt  = ch.nama.toLowerCase().includes('tt')  || ch.nama.toLowerCase().includes('tiktok');
+
+            if (isShopee && chIsShp) score += 8;
+            if (isShopee && chIsLaz) score -= 10; // penalti platform salah
+            if (isShopee && chIsTt)  score -= 10;
+            if (isLazada && chIsLaz) score += 8;
+            if (isLazada && chIsShp) score -= 10;
+            if (isTiktok && chIsTt)  score += 8;
+            if (isTiktok && chIsShp) score -= 10;
+
+            if (score > bestMatch ? bestScore : -999) { // always update if better
+              if (score > bestScore) { bestScore = score; bestMatch = ch.nama; }
+            }
           }
           if (bestMatch && bestScore > 0) {
             _laporanState.toko = bestMatch;
@@ -807,7 +833,12 @@ function _autoFillFromPlanning() {
     const d = JSON.parse(localStorage.getItem(key)||'{}');
     const iklanEl = document.getElementById('lap-iklan');
     const opsEl   = document.getElementById('lap-ops');
-    if (iklanEl && d.budgetIklan) iklanEl.value = d.budgetIklan;
+    // Prioritas: localStorage toko ini → iklan dari CSV yang baru di-upload → 0
+    if (iklanEl) {
+      const savedIklan = d.budgetIklan || 0;
+      const csvIklan   = _laporanState.iklanFromCsv || 0;
+      iklanEl.value = savedIklan || csvIklan || 0;
+    }
     if (opsEl) {
       // Ops global dari planning
       const bulan = _laporanState.bulan;
