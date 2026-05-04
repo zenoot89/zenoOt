@@ -241,11 +241,15 @@ function kalkulasi(incData, allOrders, iklan, operasional) {
   const basket = nOrders > 0 ? orderList.reduce((s, o) => s + o.qty, 0) / nOrders : 0;
 
   // Total admin (semua biaya Shopee — sudah negatif dari file)
+  // NOTE: biaya_saldo_otomatis TIDAK dimasukkan di sini karena sudah di-add back
+  // ke Total Penghasilan (total_penghasilan = dana_dilepas + abs(biaya_saldo_otomatis)).
+  // Memasukkannya di sini akan double-count → mismatch dengan logika RKS-ZENOOT.
   const totalAdmin = (incData.komisi_ams||0) + (incData.biaya_admin||0) +
     (incData.biaya_layanan||0) + (incData.biaya_proses||0) +
     (incData.premi||0) + (incData.biaya_hemat_kirim||0) +
-    (incData.biaya_transaksi||0) + (incData.biaya_kampanye||0) +
-    (incData.biaya_saldo_otomatis||0);
+    (incData.biaya_transaksi||0) + (incData.biaya_kampanye||0);
+  // biaya_saldo_otomatis ditampilkan terpisah di tabel (baris sendiri),
+  // tapi TIDAK masuk ke total_admin / rasio_admin.
 
   // LABA = Total Penghasilan - HPP - Iklan - Operasional
   const laba = tph - hppTotal - iklan - operasional;
