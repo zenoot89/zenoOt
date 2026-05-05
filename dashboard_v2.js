@@ -332,45 +332,115 @@ function renderDashboard() {
     </div>
   </div>`);
 
-  // ─── 4. STOK HABIS + WAJIB RESTOCK ───
+  // ─── 4. DEAD STOCK | STOK HABIS | PRIORITAS RESTOCK (3 kolom) ───
+
+  // --- Dead Stock HTML ---
+  const deadStockHtml = deadStock.length===0
+    ? `<div class="ow-empty">✅ Tidak ada dead stock</div>`
+    : deadStock.slice(0,10).map(r=>`
+        <div class="ow-stok-row">
+          <span class="ow-stok-sku" style="font-size:11px;">${r.var}</span>
+          <div class="ow-stok-right">
+            <span class="ow-stok-meta">${fmtShort(getAkhir(r)*(r.hpp||0))}</span>
+            <span class="ow-stok-num stok-amber">${getAkhir(r)} pcs</span>
+          </div>
+        </div>`).join('')
+      + (deadStock.length>10?`<div style="font-size:11px;color:var(--dusty);padding-top:6px">+${deadStock.length-10} lainnya</div>`:'');
+
+  // --- Stok Habis HTML ---
   const stokHabisHtml = stokHabis.length===0
     ? `<div class="ow-empty">✅ Tidak ada stok habis</div>`
-    : stokHabis.slice(0,5).map(r=>{
+    : stokHabis.slice(0,10).map(r=>{
         const p=(DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(r.var||'').toUpperCase());
         return `<div class="ow-stok-row">
-          <span class="ow-stok-sku">${r.var}</span>
+          <span class="ow-stok-sku" style="font-size:11px;">${r.var}</span>
           <div class="ow-stok-right">
-            <span class="ow-stok-meta">${(p&&p.suplaier)||'—'}</span>
-            <span class="ow-stok-meta">terjual: ${soldMap[r.var]||0} pcs</span>
+            <span class="ow-stok-meta">terjual: ${soldMap[r.var]||0}</span>
             <span class="ow-stok-num stok-red">HABIS</span>
           </div>
         </div>`;
-      }).join('')+(stokHabis.length>5?`<div style="font-size:11px;color:var(--dusty);padding-top:6px">+${stokHabis.length-5} lainnya</div>`:'');
+      }).join('')+(stokHabis.length>10?`<div style="font-size:11px;color:var(--dusty);padding-top:6px">+${stokHabis.length-10} lainnya</div>`:'');
 
-  const restockHtml = wajibRestock.length===0
-    ? `<div class="ow-empty">✅ Tidak ada urgensi restock</div>`
-    : wajibRestock.slice(0,5).map(r=>`
-      <div class="ow-restock-item">
-        <span style="font-size:13px">${r.akhir<=0?'🔴':'🟡'}</span>
-        <span class="ow-restock-sku">${r.var}</span>
-        <span class="ow-restock-heat">${r.bulanIni||0} bln ini</span>
-        <span class="ow-restock-stok ${r.akhir<=0?'stok-habis':'stok-kritis'}">${r.akhir<=0?'HABIS':r.akhir+' pcs'}</span>
-      </div>`).join('');
+  // --- Prioritas Restock BARU: Best Seller Induk rank 1-5, tampil semua variantnya (maks 10 SKU) ---
+  // Step 1: hitung total penjualan per induk bulan ini
+  const indukSalesMap = {};
+  jBulan.forEach(j => {
+    const p = (DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(j.var||'').toUpperCase());
+    const induk = (p && p.induk) ? p.induk.toUpperCase() : (j.var||'').toUpperCase();
+    indukSalesMap[induk] = (indukSalesMap[induk]||0) + (j.qty||0);
+  });
+  // Step 2: rank induk by sales, ambil top 5
+  const topInduk = Object.entries(indukSalesMap)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,5)
+    .map(([induk])=>induk);
 
-  add(`<div class="ow-row2" style="align-items:stretch;">
+  // Step 3: kumpulkan semua variant dari top induk, max 10 SKU total
+  const restockBestSeller = [];
+  for (const indukKey of topInduk) {
+    if (restockBestSeller.length >= 10) break;
+    // Cari semua stok yang induknya cocok
+    const variants = DB.stok.filter(r => {
+      const p = (DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(r.var||'').toUpperCase());
+      const ind = (p && p.induk) ? p.induk.toUpperCase() : (r.var||'').toUpperCase();
+      return ind === indukKey;
+    });
+    for (const r of variants) {
+      if (restockBestSeller.length >= 10) break;
+      restockBestSeller.push({ ...r, _induk: indukKey, _indukSales: indukSalesMap[indukKey]||0 });
+    }
+  }
+
+  const restockHtml = restockBestSeller.length===0
+    ? `<div class="ow-empty">Belum ada data penjualan bulan ini</div>`
+    : restockBestSeller.map((r,i)=>{
+        const akhir = getAkhir(r);
+        const cls   = akhir<=0?'stok-red':akhir<=(r.safety||4)?'stok-amber':'';
+        const label = akhir<=0?'HABIS':akhir+' pcs';
+        // Tampilkan nama induk hanya di baris pertama tiap grup
+        const prevInduk = i>0 ? restockBestSeller[i-1]._induk : null;
+        const showInduk = r._induk !== prevInduk;
+        return (showInduk ? `<div style="font-size:9px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.7px;padding:${i===0?'0':'8px'} 0 3px;">🏆 ${r._induk} · ${r._indukSales} terjual</div>` : '')
+          + `<div class="ow-stok-row">
+              <span class="ow-stok-sku" style="font-size:11px;">${r.var}</span>
+              <div class="ow-stok-right">
+                <span class="ow-stok-meta">${soldBulanMap[r.var]||0} bln ini</span>
+                <span class="ow-stok-num ${cls}" style="min-width:48px;text-align:right">${label}</span>
+              </div>
+            </div>`;
+      }).join('');
+
+  add(`
+  <style>
+    .ow-row3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;}
+    @media(max-width:900px){.ow-row3col{grid-template-columns:1fr;}}
+  </style>
+  <div class="ow-row3col">
+    <div style="display:flex;flex-direction:column;">
+      <div class="ow-sec-hd">
+        <span class="ow-sec-title">🧟 Dead Stock</span>
+        <span class="ow-card-badge ow-badge-amber">${deadStock.length} SKU · ${fmtShort(deadStokNilai)}</span>
+      </div>
+      <div class="ow-card" style="padding:12px 14px;flex:1;">
+        <div style="font-size:10px;color:var(--dusty);margin-bottom:8px;padding:7px 10px;background:var(--cream);border-radius:6px;">
+          ⚠️ Belum pernah terjual. Pertimbangkan diskon / bundling.
+        </div>
+        ${deadStockHtml}
+      </div>
+    </div>
     <div style="display:flex;flex-direction:column;">
       <div class="ow-sec-hd">
         <span class="ow-sec-title">📦 Stok Habis</span>
         <span class="ow-card-badge ${stokHabis.length>0?'ow-badge-red':'ow-badge-green'}">${stokHabis.length} SKU</span>
       </div>
-      <div class="ow-card" style="padding:14px 16px;flex:1;">${stokHabisHtml}</div>
+      <div class="ow-card" style="padding:12px 14px;flex:1;">${stokHabisHtml}</div>
     </div>
     <div style="display:flex;flex-direction:column;">
       <div class="ow-sec-hd">
         <span class="ow-sec-title">🔁 Prioritas Restock</span>
-        <span class="ow-card-badge ow-badge-amber">${wajibRestock.length} SKU</span>
+        <span class="ow-card-badge ow-badge-amber">Best Seller Top 5</span>
       </div>
-      <div class="ow-card" style="padding:14px 16px;flex:1;">${restockHtml}</div>
+      <div class="ow-card" style="padding:12px 14px;flex:1;">${restockHtml}</div>
     </div>
   </div>`);
 
@@ -412,29 +482,7 @@ function renderDashboard() {
     </div>
   </div>`);
 
-  // ─── 6. DEAD STOCK (jika ada) ───
-  if(deadStock.length>0){
-    add(`<div>
-      <div class="ow-sec-hd">
-        <span class="ow-sec-title">🧟 Dead Stock — Belum Pernah Terjual</span>
-        <span class="ow-card-badge ow-badge-amber">${deadStock.length} SKU · ${fmtShort(deadStokNilai)} mengendap</span>
-      </div>
-      <div class="ow-card" style="padding:14px 16px">
-        <div style="font-size:12px;color:var(--dusty);margin-bottom:10px;padding:10px 12px;background:var(--cream);border-radius:8px;">
-          ⚠️ Produk-produk ini ada stok tapi <b>belum pernah terjual sama sekali</b>. Pertimbangkan: diskon clearance, bundling, atau retur ke supplier untuk jaga cashflow.
-        </div>
-        ${deadStock.slice(0,8).map(r=>`
-          <div class="ow-stok-row">
-            <span class="ow-stok-sku">${r.var}</span>
-            <div class="ow-stok-right">
-              <span class="ow-stok-meta">${fmtShort(getAkhir(r)*(r.hpp||0))} modal</span>
-              <span class="ow-stok-num stok-amber">${getAkhir(r)} pcs</span>
-            </div>
-          </div>`).join('')}
-        ${deadStock.length>8?`<div style="font-size:11px;color:var(--dusty);padding-top:8px">+${deadStock.length-8} SKU lainnya</div>`:''}
-      </div>
-    </div>`);
-  }
+  // ─── 6. DEAD STOCK sudah dipindah ke section 4 (3 kolom) ───
 
   // ─── 7. SUPPLIER MAP ───
   add(`<div>
