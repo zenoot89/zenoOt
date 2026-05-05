@@ -39,84 +39,115 @@ function _owInjectCSS() {
   const st = document.createElement('style');
   st.id = 'ow-dash-style';
   st.textContent = `
-.ow-wrap{display:flex;flex-direction:column;gap:16px;padding-bottom:32px;}
-.ow-kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;}
-.ow-kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px 14px;position:relative;overflow:hidden;}
-.ow-kpi-accent{position:absolute;top:0;left:0;width:4px;height:100%;border-radius:14px 0 0 14px;}
-.ow-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dusty);font-weight:700;margin-bottom:6px;}
-.ow-kpi-val{font-size:21px;font-weight:700;color:var(--charcoal);line-height:1.1;}
-.ow-kpi-sub{font-size:11px;color:var(--dusty);margin-top:7px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
-.ow-delta{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;}
+/* ═══ DASHBOARD V2 — IMPROVED LAYOUT & TYPOGRAPHY ═══ */
+.ow-wrap{display:flex;flex-direction:column;gap:18px;padding-bottom:36px;}
+
+/* KPI Strip — 4 kolom sama tinggi */
+.ow-kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+@media(max-width:1100px){.ow-kpi-strip{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.ow-kpi-strip{grid-template-columns:1fr;}}
+.ow-kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px 18px;position:relative;overflow:hidden;}
+.ow-kpi-accent{position:absolute;top:0;left:0;width:5px;height:100%;border-radius:16px 0 0 16px;}
+.ow-kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dusty);font-weight:700;margin-bottom:8px;}
+.ow-kpi-val{font-size:26px;font-weight:700;color:var(--charcoal);line-height:1.1;}
+.ow-kpi-sub{font-size:12px;color:var(--dusty);margin-top:9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+
+/* Delta badge */
+.ow-delta{font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;}
 .ow-up{background:#EFF7F3;color:#2D6A4F;}
 .ow-dn{background:#FFF0EE;color:#9B2335;}
 .ow-flat{background:var(--cream);color:var(--dusty);}
-.ow-sec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
-.ow-sec-title{font-size:13px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--charcoal);}
-.ow-sec-note{font-size:11px;color:var(--dusty);opacity:.65;}
-.ow-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.ow-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+/* Section headers */
+.ow-sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ow-sec-title{font-size:14px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--charcoal);}
+.ow-sec-note{font-size:12px;color:var(--dusty);opacity:.7;}
+
+/* 2-col & 3-col grids — align-items:stretch agar sama tinggi */
+.ow-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;}
+.ow-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;}
 @media(max-width:900px){.ow-row2,.ow-row3{grid-template-columns:1fr;}}
-.ow-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;}
-.ow-card-title{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:14px;}
-.ow-card-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
+
+/* Cards — height:100% agar sama tinggi dalam grid */
+.ow-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;height:100%;box-sizing:border-box;}
+.ow-card-title{font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:16px;}
+.ow-card-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
 .ow-badge-red{background:#FFF0EE;color:#9B2335;}
 .ow-badge-amber{background:#FFFBF0;color:#92400E;}
 .ow-badge-green{background:#EFF7F3;color:#2D6A4F;}
 .ow-badge-gray{background:var(--cream);color:var(--dusty);}
 .ow-badge-blue{background:#EFF5FD;color:#1A5EB8;}
-.ow-pbar-wrap{width:100%;height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin:6px 0 2px;}
+
+/* Progress bar */
+.ow-pbar-wrap{width:100%;height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin:8px 0 3px;}
 .ow-pbar-fill{height:100%;border-radius:99px;transition:width .5s;}
-.ow-stok-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+
+/* Stok rows */
+.ow-stok-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .ow-stok-row:last-child{border-bottom:none;}
-.ow-stok-sku{font-weight:600;color:var(--charcoal);font-family:'DM Mono',monospace;font-size:12px;flex:1;}
+.ow-stok-sku{font-weight:600;color:var(--charcoal);font-family:'DM Mono',monospace;font-size:12.5px;flex:1;}
 .ow-stok-right{display:flex;align-items:center;gap:10px;}
 .ow-stok-num{font-weight:700;font-family:'DM Mono',monospace;font-size:14px;}
 .stok-red{color:#C0392B;} .stok-amber{color:#D97706;} .stok-green{color:#2D6A4F;}
-.ow-stok-meta{font-size:11px;color:var(--dusty);}
-.ow-empty{padding:20px;text-align:center;font-size:13px;color:var(--dusty);background:var(--cream);border-radius:10px;}
-.ow-ch-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.ow-stok-meta{font-size:12px;color:var(--dusty);}
+.ow-empty{padding:24px;text-align:center;font-size:13px;color:var(--dusty);background:var(--cream);border-radius:12px;}
+
+/* Channel rows */
+.ow-ch-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
 .ow-ch-row:last-child{border-bottom:none;}
-.ow-ch-name{font-size:12px;font-weight:700;color:var(--charcoal);min-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ow-ch-bar{flex:1;height:7px;background:var(--cream);border-radius:99px;overflow:hidden;}
+.ow-ch-name{font-size:13px;font-weight:700;color:var(--charcoal);min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ow-ch-bar{flex:1;height:8px;background:var(--cream);border-radius:99px;overflow:hidden;}
 .ow-ch-fill{height:100%;background:var(--brown);border-radius:99px;}
-.ow-ch-val{font-size:12px;font-weight:700;color:var(--charcoal);min-width:65px;text-align:right;}
-.ow-sku-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.ow-ch-val{font-size:13px;font-weight:700;color:var(--charcoal);min-width:72px;text-align:right;}
+
+/* SKU rows */
+.ow-sku-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
 .ow-sku-row:last-child{border-bottom:none;}
-.ow-sku-rank{font-size:11px;font-weight:700;color:var(--dusty);width:18px;text-align:center;}
-.ow-sku-name{flex:1;font-size:12px;font-weight:600;font-family:'DM Mono',monospace;color:var(--charcoal);}
-.ow-sku-bar{width:70px;height:4px;background:var(--border);border-radius:99px;overflow:hidden;}
+.ow-sku-rank{font-size:12px;font-weight:700;color:var(--dusty);width:20px;text-align:center;}
+.ow-sku-name{flex:1;font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--charcoal);}
+.ow-sku-bar{width:70px;height:5px;background:var(--border);border-radius:99px;overflow:hidden;}
 .ow-sku-bfill{height:100%;background:var(--gold);border-radius:99px;}
-.ow-sku-qty{font-size:13px;font-weight:700;color:var(--brown);min-width:38px;text-align:right;}
-.ow-sup-row{display:grid;grid-template-columns:100px 1fr 70px 45px 45px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.ow-sku-qty{font-size:14px;font-weight:700;color:var(--brown);min-width:42px;text-align:right;}
+
+/* Supplier rows */
+.ow-sup-row{display:grid;grid-template-columns:110px 1fr 75px 45px 45px;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .ow-sup-row:last-child{border-bottom:none;}
 .ow-sup-name{font-weight:700;color:var(--charcoal);}
-.ow-sup-bar{height:5px;background:var(--cream);border-radius:99px;overflow:hidden;}
+.ow-sup-bar{height:6px;background:var(--cream);border-radius:99px;overflow:hidden;}
 .ow-sup-fill{height:100%;background:var(--sage);border-radius:99px;}
-.ow-alerts{display:flex;flex-direction:column;gap:8px;}
-.ow-alert{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:10px;font-size:13px;}
-.ow-alert-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
-.ow-alert-title{font-weight:700;color:var(--charcoal);margin-bottom:2px;}
+
+/* Alerts */
+.ow-alerts{display:flex;flex-direction:column;gap:10px;}
+.ow-alert{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:12px;font-size:13px;}
+.ow-alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.ow-alert-title{font-weight:700;color:var(--charcoal);margin-bottom:3px;font-size:13px;}
 .ow-alert-sub{color:var(--dusty);font-size:12px;}
 .ow-alert.red{background:#FFF0EE;border:1px solid rgba(192,57,43,.2);}
 .ow-alert.amber{background:#FFFBF0;border:1px solid rgba(214,158,46,.25);}
 .ow-alert.green{background:#EFF7F3;border:1px solid rgba(45,106,79,.2);}
 .ow-alert.blue{background:#EFF5FD;border:1px solid rgba(26,94,184,.15);}
 .ow-alert.gray{background:var(--cream);border:1px solid var(--border);}
-.ow-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.ow-mini{background:var(--cream);border-radius:10px;padding:12px;text-align:center;}
-.ow-mini-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dusty);font-weight:700;margin-bottom:4px;}
-.ow-mini-val{font-size:18px;font-weight:700;color:var(--charcoal);}
-.ow-trend-bars{display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:6px;}
-.ow-tbar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
-.ow-tbar{width:100%;border-radius:4px 4px 0 0;min-height:3px;background:var(--gold);opacity:.6;}
+
+/* Mini grid */
+.ow-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ow-mini{background:var(--cream);border-radius:12px;padding:14px;text-align:center;}
+.ow-mini-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dusty);font-weight:700;margin-bottom:5px;}
+.ow-mini-val{font-size:20px;font-weight:700;color:var(--charcoal);}
+
+/* Trend bars */
+.ow-trend-bars{display:flex;align-items:flex-end;gap:6px;height:90px;margin-bottom:8px;}
+.ow-tbar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.ow-tbar{width:100%;border-radius:5px 5px 0 0;min-height:3px;background:var(--gold);opacity:.6;}
 .ow-tbar.today{opacity:1;background:var(--brown);}
 .ow-tbar.zero{opacity:.15;background:var(--dusty);}
 .ow-tbar-label{font-size:10px;color:var(--dusty);font-weight:600;}
-.ow-restock-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+
+/* Restock items */
+.ow-restock-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
 .ow-restock-item:last-child{border-bottom:none;}
-.ow-restock-sku{flex:1;font-size:12px;font-family:'DM Mono',monospace;font-weight:600;color:var(--charcoal);}
-.ow-restock-heat{font-size:11px;color:var(--dusty);}
-.ow-restock-stok{font-size:13px;font-weight:700;min-width:50px;text-align:right;}
+.ow-restock-sku{flex:1;font-size:12.5px;font-family:'DM Mono',monospace;font-weight:600;color:var(--charcoal);}
+.ow-restock-heat{font-size:12px;color:var(--dusty);}
+.ow-restock-stok{font-size:14px;font-weight:700;min-width:50px;text-align:right;}
 .stok-habis{color:#C0392B;} .stok-kritis{color:#D97706;}
   `;
   document.head.appendChild(st);
@@ -303,7 +334,7 @@ function renderDashboard() {
         <span>${fmtShort(omsetBulan)} / ${fmtShort(targetOmset)}</span>
       </div>
       ${progressBar(pctOmset)}
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dusty);margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dusty);margin-bottom:14px;">
         <span style="font-weight:700;color:${pctOmset>=70?'#2D6A4F':'#D97706'}">${pctOmset}% tercapai</span>
         <span>${daysLeft} hari tersisa</span>
       </div>
@@ -320,7 +351,7 @@ function renderDashboard() {
       <div class="ow-sec-hd"><span class="ow-sec-title">📈 Tren 7 Hari Terakhir</span><span class="ow-sec-note">* hari ini</span></div>
       <div class="ow-card">
         <div class="ow-trend-bars">${trendBars}</div>
-        <div style="font-size:11px;color:var(--dusty);margin-top:4px;">
+        <div style="font-size:12px;color:var(--dusty);margin-top:6px;">
           Tertinggi: <b>${fmtShort(Math.max(...trend7.map(t=>t.val)))}</b> · 
           Total 7 hari: <b>${fmtShort(trend7.reduce((s,t)=>s+t.val,0))}</b>
         </div>
@@ -339,13 +370,13 @@ function renderDashboard() {
     ? `<div class="ow-empty">✅ Tidak ada dead stock</div>`
     : deadStock.slice(0,10).map(r=>`
         <div class="ow-stok-row">
-          <span class="ow-stok-sku" style="font-size:11px;">${r.var}</span>
+          <span class="ow-stok-sku" ${r.var}>${r.var}</span>
           <div class="ow-stok-right">
             <span class="ow-stok-meta">${fmtShort(getAkhir(r)*(r.hpp||0))}</span>
             <span class="ow-stok-num stok-amber">${getAkhir(r)} pcs</span>
           </div>
         </div>`).join('')
-      + (deadStock.length>10?`<div style="font-size:11px;color:var(--dusty);padding-top:6px">+${deadStock.length-10} lainnya</div>`:'');
+      + (deadStock.length>10?`<div style="font-size:12px;color:var(--dusty);padding-top:8px">+${deadStock.length-10} lainnya</div>`:'');
 
   // --- Stok Habis HTML ---
   const stokHabisHtml = stokHabis.length===0
@@ -353,13 +384,13 @@ function renderDashboard() {
     : stokHabis.slice(0,10).map(r=>{
         const p=(DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(r.var||'').toUpperCase());
         return `<div class="ow-stok-row">
-          <span class="ow-stok-sku" style="font-size:11px;">${r.var}</span>
+          <span class="ow-stok-sku" ${r.var}>${r.var}</span>
           <div class="ow-stok-right">
             <span class="ow-stok-meta">terjual: ${soldMap[r.var]||0}</span>
             <span class="ow-stok-num stok-red">HABIS</span>
           </div>
         </div>`;
-      }).join('')+(stokHabis.length>10?`<div style="font-size:11px;color:var(--dusty);padding-top:6px">+${stokHabis.length-10} lainnya</div>`:'');
+      }).join('')+(stokHabis.length>10?`<div style="font-size:12px;color:var(--dusty);padding-top:8px">+${stokHabis.length-10} lainnya</div>`:'');
 
   // --- Prioritas Restock BARU: Best Seller Induk rank 1-5, tampil semua variantnya (maks 10 SKU) ---
   // Step 1: hitung total penjualan per induk bulan ini
@@ -400,9 +431,9 @@ function renderDashboard() {
         // Tampilkan nama induk hanya di baris pertama tiap grup
         const prevInduk = i>0 ? restockBestSeller[i-1]._induk : null;
         const showInduk = r._induk !== prevInduk;
-        return (showInduk ? `<div style="font-size:9px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.7px;padding:${i===0?'0':'8px'} 0 3px;">🏆 ${r._induk} · ${r._indukSales} terjual</div>` : '')
+        return (showInduk ? `<div style="font-size:11px;font-weight:700;color:var(--brown);text-transform:uppercase;letter-spacing:.7px;padding:${i===0?'0':'8px'} 0 3px;">🏆 ${r._induk} · ${r._indukSales} terjual</div>` : '')
           + `<div class="ow-stok-row">
-              <span class="ow-stok-sku" style="font-size:11px;">${r.var}</span>
+              <span class="ow-stok-sku" ${r.var}>${r.var}</span>
               <div class="ow-stok-right">
                 <span class="ow-stok-meta">${soldBulanMap[r.var]||0} bln ini</span>
                 <span class="ow-stok-num ${cls}" style="min-width:48px;text-align:right">${label}</span>
@@ -412,7 +443,9 @@ function renderDashboard() {
 
   add(`
   <style>
-    .ow-row3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;}
+    .ow-row3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;}
+    .ow-row3col>div{display:flex;flex-direction:column;}
+    .ow-row3col>div>.ow-card{flex:1;}
     @media(max-width:900px){.ow-row3col{grid-template-columns:1fr;}}
   </style>
   <div class="ow-row3col">
@@ -421,8 +454,8 @@ function renderDashboard() {
         <span class="ow-sec-title">🧟 Dead Stock</span>
         <span class="ow-card-badge ow-badge-amber">${deadStock.length} SKU · ${fmtShort(deadStokNilai)}</span>
       </div>
-      <div class="ow-card" style="padding:12px 14px;flex:1;">
-        <div style="font-size:10px;color:var(--dusty);margin-bottom:8px;padding:7px 10px;background:var(--cream);border-radius:6px;">
+      <div class="ow-card" style="padding:16px 18px;">
+        <div style="font-size:12px;color:var(--dusty);margin-bottom:10px;padding:9px 12px;background:var(--cream);border-radius:8px;">
           ⚠️ Belum pernah terjual. Pertimbangkan diskon / bundling.
         </div>
         ${deadStockHtml}
@@ -433,14 +466,14 @@ function renderDashboard() {
         <span class="ow-sec-title">📦 Stok Habis</span>
         <span class="ow-card-badge ${stokHabis.length>0?'ow-badge-red':'ow-badge-green'}">${stokHabis.length} SKU</span>
       </div>
-      <div class="ow-card" style="padding:12px 14px;flex:1;">${stokHabisHtml}</div>
+      <div class="ow-card" style="padding:16px 18px;">${stokHabisHtml}</div>
     </div>
     <div style="display:flex;flex-direction:column;">
       <div class="ow-sec-hd">
         <span class="ow-sec-title">🔁 Prioritas Restock</span>
         <span class="ow-card-badge ow-badge-amber">Best Seller Top 5</span>
       </div>
-      <div class="ow-card" style="padding:12px 14px;flex:1;">${restockHtml}</div>
+      <div class="ow-card" style="padding:16px 18px;">${restockHtml}</div>
     </div>
   </div>`);
 
@@ -455,7 +488,7 @@ function renderDashboard() {
           <div class="ow-ch-bar"><div class="ow-ch-fill" style="width:${bw}%"></div></div>
           <span class="ow-ch-val">${fmtShort(v.omset)}</span>
           ${deltaBadge(v.omset,prev)}
-          <span style="font-size:10px;color:var(--dusty);min-width:28px;text-align:right">${bw}%</span>
+          <span style="font-size:12px;color:var(--dusty);min-width:32px;text-align:right">${bw}%</span>
         </div>`;
       }).join('');
 
@@ -473,12 +506,12 @@ function renderDashboard() {
 
   add(`<div class="ow-row2" style="align-items:stretch;">
     <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd"><span class="ow-sec-title" style="font-size:14px;letter-spacing:.5px;">🛍️ Channel Penjualan</span><span class="ow-sec-note">Bulan ini vs lalu</span></div>
-      <div class="ow-card" style="padding:14px 16px;flex:1;">${chHtml}</div>
+      <div class="ow-sec-hd"><span class="ow-sec-title">🛍️ Channel Penjualan</span><span class="ow-sec-note">Bulan ini vs lalu</span></div>
+      <div class="ow-card" style="padding:16px 18px;">${chHtml}</div>
     </div>
     <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd"><span class="ow-sec-title" style="font-size:14px;letter-spacing:.5px;">🏆 Top SKU Bulan Ini</span><span class="ow-sec-note">vs bulan lalu</span></div>
-      <div class="ow-card" style="padding:14px 16px;flex:1;">${skuHtml}</div>
+      <div class="ow-sec-hd"><span class="ow-sec-title">🏆 Top SKU Bulan Ini</span><span class="ow-sec-note">vs bulan lalu</span></div>
+      <div class="ow-card" style="padding:16px 18px;">${skuHtml}</div>
     </div>
   </div>`);
 
