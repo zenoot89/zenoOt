@@ -537,11 +537,21 @@ async function saveBiayaOpsGlobal() {
     return;
   }
 
+  const target = Math.round(biaya / (rasio / 100));
   const data = { biayaOpsGlobal: biaya, rasioOpsGlobal: rasio, updatedAt: new Date().toISOString() };
   _bgSave(data);
 
-  // Update tampilan tabel
-  const target = Math.round(biaya / (rasio / 100));
+  // ── Sync targetOmset ke plan 'global' supaya Dashboard bisa baca ──
+  // Dashboard membaca plan.targetOmset dari toko='global', bulan ini
+  try {
+    const bulan = PLAN.keyBulan();
+    // Ambil data global yg sudah ada (jangan overwrite field lain)
+    const existingPlan = PLAN.loadSync('global', bulan) || {};
+    const mergedPlan   = { ...existingPlan, targetOmset: target, _srcBiayaOps: true };
+    // Simpan ke localStorage + Supabase
+    PLAN._lsSave('global', bulan, mergedPlan);
+    PLAN._sbSave('global', bulan, mergedPlan).catch(()=>{});
+  } catch(e) { console.warn('Gagal sync targetOmset ke global plan:', e); }
   const fmt    = n => 'Rp ' + Number(n).toLocaleString('id-ID');
   const elB = document.getElementById('bg-row-biaya');
   const elR = document.getElementById('bg-row-rasio');
