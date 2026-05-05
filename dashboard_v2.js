@@ -497,6 +497,9 @@ function renderDashboard() {
         <span class="ow-card-badge ${stokHabis.length>0?'ow-badge-red':'ow-badge-green'}">${stokHabis.length} SKU</span>
       </div>
       <div class="ow-col3-card">
+        <div style="font-size:12px;color:var(--dusty);margin-bottom:10px;padding:9px 12px;background:#FFF0EE;border-radius:8px;border-left:3px solid #C0392B;">
+          🚨 Stok kosong! Segera lakukan restock agar tidak kehilangan penjualan.
+        </div>
         <div class="ow-col3-scroll">${stokHabisHtml}</div>
       </div>
     </div>
@@ -508,6 +511,9 @@ function renderDashboard() {
         <span class="ow-card-badge ow-badge-amber">Best Seller Top 5</span>
       </div>
       <div class="ow-col3-card">
+        <div style="font-size:12px;color:var(--dusty);margin-bottom:10px;padding:9px 12px;background:#FFFBF0;border-radius:8px;border-left:3px solid var(--gold);">
+          🏆 Produk terlaris bulan ini. Prioritaskan restock untuk menjaga omset.
+        </div>
         <div class="ow-col3-scroll">${restockHtml}</div>
       </div>
     </div>
