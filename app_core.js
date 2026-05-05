@@ -865,6 +865,7 @@ const ptitles = {
   channel:'Channel <span>Penjualan</span>',
   harga:'Price <span>List</span>',
   'planning-ops':'Biaya <span>Operasional</span>',
+  'biaya-ops-global':'Biaya <span>Operasional</span>',
   'planning-kpi':'Target <span>Omzet</span>',
   'laporan':'Laporan <span>Keuangan</span>',
   keuangan:'Laporan <span>Keuangan</span>',
@@ -892,6 +893,7 @@ function go(id, el) {
   if (id==='laporan')      { if (typeof renderLaporan==='function') renderLaporan(); }
   if (id==='planning-kpi') { if (typeof renderPlanningKPI==='function') renderPlanningKPI(); }
   if (id==='planning-ops') { if (typeof renderPlanningOps==='function') renderPlanningOps(); }
+  if (id==='biaya-ops-global') { if (typeof renderBiayaOpsGlobal==='function') renderBiayaOpsGlobal(); }
   if (id==='daily') {
     if (typeof renderDailyChecklist === 'function') {
       renderDailyChecklist();
@@ -1352,6 +1354,7 @@ const ALL_MENUS = [
   { id:'restock',       label:'Restock & Supplier',  cat:'Inventori',       svgPath:'M23 4 23 10 17 10M1 20 1 14 7 14M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15' },
   { id:'harga',         label:'Price List',          cat:'Inventori',       svgPath:'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
   { id:'planning-ops',  label:'Biaya Operasional',   cat:'Database Toko',   svgPath:'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10' },
+  { id:'biaya-ops-global', label:'Biaya Operasional', cat:'Keuangan Operasional', svgPath:'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10' },
   { id:'planning-kpi',  label:'Target Omzet',        cat:'Database Toko',   svgPath:'M22 12 18 12 15 21 9 3 6 12 2 12' },
   { id:'laporan',       label:'Laporan Keuangan',    cat:'Keuangan',        svgPath:'M18 20V10M12 20V4M6 20v-6' },
   { id:'jurnal',        label:'Jurnal Penjualan',    cat:'Penjualan',       svgPath:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },

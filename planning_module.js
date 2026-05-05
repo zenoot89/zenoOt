@@ -494,16 +494,201 @@ function saveOpsToko(chNama) { return opsPanelSave(); }
 function recalcOpsTarget(chNama) { opsPanelRecalc(); }
 function formatOpsInput(el, chNama) { opsPanelRecalc(); }
 
+// ════════════════════════════════════════════════════════════════
+// PAGE: BIAYA OPERASIONAL GLOBAL (Keuangan Operasional)
+// Data level usaha keseluruhan — terpisah dari per toko
+// ════════════════════════════════════════════════════════════════
+const BIAYA_GLOBAL_KEY = 'zenot_biaya_ops_global';
+
+function _bgLoad() {
+  try { return JSON.parse(localStorage.getItem(BIAYA_GLOBAL_KEY) || 'null') || {}; }
+  catch(e) { return {}; }
+}
+
+function _bgSave(data) {
+  try { localStorage.setItem(BIAYA_GLOBAL_KEY, JSON.stringify(data)); } catch(e) {}
+  // Sync ke Supabase (tabel planning, toko='__biaya_global__')
+  const bulan = PLAN.keyBulan();
+  PLAN._sbSave('__biaya_global__', bulan, data).catch(()=>{});
+}
+
+function _bgRecalc() {
+  const biaya  = parseFloat((document.getElementById('bg-biaya')?.value||'').replace(/[^\d.]/g,'')) || 0;
+  const rasio  = parseFloat(document.getElementById('bg-rasio')?.value || 0) || 0;
+  const target = (rasio > 0 && biaya > 0) ? Math.round(biaya / (rasio / 100)) : 0;
+  const el = document.getElementById('bg-target-val');
+  if (el) el.textContent = target > 0 ? 'Rp ' + target.toLocaleString('id-ID') : '—';
+}
+
+function _bgFmtInput(el) {
+  const raw = el.value.replace(/[^\d]/g,'');
+  el.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+  _bgRecalc();
+}
+
+async function saveBiayaOpsGlobal() {
+  const biayaRaw = (document.getElementById('bg-biaya')?.value||'').replace(/[^\d]/g,'');
+  const rasio    = parseFloat(document.getElementById('bg-rasio')?.value || 0) || 0;
+  const biaya    = parseInt(biayaRaw) || 0;
+
+  if (biaya <= 0 || rasio <= 0) {
+    if (typeof toast === 'function') toast('⚠️ Isi Biaya dan Rasio terlebih dahulu');
+    return;
+  }
+
+  const data = { biayaOpsGlobal: biaya, rasioOpsGlobal: rasio, updatedAt: new Date().toISOString() };
+  _bgSave(data);
+
+  // Update tampilan tabel
+  const target = Math.round(biaya / (rasio / 100));
+  const fmt    = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+  const elB = document.getElementById('bg-row-biaya');
+  const elR = document.getElementById('bg-row-rasio');
+  const elT = document.getElementById('bg-row-target');
+  if (elB) elB.textContent = 'Rp ' + biaya.toLocaleString('id-ID');
+  if (elR) elR.textContent = rasio + '%';
+  if (elT) elT.textContent = fmt(target);
+
+  const btn = document.getElementById('bg-save-btn');
+  if (btn) { btn.textContent = '✅ Tersimpan'; btn.disabled = true; setTimeout(()=>{ btn.textContent='💾 Simpan'; btn.disabled=false; }, 2000); }
+  if (typeof toast === 'function') toast('✅ Biaya Operasional berhasil disimpan');
+}
+
+async function renderBiayaOpsGlobal() {
+  const el = document.getElementById('page-biaya-ops-global');
+  if (!el) return;
+
+  // Load data tersimpan
+  let data = _bgLoad();
+  // Coba sync dari Supabase jika online
+  try {
+    const sbData = await PLAN._sbLoad('__biaya_global__', PLAN.keyBulan());
+    if (sbData && Object.keys(sbData).length > 0) {
+      data = sbData;
+      _bgSave(data); // update localStorage
+    }
+  } catch(e) {}
+
+  const biaya  = data.biayaOpsGlobal  || 0;
+  const rasio  = data.rasioOpsGlobal  || 0;
+  const target = (rasio > 0 && biaya > 0) ? Math.round(biaya / (rasio / 100)) : 0;
+  const fmt    = n => n > 0 ? 'Rp ' + Number(n).toLocaleString('id-ID') : '—';
+  const fmtR   = n => n > 0 ? n + '%' : '—';
+  const biayaFmt = biaya > 0 ? biaya.toLocaleString('id-ID') : '';
+
+  el.innerHTML = `
+  <style>
+    .bg-wrap{max-width:760px;}
+    .bg-title{font-size:20px;font-weight:800;font-family:'DM Serif Display',serif;color:var(--charcoal);margin-bottom:4px;}
+    .bg-title span{color:var(--brown);}
+    .bg-sub{font-size:11px;color:var(--dusty);margin-bottom:20px;}
+    .bg-usaha{display:inline-block;font-size:13px;font-weight:700;color:var(--brown);background:color-mix(in srgb,var(--brown) 10%,transparent);padding:3px 12px;border-radius:20px;margin-bottom:18px;}
+    .bg-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+    .bg-table{width:100%;border-collapse:collapse;}
+    .bg-th{padding:10px 16px;font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;background:var(--bg);border-bottom:2px solid var(--border);text-align:center;}
+    .bg-th:first-child{text-align:left;}
+    .bg-td{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-family:'DM Mono',monospace;font-weight:500;color:var(--charcoal);text-align:center;vertical-align:middle;}
+    .bg-td:first-child{text-align:left;font-family:inherit;font-weight:600;}
+    .bg-td:last-child{border-bottom:none;}
+    .bg-label-row{font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;}
+    .bg-form-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+    .bg-form-title{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+    .bg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+    @media(max-width:560px){.bg-form-grid{grid-template-columns:1fr;}}
+    .bg-field-label{font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
+    .bg-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);overflow:hidden;transition:border-color .2s;}
+    .bg-input-wrap:focus-within{border-color:var(--brown);background:var(--card);}
+    .bg-input-prefix{padding:0 10px;font-size:12px;color:var(--dusty);font-weight:600;white-space:nowrap;border-right:1px solid var(--border);}
+    .bg-input-suffix{padding:0 10px;font-size:12px;color:var(--dusty);font-weight:600;border-left:1px solid var(--border);}
+    .bg-input{flex:1;padding:8px 10px;border:none;background:transparent;font-size:13px;font-family:'DM Mono',monospace;color:var(--charcoal);outline:none;min-width:0;}
+    .bg-result{background:var(--cream);border:1.5px solid var(--brown);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+    .bg-result-label{font-size:9px;font-weight:700;color:var(--brown);letter-spacing:.5px;text-transform:uppercase;}
+    .bg-result-val{font-size:17px;font-weight:800;font-family:'DM Serif Display',serif;color:var(--charcoal);}
+    .bg-save-btn{width:100%;padding:10px;background:var(--brown);color:var(--cream);border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+    .bg-save-btn:hover{opacity:.85;}
+    .bg-save-btn:disabled{opacity:.45;cursor:not-allowed;}
+    .bg-hint{font-size:10px;color:var(--dusty);margin-top:3px;font-style:italic;}
+    .bg-empty{color:var(--dusty);font-style:italic;}
+  </style>
+
+  <div class="bg-wrap">
+    <div class="bg-title">Biaya <span>Operasional</span></div>
+    <div class="bg-sub">Data biaya operasional keseluruhan usaha — bukan per toko.</div>
+    <div class="bg-usaha">🏢 RAJUTAN DIMI</div>
+
+    <!-- TABEL RINGKASAN -->
+    <div class="bg-card">
+      <table class="bg-table">
+        <thead>
+          <tr>
+            <th class="bg-th">Keterangan</th>
+            <th class="bg-th">Biaya Operasional</th>
+            <th class="bg-th">Rasio Operasional</th>
+            <th class="bg-th">Target Omset</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bg-td bg-label-row">Keseluruhan Usaha</td>
+            <td class="bg-td" id="bg-row-biaya">${biaya > 0 ? fmt(biaya) : '<span class="bg-empty">—</span>'}</td>
+            <td class="bg-td" id="bg-row-rasio">${rasio > 0 ? fmtR(rasio) : '<span class="bg-empty">—</span>'}</td>
+            <td class="bg-td" id="bg-row-target">${target > 0 ? fmt(target) : '<span class="bg-empty">—</span>'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FORM INPUT -->
+    <div class="bg-form-card">
+      <div class="bg-form-title">✏️ Perbarui Data</div>
+      <div class="bg-form-grid">
+        <div>
+          <div class="bg-field-label">Biaya Operasional (Rp)</div>
+          <div class="bg-input-wrap">
+            <span class="bg-input-prefix">Rp</span>
+            <input class="bg-input" type="text" id="bg-biaya" placeholder="0"
+              value="${biayaFmt}"
+              oninput="_bgFmtInput(this)">
+          </div>
+          <div class="bg-hint">Gaji, sewa, utilitas, transport, dll</div>
+        </div>
+        <div>
+          <div class="bg-field-label">Rasio Operasional (%)</div>
+          <div class="bg-input-wrap">
+            <input class="bg-input" type="number" id="bg-rasio" placeholder="0"
+              value="${rasio || ''}" step="0.1" min="0.1" max="100"
+              oninput="_bgRecalc()">
+            <span class="bg-input-suffix">%</span>
+          </div>
+          <div class="bg-hint">Target % ops dari total omset usaha</div>
+        </div>
+      </div>
+      <div class="bg-result">
+        <div>
+          <div class="bg-result-label">🎯 Target Omset Keseluruhan</div>
+          <div class="bg-hint" style="margin-top:2px;">Biaya ÷ Rasio</div>
+        </div>
+        <div class="bg-result-val" id="bg-target-val">${target > 0 ? fmt(target) : '—'}</div>
+      </div>
+      <button class="bg-save-btn" id="bg-save-btn" onclick="saveBiayaOpsGlobal()">💾 Simpan</button>
+    </div>
+  </div>`;
+}
+
 // ─── EXPOSE ─────────────────────────────────────────────────────
-window.renderPlanningKPI  = renderPlanningKPI;
-window.renderPlanningOps  = renderPlanningOps;
-window.savePlanningKPI    = savePlanningKPI;
-window.saveOpsToko        = saveOpsToko;
-window.recalcOpsTarget    = recalcOpsTarget;
-window.formatOpsInput     = formatOpsInput;
-window.PLAN               = PLAN;
-window.opsSelectRow       = opsSelectRow;
-window.opsPanelRecalc     = opsPanelRecalc;
-window.opsPanelSave       = opsPanelSave;
+window.renderPlanningKPI      = renderPlanningKPI;
+window.renderPlanningOps      = renderPlanningOps;
+window.renderBiayaOpsGlobal   = renderBiayaOpsGlobal;
+window.savePlanningKPI        = savePlanningKPI;
+window.saveBiayaOpsGlobal     = saveBiayaOpsGlobal;
+window.saveOpsToko            = saveOpsToko;
+window.recalcOpsTarget        = recalcOpsTarget;
+window.formatOpsInput         = formatOpsInput;
+window.PLAN                   = PLAN;
+window.opsSelectRow           = opsSelectRow;
+window.opsPanelRecalc         = opsPanelRecalc;
+window.opsPanelSave           = opsPanelSave;
+window._bgRecalc              = _bgRecalc;
+window._bgFmtInput            = _bgFmtInput;
 
 })();
