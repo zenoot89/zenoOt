@@ -541,17 +541,30 @@ async function saveBiayaOpsGlobal() {
   const data = { biayaOpsGlobal: biaya, rasioOpsGlobal: rasio, updatedAt: new Date().toISOString() };
   _bgSave(data);
 
-  // ── Sync targetOmset ke plan 'global' supaya Dashboard bisa baca ──
-  // Dashboard membaca plan.targetOmset dari toko='global', bulan ini
+  // ── Sync targetOmset ke SEMUA key supaya Dashboard pasti baca ──
   try {
-    const bulan = PLAN.keyBulan();
-    // Ambil data global yg sudah ada (jangan overwrite field lain)
+    const d     = new Date();
+    const yr    = d.getFullYear();
+    const mo    = String(d.getMonth()+1).padStart(2,'0');
+    const bulan = PLAN.keyBulan(); // "2026-05"
+
+    // KEY BARU — dibaca oleh dashboard_v2.js via PLAN.loadSync('global')
     const existingPlan = PLAN.loadSync('global', bulan) || {};
     const mergedPlan   = { ...existingPlan, targetOmset: target, _srcBiayaOps: true };
-    // Simpan ke localStorage + Supabase
     PLAN._lsSave('global', bulan, mergedPlan);
     PLAN._sbSave('global', bulan, mergedPlan).catch(()=>{});
+
+    // KEY LAMA — fallback di app_core.js renderProgress() & dashboard lama
+    const oldKey  = `zenot_planning_${yr}_${mo}`;
+    const oldPlan = JSON.parse(localStorage.getItem(oldKey) || '{}');
+    localStorage.setItem(oldKey, JSON.stringify({ ...oldPlan, targetOmset: target }));
+
   } catch(e) { console.warn('Gagal sync targetOmset ke global plan:', e); }
+
+  // Refresh dashboard langsung jika sedang aktif
+  try {
+    if (typeof renderDashboard === 'function') renderDashboard();
+  } catch(e) {}
   const fmt    = n => 'Rp ' + Number(n).toLocaleString('id-ID');
   const elB = document.getElementById('bg-row-biaya');
   const elR = document.getElementById('bg-row-rasio');
