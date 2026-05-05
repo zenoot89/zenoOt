@@ -513,7 +513,8 @@ function _bgSave(data) {
 }
 
 function _bgRecalc() {
-  const biaya  = parseFloat((document.getElementById('bg-biaya')?.value||'').replace(/[^\d.]/g,'')) || 0;
+  // Strip semua non-digit (titik ribuan format ID) lalu parseInt
+  const biaya  = parseInt((document.getElementById('bg-biaya')?.value||'').replace(/[^\d]/g,''), 10) || 0;
   const rasio  = parseFloat(document.getElementById('bg-rasio')?.value || 0) || 0;
   const target = (rasio > 0 && biaya > 0) ? Math.round(biaya / (rasio / 100)) : 0;
   const el = document.getElementById('bg-target-val');
@@ -582,7 +583,7 @@ async function renderBiayaOpsGlobal() {
     .bg-title{font-size:20px;font-weight:800;font-family:'DM Serif Display',serif;color:var(--charcoal);margin-bottom:4px;}
     .bg-title span{color:var(--brown);}
     .bg-sub{font-size:11px;color:var(--dusty);margin-bottom:20px;}
-    .bg-usaha{display:inline-block;font-size:13px;font-weight:700;color:var(--brown);background:color-mix(in srgb,var(--brown) 10%,transparent);padding:3px 12px;border-radius:20px;margin-bottom:18px;}
+    .bg-usaha{display:inline-block;font-size:16px;font-weight:800;color:var(--brown);background:color-mix(in srgb,var(--brown) 10%,transparent);padding:7px 18px;border-radius:20px;margin-bottom:18px;letter-spacing:.5px;border:1.5px solid color-mix(in srgb,var(--brown) 25%,transparent);}
     .bg-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
     .bg-table{width:100%;border-collapse:collapse;}
     .bg-th{padding:10px 16px;font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;background:var(--bg);border-bottom:2px solid var(--border);text-align:center;}
@@ -612,7 +613,6 @@ async function renderBiayaOpsGlobal() {
   </style>
 
   <div class="bg-wrap">
-    <div class="bg-title">Biaya <span>Operasional</span></div>
     <div class="bg-sub">Data biaya operasional keseluruhan usaha — bukan per toko.</div>
     <div class="bg-usaha">🏢 RAJUTAN DIMI</div>
 
