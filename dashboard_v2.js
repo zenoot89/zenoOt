@@ -306,7 +306,7 @@ function renderDashboard() {
       sub:`<span class="stok-red">${stokHabis.length} habis</span> · <span class="stok-amber">${stokKritis.length} kritis</span>`}
   ];
   add(`<div>
-    <div class="ow-sec-hd"><span class="ow-sec-title">📊 Performa Utama</span></div>
+    <div class="ow-col3-hd"><span class="ow-sec-title">📊 Performa Utama</span></div>
     <div class="ow-kpi-strip">${kpis.map(k=>`
       <div class="ow-kpi">
         <div class="ow-kpi-accent" style="background:${k.accent}"></div>
@@ -346,10 +346,10 @@ function renderDashboard() {
     targetCard = `<div class="ow-empty">Target belum diset.<br><a href="#" onclick="try{go('planning-kpi',null)}catch(e){}" style="color:var(--brown);font-weight:700">→ Set Target Bulan Ini</a></div>`;
   }
 
-  add(`<div class="ow-row2">
-    <div>
-      <div class="ow-sec-hd"><span class="ow-sec-title">📈 Tren 7 Hari Terakhir</span><span class="ow-sec-note">* hari ini</span></div>
-      <div class="ow-card">
+  add(`<div class="ow-row2" style="align-items:stretch;">
+    <div style="display:flex;flex-direction:column;">
+      <div class="ow-col3-hd"><span class="ow-sec-title">📈 Tren 7 Hari Terakhir</span><span class="ow-sec-note">* hari ini</span></div>
+      <div class="ow-col3-card">
         <div class="ow-trend-bars">${trendBars}</div>
         <div style="font-size:12px;color:var(--dusty);margin-top:6px;">
           Tertinggi: <b>${fmtShort(Math.max(...trend7.map(t=>t.val)))}</b> · 
@@ -357,9 +357,9 @@ function renderDashboard() {
         </div>
       </div>
     </div>
-    <div>
-      <div class="ow-sec-hd"><span class="ow-sec-title">🎯 Target Bulanan</span></div>
-      <div class="ow-card">${targetCard}</div>
+    <div style="display:flex;flex-direction:column;">
+      <div class="ow-col3-hd"><span class="ow-sec-title">🎯 Target Bulanan</span></div>
+      <div class="ow-col3-card">${targetCard}</div>
     </div>
   </div>`);
 
@@ -443,38 +443,75 @@ function renderDashboard() {
 
   add(`
   <style>
-    .ow-row3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:stretch;}
-    .ow-row3col>div{display:flex;flex-direction:column;}
-    .ow-row3col>div>.ow-card{flex:1;}
+    .ow-row3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
     @media(max-width:900px){.ow-row3col{grid-template-columns:1fr;}}
+
+    /* Setiap kolom = flex column, card mengisi sisa tinggi */
+    .ow-col3{display:flex;flex-direction:column;}
+
+    /* Header kolom: tinggi FIXED 44px agar semua sejajar */
+    .ow-col3-hd{
+      height:44px;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 2px;margin-bottom:8px;flex-shrink:0;
+    }
+
+    /* Card mengisi sisa tinggi kolom */
+    .ow-col3-card{
+      flex:1;
+      background:var(--card);border:1px solid var(--border);
+      border-radius:16px;padding:16px 18px;
+      overflow:hidden;
+    }
+
+    /* Scroll jika isi terlalu panjang — max 480px */
+    .ow-col3-scroll{
+      max-height:440px;
+      overflow-y:auto;
+      overflow-x:hidden;
+    }
+    .ow-col3-scroll::-webkit-scrollbar{width:3px;}
+    .ow-col3-scroll::-webkit-scrollbar-track{background:transparent;}
+    .ow-col3-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
   </style>
   <div class="ow-row3col">
-    <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd">
+
+    <!-- Dead Stock -->
+    <div class="ow-col3">
+      <div class="ow-col3-hd">
         <span class="ow-sec-title">🧟 Dead Stock</span>
         <span class="ow-card-badge ow-badge-amber">${deadStock.length} SKU · ${fmtShort(deadStokNilai)}</span>
       </div>
-      <div class="ow-card" style="padding:16px 18px;">
+      <div class="ow-col3-card">
         <div style="font-size:12px;color:var(--dusty);margin-bottom:10px;padding:9px 12px;background:var(--cream);border-radius:8px;">
           ⚠️ Belum pernah terjual. Pertimbangkan diskon / bundling.
         </div>
-        ${deadStockHtml}
+        <div class="ow-col3-scroll">${deadStockHtml}</div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd">
+
+    <!-- Stok Habis -->
+    <div class="ow-col3">
+      <div class="ow-col3-hd">
         <span class="ow-sec-title">📦 Stok Habis</span>
         <span class="ow-card-badge ${stokHabis.length>0?'ow-badge-red':'ow-badge-green'}">${stokHabis.length} SKU</span>
       </div>
-      <div class="ow-card" style="padding:16px 18px;">${stokHabisHtml}</div>
+      <div class="ow-col3-card">
+        <div class="ow-col3-scroll">${stokHabisHtml}</div>
+      </div>
     </div>
-    <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd">
+
+    <!-- Prioritas Restock -->
+    <div class="ow-col3">
+      <div class="ow-col3-hd">
         <span class="ow-sec-title">🔁 Prioritas Restock</span>
         <span class="ow-card-badge ow-badge-amber">Best Seller Top 5</span>
       </div>
-      <div class="ow-card" style="padding:16px 18px;">${restockHtml}</div>
+      <div class="ow-col3-card">
+        <div class="ow-col3-scroll">${restockHtml}</div>
+      </div>
     </div>
+
   </div>`);
 
   // ─── 5. CHANNEL + TOP SKU ───
@@ -506,12 +543,12 @@ function renderDashboard() {
 
   add(`<div class="ow-row2" style="align-items:stretch;">
     <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd"><span class="ow-sec-title">🛍️ Channel Penjualan</span><span class="ow-sec-note">Bulan ini vs lalu</span></div>
-      <div class="ow-card" style="padding:16px 18px;">${chHtml}</div>
+      <div class="ow-col3-hd"><span class="ow-sec-title">🛍️ Channel Penjualan</span><span class="ow-sec-note">Bulan ini vs lalu</span></div>
+      <div class="ow-col3-card">${chHtml}</div>
     </div>
     <div style="display:flex;flex-direction:column;">
-      <div class="ow-sec-hd"><span class="ow-sec-title">🏆 Top SKU Bulan Ini</span><span class="ow-sec-note">vs bulan lalu</span></div>
-      <div class="ow-card" style="padding:16px 18px;">${skuHtml}</div>
+      <div class="ow-col3-hd"><span class="ow-sec-title">🏆 Top SKU Bulan Ini</span><span class="ow-sec-note">vs bulan lalu</span></div>
+      <div class="ow-col3-card">${skuHtml}</div>
     </div>
   </div>`);
 
@@ -519,26 +556,26 @@ function renderDashboard() {
 
   // ─── 7. SUPPLIER MAP ───
   add(`<div>
-    <div class="ow-sec-hd"><span class="ow-sec-title">🏭 Stok per Supplier</span><span class="ow-sec-note">Nilai stok berdasarkan HPP</span></div>
-    <div class="ow-card" style="padding:14px 16px">
-      <div style="display:grid;grid-template-columns:100px 1fr 75px 45px 45px;gap:8px;padding:0 0 8px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.8px;">
+    <div class="ow-col3-hd"><span class="ow-sec-title">🏭 Stok per Supplier</span><span class="ow-sec-note">Nilai stok berdasarkan HPP</span></div>
+    <div class="ow-col3-card">
+      <div style="display:grid;grid-template-columns:110px 1fr 75px 45px 45px;gap:8px;padding:0 0 10px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.8px;">
         <span>Supplier</span><span>Nilai Stok</span><span style="text-align:right">Nilai</span><span style="text-align:right">SKU</span><span style="text-align:right">Habis</span>
       </div>
       ${suppliers.map(([sup,v])=>`
         <div class="ow-sup-row">
           <span class="ow-sup-name">${sup}</span>
           <div class="ow-sup-bar"><div class="ow-sup-fill" style="width:${Math.round(v.nilai/supMax*100)}%"></div></div>
-          <span style="text-align:right;font-weight:700;font-size:12px">${fmtShort(v.nilai)}</span>
-          <span style="text-align:right;font-size:12px;color:var(--dusty)">${v.sku}</span>
-          <span style="text-align:right;font-size:12px;font-weight:700;color:${v.habis>0?'#C0392B':'#2D6A4F'}">${v.habis}</span>
+          <span style="text-align:right;font-weight:700;font-size:13px">${fmtShort(v.nilai)}</span>
+          <span style="text-align:right;font-size:13px;color:var(--dusty)">${v.sku}</span>
+          <span style="text-align:right;font-size:13px;font-weight:700;color:${v.habis>0?'#C0392B':'#2D6A4F'}">${v.habis}</span>
         </div>`).join('')}
     </div>
   </div>`);
 
   // ─── 8. RINGKASAN KEUANGAN DETAIL ───
   add(`<div>
-    <div class="ow-sec-hd"><span class="ow-sec-title">💰 Ringkasan Keuangan</span></div>
-    <div class="ow-card">
+    <div class="ow-col3-hd"><span class="ow-sec-title">💰 Ringkasan Keuangan</span></div>
+    <div class="ow-col3-card">
       <div class="ow-row3">
         <div>
           <div class="ow-mini-grid">
