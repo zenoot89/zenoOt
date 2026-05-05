@@ -142,6 +142,41 @@ function _owInjectCSS() {
 .ow-tbar.zero{opacity:.15;background:var(--dusty);}
 .ow-tbar-label{font-size:10px;color:var(--dusty);font-weight:600;}
 
+/* ── Period Selector (Shopee-style) ── */
+.ow-period-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0;}
+.ow-period-btn{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;color:var(--charcoal);cursor:pointer;transition:all .18s;white-space:nowrap;position:relative;}
+.ow-period-btn:hover{border-color:var(--brown);color:var(--brown);}
+.ow-period-btn.active{background:var(--brown);border-color:var(--brown);color:#fff;}
+.ow-period-btn .ow-pdrop-icon{font-size:10px;opacity:.7;}
+.ow-period-dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);z-index:999;overflow:hidden;display:none;}
+.ow-period-dropdown.open{display:block;}
+.ow-pdrop-section{padding:8px 0;}
+.ow-pdrop-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;font-size:13px;font-weight:600;color:var(--charcoal);cursor:pointer;transition:background .12s;}
+.ow-pdrop-item:hover{background:var(--cream);}
+.ow-pdrop-item.selected{color:var(--brown);}
+.ow-pdrop-item .ow-pdrop-arrow{font-size:10px;color:var(--dusty);}
+.ow-pdrop-divider{height:1px;background:var(--border);margin:4px 0;}
+.ow-pdrop-sub{display:none;background:var(--cream);}
+.ow-pdrop-sub.open{display:block;}
+.ow-pdrop-sub-item{padding:8px 28px;font-size:12.5px;color:var(--charcoal);cursor:pointer;font-weight:600;}
+.ow-pdrop-sub-item:hover{color:var(--brown);}
+.ow-pdrop-sub-item.selected{color:var(--brown);}
+.ow-datepicker-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ow-datepicker-wrap input[type=date]{border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;color:var(--charcoal);background:var(--card);outline:none;}
+.ow-datepicker-wrap input[type=date]:focus{border-color:var(--brown);}
+.ow-datepicker-wrap .ow-date-sep{font-size:12px;color:var(--dusty);}
+.ow-datepicker-wrap .ow-date-apply{background:var(--brown);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.ow-metric-tabs{display:flex;gap:6px;}
+.ow-metric-tab{padding:5px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid var(--border);cursor:pointer;background:var(--card);color:var(--dusty);transition:all .15s;}
+.ow-metric-tab.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal);}
+.ow-chart-legend{display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--dusty);margin-top:8px;}
+.ow-legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;}
+.ow-chart-stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.ow-chart-stat{display:flex;flex-direction:column;gap:2px;}
+.ow-chart-stat-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;}
+.ow-chart-stat-val{font-size:15px;font-weight:800;color:var(--charcoal);}
+.ow-chart-stat-compare{font-size:11px;color:var(--dusty);}
+
 /* Restock items */
 .ow-restock-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
 .ow-restock-item:last-child{border-bottom:none;}
@@ -489,122 +524,547 @@ function renderDashboard() {
 
   </div>`);
 
-  // ─── 3. TREN 7 HARI + TARGET (Line Chart) ───
-  const _trend7Canvas = 'owTrend_' + Math.random().toString(36).slice(2,8);
-  const _trend7Payload = trend7.map(t=>({label:t.label+(t.ds===todayStr?'*':''),val:t.val,isToday:t.ds===todayStr}));
+  // ─── 3. TREN PERIODE — Shopee-style dual line chart ───
+  // Fungsi ini membangun seluruh widget: dropdown + canvas + stats
+  // dipanggil sekali saat render, lalu re-render saat user ganti periode
+  (function buildTrendWidget(){
+    const CVAS_ID = 'owTrendC_' + Math.random().toString(36).slice(2,8);
+    const WRAP_ID = 'owTrendW_' + Math.random().toString(36).slice(2,8);
 
-  let targetCard = '';
-  if(targetOmset>0){
-    targetCard = `
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-        <span style="font-weight:700">Omset vs Target</span>
-        <span>${fmtShort(omsetBulan)} / ${fmtShort(targetOmset)}</span>
-      </div>
-      ${progressBar(pctOmset)}
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dusty);margin-bottom:14px;">
-        <span style="font-weight:700;color:${pctOmset>=70?'#2D6A4F':'#D97706'}">${pctOmset}% tercapai</span>
-        <span>${daysLeft} hari tersisa</span>
-      </div>
-      <div class="ow-mini-grid">
-        <div class="ow-mini"><div class="ow-mini-label">Sisa Target</div><div class="ow-mini-val" style="font-size:15px;color:${sisaTarget>0?'#C0392B':'#2D6A4F'}">${fmtShort(sisaTarget)}</div></div>
-        <div class="ow-mini"><div class="ow-mini-label">Per Hari Perlu</div><div class="ow-mini-val" style="font-size:15px;color:#D97706">${perHariHarus>0?fmtShort(perHariHarus):'🎉 Done!'}</div></div>
-      </div>`;
-  } else {
-    targetCard = `<div class="ow-empty">Target belum diset.<br><a href="#" onclick="try{go('planning-kpi',null)}catch(e){}" style="color:var(--brown);font-weight:700">→ Set Target Bulan Ini</a></div>`;
-  }
+    // ── State ──
+    let _mode   = 'realtime';   // realtime | yesterday | 7d | 30d | custom_day | custom_week | custom_month | custom_year
+    let _metric = 'omset';      // omset | qty
+    let _dropOpen = false;
+    let _subOpen  = '';         // '' | 'hari' | 'minggu' | 'bulan' | 'tahun'
+    let _customRange = null;    // {from:'YYYY-MM-DD', to:'YYYY-MM-DD'}
+    let _customWeek  = null;    // {year, week}
+    let _customMonth = null;    // {year, month}
+    let _customYear  = null;    // year number
 
-  add(`<div class="ow-row2" style="align-items:stretch;">
-    <div style="display:flex;flex-direction:column;">
-      <div class="ow-col3-hd"><span class="ow-sec-title">📈 Tren 7 Hari Terakhir</span><span class="ow-sec-note">* hari ini</span></div>
-      <div class="ow-col3-card" style="padding-bottom:6px;">
-        <canvas id="${_trend7Canvas}" style="width:100%;height:100px;display:block;"></canvas>
-        <div style="font-size:12px;color:var(--dusty);margin-top:6px;">
-          Tertinggi: <b>${fmtShort(Math.max(...trend7.map(t=>t.val)))}</b> · 
-          Total 7 hari: <b>${fmtShort(trend7.reduce((s,t)=>s+t.val,0))}</b>
+    // ── Helpers ──
+    const pad2  = n => String(n).padStart(2,'0');
+    const today = new Date();
+    const todayS = _localDateStr(today);
+
+    function dateOffset(d, offsetDays){
+      const nd = new Date(d);
+      nd.setDate(nd.getDate() + offsetDays);
+      return nd;
+    }
+    function dateStr(d){ return _localDateStr(d); }
+
+    function getRangeForMode(mode, custom){
+      const t = new Date();
+      if(mode==='realtime'){
+        return {from: todayS, to: todayS};
+      } else if(mode==='yesterday'){
+        const y = dateStr(dateOffset(t,-1));
+        return {from:y, to:y};
+      } else if(mode==='7d'){
+        return {from: dateStr(dateOffset(t,-6)), to: todayS};
+      } else if(mode==='30d'){
+        return {from: dateStr(dateOffset(t,-29)), to: todayS};
+      } else if(mode==='custom_day' && custom){
+        return {from:custom.from, to:custom.to};
+      } else if(mode==='custom_week' && custom){
+        // Get Mon–Sun of selected week
+        const jan1 = new Date(custom.year,0,1);
+        const mon = new Date(jan1);
+        mon.setDate(jan1.getDate() + (custom.week-1)*7 - (jan1.getDay()||7) + 1);
+        const sun = dateOffset(mon,6);
+        return {from:dateStr(mon), to:dateStr(sun)};
+      } else if(mode==='custom_month' && custom){
+        const fm = `${custom.year}-${pad2(custom.month)}-01`;
+        const last = new Date(custom.year, custom.month, 0);
+        return {from:fm, to:dateStr(last)};
+      } else if(mode==='custom_year' && custom){
+        return {from:`${custom.year}-01-01`, to:`${custom.year}-12-31`};
+      }
+      return {from:todayS, to:todayS};
+    }
+
+    function getCompareRange(mode, mainRange){
+      // Compare = same duration shifted back by duration length
+      const from = new Date(mainRange.from + 'T00:00:00');
+      const to   = new Date(mainRange.to   + 'T00:00:00');
+      const dur  = Math.round((to-from)/(86400000)) + 1; // days
+      const cTo   = dateOffset(from, -1);
+      const cFrom = dateOffset(cTo, -(dur-1));
+      return {from:dateStr(cFrom), to:dateStr(cTo)};
+    }
+
+    function getJurnalInRange(range){
+      return (DB.jurnal||[]).filter(j=>j.tgl && j.tgl>=range.from && j.tgl<=range.to);
+    }
+
+    function getHpp(varName){
+      if(!varName) return 0;
+      const p=(DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(varName||'').toUpperCase());
+      return (p&&p.hpp)?p.hpp:0;
+    }
+
+    function buildSeries(range, mode){
+      // Returns array of {label, ds, val}
+      const from = new Date(range.from + 'T00:00:00');
+      const to   = new Date(range.to   + 'T00:00:00');
+      const dur  = Math.round((to-from)/86400000)+1;
+
+      if(mode==='custom_month' && _customMonth){
+        // Group by day of month
+        const pts=[];
+        for(let i=0;i<dur;i++){
+          const d=dateOffset(from,i);
+          const ds=dateStr(d);
+          const label=String(d.getDate());
+          const j=getJurnalInRange({from:ds,to:ds});
+          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          pts.push({label,ds,val});
+        }
+        return pts;
+      } else if(mode==='custom_year' && _customYear){
+        // Group by month
+        const pts=[];
+        for(let m=1;m<=12;m++){
+          const mStr=`${_customYear}-${pad2(m)}`;
+          const j=(DB.jurnal||[]).filter(x=>x.tgl&&x.tgl.startsWith(mStr));
+          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const monthNames=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+          pts.push({label:monthNames[m-1],ds:mStr,val});
+        }
+        return pts;
+      } else if(mode==='custom_week' && _customWeek){
+        const dayNames=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+        const pts=[];
+        for(let i=0;i<dur;i++){
+          const d=dateOffset(from,i);
+          const ds=dateStr(d);
+          const j=getJurnalInRange({from:ds,to:ds});
+          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          pts.push({label:dayNames[d.getDay()],ds,val});
+        }
+        return pts;
+      } else if(mode==='realtime'){
+        // Hourly breakdown for today
+        const pts=[];
+        const j=getJurnalInRange({from:todayS,to:todayS});
+        for(let h=0;h<24;h++){
+          const jh=j.filter(x=>{
+            const t=(x.tgl_waktu||x.waktu||'');
+            const hh=parseInt((t.split(' ')[1]||'').split(':')[0])||0;
+            return hh===h;
+          });
+          const val=_metric==='omset'?jh.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):jh.reduce((s,x)=>s+(x.qty||0),0);
+          pts.push({label:`${pad2(h)}:00`,ds:todayS,val,isToday:true});
+        }
+        // Trim trailing zeros at end but keep at least until current hour
+        const nowH=new Date().getHours();
+        return pts.slice(0,nowH+1);
+      } else {
+        // Day-by-day
+        const pts=[];
+        for(let i=0;i<dur;i++){
+          const d=dateOffset(from,i);
+          const ds=dateStr(d);
+          const isToday=ds===todayS;
+          const label=d.toLocaleDateString('id-ID',{weekday:'short'})+(isToday?'*':'');
+          const j=getJurnalInRange({from:ds,to:ds});
+          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          pts.push({label,ds,val,isToday});
+        }
+        return pts;
+      }
+    }
+
+    function fmtV(v){
+      if(_metric==='qty') return fmtNum(v)+' pcs';
+      return v>=1000000?(v/1000000).toFixed(1)+'Jt':v>=1000?(v/1000).toFixed(1)+'K':fmtNum(v);
+    }
+    function fmtVFull(v){
+      return _metric==='qty'?fmtNum(v)+' pcs':fmtShort(v);
+    }
+
+    // ── Draw dual line chart ──
+    function drawChart(data1, data2){
+      const cvs=document.getElementById(CVAS_ID);
+      if(!cvs)return;
+      const par=cvs.parentElement;
+      const W=par?par.clientWidth||500:500;
+      const H=130;
+      cvs.width=W; cvs.height=H;
+      const ctx=cvs.getContext('2d');
+      ctx.clearRect(0,0,W,H);
+
+      const n=data1.length;
+      if(n===0)return;
+
+      // Merge max from both
+      const allVals=[...data1.map(d=>d.val),...data2.map(d=>d.val)];
+      const maxV=Math.max(...allVals,1);
+      const pad={t:14,r:16,b:26,l:50};
+      const cw=W-pad.l-pad.r;
+      const ch=H-pad.t-pad.b;
+      const xOf=i=>pad.l+(n===1?cw/2:(i/(n-1))*cw);
+      const yOf=v=>pad.t+ch-(v/maxV)*ch;
+
+      // Grid
+      ctx.strokeStyle='#f0ece6'; ctx.lineWidth=1;
+      [0.25,0.5,0.75,1].forEach(f=>{
+        const y=pad.t+ch*(1-f);
+        ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+        ctx.fillStyle='#c0b8af';ctx.font='9px sans-serif';ctx.textAlign='right';
+        const lv=Math.round(maxV*f);
+        const ls=_metric==='qty'?(lv>=1000?(lv/1000).toFixed(0)+'K':lv):( lv>=1000000?(lv/1000000).toFixed(1)+'Jt':lv>=1000?(lv/1000).toFixed(0)+'K':lv);
+        ctx.fillText(ls,pad.l-5,y+3);
+      });
+
+      // ── Compare line (abu dashed) ──
+      if(data2.some(d=>d.val>0)){
+        ctx.beginPath();
+        ctx.strokeStyle='#C0B8AF';ctx.lineWidth=1.8;
+        ctx.setLineDash([5,4]);ctx.lineJoin='round';
+        data2.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
+        ctx.stroke();ctx.setLineDash([]);
+        // dots compare
+        data2.forEach((d,i)=>{
+          if(!d.val)return;
+          ctx.beginPath();ctx.arc(xOf(i),yOf(d.val),2.5,0,Math.PI*2);
+          ctx.fillStyle='#B0A898';ctx.fill();
+          ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+        });
+      }
+
+      // ── Main fill gradient ──
+      const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+      grad.addColorStop(0,'rgba(184,143,73,0.18)');
+      grad.addColorStop(1,'rgba(184,143,73,0.01)');
+      ctx.beginPath();
+      data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
+      ctx.lineTo(xOf(n-1),pad.t+ch);ctx.lineTo(xOf(0),pad.t+ch);ctx.closePath();
+      ctx.fillStyle=grad;ctx.fill();
+
+      // ── Main line (merah/coklat) ──
+      ctx.beginPath();
+      ctx.strokeStyle='#C0392B';ctx.lineWidth=2.3;ctx.lineJoin='round';ctx.lineCap='round';
+      data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
+      ctx.stroke();
+
+      // Main dots
+      data1.forEach((d,i)=>{
+        if(!d.val&&!d.isToday)return;
+        ctx.beginPath();
+        ctx.arc(xOf(i),yOf(d.val),d.isToday?5:3.5,0,Math.PI*2);
+        ctx.fillStyle=d.isToday?'#7B1B0A':'#C0392B';
+        ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+      });
+
+      // ── X Labels — thin out if >14 points ──
+      ctx.fillStyle='#a09880';ctx.font='9px sans-serif';ctx.textAlign='center';
+      const step=n>14?Math.ceil(n/7):1;
+      data1.forEach((d,i)=>{
+        if(i%step!==0&&i!==n-1)return;
+        ctx.fillText(d.label,xOf(i),H-5);
+      });
+
+      // ── Hover tooltip (canvas mousemove) ──
+      cvs._data1=data1; cvs._data2=data2;
+      cvs._meta={pad,cw,ch,xOf,yOf,n,maxV,W,H};
+    }
+
+    // ── Tooltip via canvas mousemove ──
+    function attachTooltip(cvs){
+      if(cvs._tooltipAttached)return;
+      cvs._tooltipAttached=true;
+      cvs.style.cursor='crosshair';
+      cvs.addEventListener('mousemove',function(e){
+        if(!cvs._meta)return;
+        const rect=cvs.getBoundingClientRect();
+        const mx=(e.clientX-rect.left)*(cvs.width/rect.width);
+        const {pad,cw,n,xOf,yOf,W,H,maxV}=cvs._meta;
+        const d1=cvs._data1||[], d2=cvs._data2||[];
+        if(!d1.length)return;
+        // Find nearest index
+        let best=-1, bestDist=Infinity;
+        d1.forEach((_,i)=>{const dx=Math.abs(xOf(i)-mx);if(dx<bestDist){bestDist=dx;best=i;}});
+        if(best<0)return;
+        // Redraw + tooltip overlay
+        const ctx=cvs.getContext('2d');
+        // Re-draw
+        drawChart(d1,d2);
+        // Vertical line
+        const tx=xOf(best);
+        ctx.beginPath();ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=1;
+        ctx.moveTo(tx,pad.t);ctx.lineTo(tx,pad.t+H-pad.b-pad.t);ctx.stroke();
+        // Tooltip box
+        const v1=d1[best]?.val||0, v2=d2[best]?.val||0;
+        const lbl1=d1[best]?.label||'', lbl2=d2[best]?.label||'';
+        const lines=[lbl1, (_metric==='omset'?'Omset: ':'Qty: ')+fmtVFull(v1)];
+        if(d2.some(d=>d.val>0)) lines.push((_metric==='omset'?'Compare: ':'Compare: ')+fmtVFull(v2));
+        const fSize=10;
+        ctx.font=`${fSize}px sans-serif`;
+        const bw=Math.max(...lines.map(l=>ctx.measureText(l).width))+20;
+        const bh=lines.length*15+12;
+        let bx=tx+8, by=pad.t+2;
+        if(bx+bw>W-4)bx=tx-bw-8;
+        ctx.fillStyle='rgba(40,30,20,.88)';
+        ctx.beginPath();
+        if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,6);else ctx.rect(bx,by,bw,bh);
+        ctx.fill();
+        lines.forEach((l,li)=>{
+          ctx.fillStyle=li===1?'#ff8870':li===2?'#bfb8b0':'#fff';
+          ctx.font=li===0?`bold ${fSize}px sans-serif`:`${fSize}px sans-serif`;
+          ctx.textAlign='left';
+          ctx.fillText(l,bx+10,by+15+li*15);
+        });
+      });
+      cvs.addEventListener('mouseleave',function(){
+        const d1=cvs._data1||[], d2=cvs._data2||[];
+        drawChart(d1,d2);
+      });
+    }
+
+    // ── Update stats bar ──
+    function updateStats(data1, data2){
+      const wrap=document.getElementById(WRAP_ID);
+      if(!wrap)return;
+      const statsEl=wrap.querySelector('.ow-chart-stats');
+      if(!statsEl)return;
+      const total1=data1.reduce((s,d)=>s+d.val,0);
+      const total2=data2.reduce((s,d)=>s+d.val,0);
+      const max1=Math.max(...data1.map(d=>d.val),0);
+      const avg1=data1.length?Math.round(total1/data1.filter(d=>d.val>0).length||1):0;
+      const diff=total2>0?Math.round((total1-total2)/total2*100):null;
+      const diffHtml=diff!==null?`<span style="color:${diff>=0?'#2D6A4F':'#C0392B'};font-weight:700;">${diff>=0?'▲':'▼'}${Math.abs(diff)}%</span> vs periode lalu`:'';
+      statsEl.innerHTML=`
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">Total</div>
+          <div class="ow-chart-stat-val">${fmtVFull(total1)}</div>
+          <div class="ow-chart-stat-compare">${diffHtml}</div>
+        </div>
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">Tertinggi</div>
+          <div class="ow-chart-stat-val">${fmtVFull(max1)}</div>
+        </div>
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">Rata-rata/hari</div>
+          <div class="ow-chart-stat-val">${fmtVFull(avg1)}</div>
+        </div>
+        ${total2>0?`<div class="ow-chart-stat"><div class="ow-chart-stat-label">Periode Lalu</div><div class="ow-chart-stat-val" style="color:var(--dusty);font-size:13px;">${fmtVFull(total2)}</div></div>`:''}
+      `;
+    }
+
+    // ── Main render of chart + legend ──
+    function renderChartSection(){
+      const mainRange = getRangeForMode(_mode, _mode==='custom_day'?_customRange:_mode==='custom_week'?_customWeek:_mode==='custom_month'?_customMonth:_mode==='custom_year'?{year:_customYear}:null);
+      const compRange = getCompareRange(_mode, mainRange);
+      const data1 = buildSeries(mainRange, _mode);
+      const data2 = buildSeries(compRange, _mode==='realtime'?'yesterday':_mode);
+
+      // Update label bar
+      const wrap=document.getElementById(WRAP_ID);
+      if(!wrap)return;
+
+      const legendEl=wrap.querySelector('.ow-chart-legend');
+      if(legendEl){
+        const lbl1=_mode==='realtime'?'Hari Ini':_mode==='yesterday'?'Kemarin':_mode==='7d'?'7 Hari Ini':_mode==='30d'?'30 Hari Ini':'Periode Ini';
+        const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
+        legendEl.innerHTML=`<span><span class="ow-legend-dot" style="background:#C0392B;"></span>${lbl1}</span><span><span class="ow-legend-dot" style="background:#C0B8AF;border:1px dashed #999;"></span>${lbl2}</span>`;
+      }
+
+      requestAnimationFrame(()=>{
+        const cvs=document.getElementById(CVAS_ID);
+        if(cvs){
+          drawChart(data1,data2);
+          attachTooltip(cvs);
+        }
+        updateStats(data1,data2);
+      });
+    }
+
+    // ── Label for active mode ──
+    function getModeLabel(){
+      if(_mode==='realtime') return 'Real-time · Hari Ini';
+      if(_mode==='yesterday') return 'Kemarin';
+      if(_mode==='7d') return '7 Hari Terakhir';
+      if(_mode==='30d') return '30 Hari Terakhir';
+      if(_mode==='custom_day'&&_customRange) return `${_customRange.from} – ${_customRange.to}`;
+      if(_mode==='custom_week'&&_customWeek) return `Minggu ${_customWeek.week} / ${_customWeek.week_year||_customWeek.year}`;
+      if(_mode==='custom_month'&&_customMonth) return `${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][_customMonth.month-1]} ${_customMonth.year}`;
+      if(_mode==='custom_year'&&_customYear) return `Tahun ${_customYear}`;
+      return 'Pilih Periode';
+    }
+
+    // ── Build dropdown HTML ──
+    function buildDropdownHTML(){
+      const thisY=new Date().getFullYear();
+      const thisM=new Date().getMonth()+1;
+      // Build month options for custom_month
+      let monthOpts='';
+      for(let y=thisY;y>=thisY-2;y--){
+        const mMax=y===thisY?thisM:12;
+        for(let m=mMax;m>=1;m--){
+          const mn=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][m-1];
+          monthOpts+=`<div class="ow-pdrop-sub-item${_mode==='custom_month'&&_customMonth&&_customMonth.year===y&&_customMonth.month===m?' selected':''}" onclick="_owSetPeriod('custom_month',{year:${y},month:${m}})">${mn} ${y}</div>`;
+        }
+      }
+      // Week options (last 12 weeks)
+      let weekOpts='';
+      for(let i=0;i<12;i++){
+        const d=dateOffset(today,-i*7);
+        const jan1=new Date(d.getFullYear(),0,1);
+        const wk=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+        weekOpts+=`<div class="ow-pdrop-sub-item${_mode==='custom_week'&&_customWeek&&_customWeek.week===wk&&_customWeek.year===d.getFullYear()?' selected':''}" onclick="_owSetPeriod('custom_week',{year:${d.getFullYear()},week:${wk}})">Minggu ke-${wk} / ${d.getFullYear()}</div>`;
+      }
+      // Year options
+      let yearOpts='';
+      for(let y=thisY;y>=thisY-4;y--){
+        yearOpts+=`<div class="ow-pdrop-sub-item${_mode==='custom_year'&&_customYear===y?' selected':''}" onclick="_owSetPeriod('custom_year',${y})">Tahun ${y}</div>`;
+      }
+      return `
+        <div class="ow-pdrop-section">
+          <div class="ow-pdrop-item${_mode==='realtime'?' selected':''}" onclick="_owSetPeriod('realtime')">Real-time / Hari Ini</div>
+          <div class="ow-pdrop-item${_mode==='yesterday'?' selected':''}" onclick="_owSetPeriod('yesterday')">Kemarin</div>
+          <div class="ow-pdrop-item${_mode==='7d'?' selected':''}" onclick="_owSetPeriod('7d')">7 hari sebelumnya</div>
+          <div class="ow-pdrop-item${_mode==='30d'?' selected':''}" onclick="_owSetPeriod('30d')">30 hari sebelumnya</div>
+        </div>
+        <div class="ow-pdrop-divider"></div>
+        <div class="ow-pdrop-section">
+          <div class="ow-pdrop-item" onclick="_owToggleSub('hari')">Per Hari <span class="ow-pdrop-arrow" id="ow_arr_hari">›</span></div>
+          <div class="ow-pdrop-sub${_subOpen==='hari'?' open':''}" id="ow_sub_hari">
+            <div style="padding:8px 18px 4px;font-size:11px;color:var(--dusty);font-weight:700;">PILIH RENTANG TANGGAL</div>
+            <div class="ow-datepicker-wrap" style="padding:6px 18px 12px;" onclick="event.stopPropagation()">
+              <input type="date" id="ow_dp_from" value="${todayS}" max="${todayS}">
+              <span class="ow-date-sep">–</span>
+              <input type="date" id="ow_dp_to" value="${todayS}" max="${todayS}">
+              <button class="ow-date-apply" onclick="_owApplyCustomDay()">Terapkan</button>
+            </div>
+          </div>
+          <div class="ow-pdrop-item" onclick="_owToggleSub('minggu')">Per Minggu <span class="ow-pdrop-arrow" id="ow_arr_minggu">›</span></div>
+          <div class="ow-pdrop-sub${_subOpen==='minggu'?' open':''}" id="ow_sub_minggu">${weekOpts}</div>
+          <div class="ow-pdrop-item" onclick="_owToggleSub('bulan')">Per Bulan <span class="ow-pdrop-arrow" id="ow_arr_bulan">›</span></div>
+          <div class="ow-pdrop-sub${_subOpen==='bulan'?' open':''}" id="ow_sub_bulan" style="max-height:180px;overflow-y:auto;">${monthOpts}</div>
+          <div class="ow-pdrop-item" onclick="_owToggleSub('tahun')">Berdasarkan Tahun <span class="ow-pdrop-arrow" id="ow_arr_tahun">›</span></div>
+          <div class="ow-pdrop-sub${_subOpen==='tahun'?' open':''}" id="ow_sub_tahun">${yearOpts}</div>
+        </div>
+      `;
+    }
+
+    // ── Inject global handler functions (closures over state) ──
+    window._owSetPeriod = function(mode, custom){
+      _mode=mode;
+      if(mode==='custom_day'){/* handled via _owApplyCustomDay */}
+      else if(mode==='custom_week') _customWeek=custom;
+      else if(mode==='custom_month') _customMonth=custom;
+      else if(mode==='custom_year') _customYear=custom;
+      _dropOpen=false; _subOpen='';
+      // Update dropdown
+      const dd=document.getElementById('owPeriodDrop');
+      if(dd){dd.classList.remove('open');dd.innerHTML=buildDropdownHTML();}
+      // Update button label
+      const btnLbl=document.getElementById('owPeriodBtnLbl');
+      if(btnLbl)btnLbl.textContent=getModeLabel();
+      renderChartSection();
+    };
+    window._owToggleSub = function(key){
+      _subOpen=_subOpen===key?'':key;
+      const dd=document.getElementById('owPeriodDrop');
+      if(dd)dd.innerHTML=buildDropdownHTML();
+    };
+    window._owApplyCustomDay = function(){
+      const f=document.getElementById('ow_dp_from')?.value;
+      const t=document.getElementById('ow_dp_to')?.value;
+      if(!f||!t)return;
+      _customRange={from:f,to:t};
+      _owSetPeriod('custom_day');
+    };
+    window._owTogglePeriodDrop = function(){
+      _dropOpen=!_dropOpen;
+      const dd=document.getElementById('owPeriodDrop');
+      const btn=document.getElementById('owPeriodBtn');
+      if(dd){
+        if(_dropOpen){dd.innerHTML=buildDropdownHTML();dd.classList.add('open');}
+        else dd.classList.remove('open');
+      }
+      if(btn)btn.classList.toggle('active',_dropOpen);
+    };
+
+    // Close on outside click
+    document.addEventListener('click', function(e){
+      const btn=document.getElementById('owPeriodBtn');
+      const dd=document.getElementById('owPeriodDrop');
+      if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target)){
+        _dropOpen=false; dd.classList.remove('open');
+        if(btn)btn.classList.remove('active');
+      }
+    },{capture:true});
+
+    // ── Target card ──
+    let targetCard = '';
+    if(targetOmset>0){
+      targetCard = `
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+          <span style="font-weight:700">Omset vs Target</span>
+          <span>${fmtShort(omsetBulan)} / ${fmtShort(targetOmset)}</span>
+        </div>
+        ${progressBar(pctOmset)}
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dusty);margin-bottom:14px;">
+          <span style="font-weight:700;color:${pctOmset>=70?'#2D6A4F':'#D97706'}">${pctOmset}% tercapai</span>
+          <span>${daysLeft} hari tersisa</span>
+        </div>
+        <div class="ow-mini-grid">
+          <div class="ow-mini"><div class="ow-mini-label">Sisa Target</div><div class="ow-mini-val" style="font-size:15px;color:${sisaTarget>0?'#C0392B':'#2D6A4F'}">${fmtShort(sisaTarget)}</div></div>
+          <div class="ow-mini"><div class="ow-mini-label">Per Hari Perlu</div><div class="ow-mini-val" style="font-size:15px;color:#D97706">${perHariHarus>0?fmtShort(perHariHarus):'🎉 Done!'}</div></div>
+        </div>`;
+    } else {
+      targetCard = `<div class="ow-empty">Target belum diset.<br><a href="#" onclick="try{go('planning-kpi',null)}catch(e){}" style="color:var(--brown);font-weight:700">→ Set Target Bulan Ini</a></div>`;
+    }
+
+    // ── Render HTML ──
+    add(`<div class="ow-row2" style="align-items:stretch;">
+      <!-- Tren Chart -->
+      <div id="${WRAP_ID}" style="display:flex;flex-direction:column;">
+        <div class="ow-col3-hd" style="align-items:flex-start;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <span class="ow-sec-title">📈 Tren Penjualan</span>
+            <div class="ow-metric-tabs">
+              <div class="ow-metric-tab active" id="owTabOmset" onclick="_owSetMetric('omset')">Omset</div>
+              <div class="ow-metric-tab" id="owTabQty" onclick="_owSetMetric('qty')">Qty</div>
+            </div>
+          </div>
+          <div class="ow-period-bar">
+            <div style="position:relative;">
+              <button class="ow-period-btn" id="owPeriodBtn" onclick="_owTogglePeriodDrop()">
+                <span id="owPeriodBtnLbl">Real-time · Hari Ini</span>
+                <span class="ow-pdrop-icon">▾</span>
+              </button>
+              <div class="ow-period-dropdown" id="owPeriodDrop"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ow-col3-card" style="flex:1;padding-bottom:10px;">
+          <canvas id="${CVAS_ID}" style="width:100%;height:130px;display:block;"></canvas>
+          <div class="ow-chart-legend"></div>
+          <div class="ow-chart-stats"></div>
         </div>
       </div>
-    </div>
-    <div style="display:flex;flex-direction:column;">
-      <div class="ow-col3-hd"><span class="ow-sec-title">🎯 Target Bulanan</span></div>
-      <div class="ow-col3-card">${targetCard}</div>
-    </div>
-  </div>`);
+      <!-- Target Bulanan -->
+      <div style="display:flex;flex-direction:column;">
+        <div class="ow-col3-hd"><span class="ow-sec-title">🎯 Target Bulanan</span></div>
+        <div class="ow-col3-card">${targetCard}</div>
+      </div>
+    </div>`);
 
-  // ─── Render Line Chart Tren 7 Hari ───
-  requestAnimationFrame(()=>{
-    const cvs = document.getElementById(_trend7Canvas);
-    if(!cvs) return;
-    const par = cvs.parentElement;
-    const W = par ? par.clientWidth || 320 : 320;
-    const H = 100;
-    cvs.width = W; cvs.height = H;
-    const ctx = cvs.getContext('2d');
-    ctx.clearRect(0,0,W,H);
-    const data = _trend7Payload;
-    const vals = data.map(d=>d.val);
-    const maxV = Math.max(...vals, 1);
-    const minV = 0;
-    const pad = {t:12, r:14, b:22, l:42};
-    const cw = W - pad.l - pad.r;
-    const ch = H - pad.t - pad.b;
-    const n = data.length;
-    const xOf = i => pad.l + (i/(n-1))*cw;
-    const yOf = v => pad.t + ch - ((v-minV)/(maxV-minV))*ch;
+    // Inject metric toggle
+    window._owSetMetric = function(m){
+      _metric=m;
+      document.getElementById('owTabOmset')?.classList.toggle('active',m==='omset');
+      document.getElementById('owTabQty')?.classList.toggle('active',m==='qty');
+      renderChartSection();
+    };
 
-    // Grid lines
-    ctx.strokeStyle = '#f0ece6';
-    ctx.lineWidth = 1;
-    [0.25,0.5,0.75,1].forEach(f=>{
-      const y = pad.t + ch*(1-f);
-      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
-      ctx.fillStyle='#c0b8af'; ctx.font='9px sans-serif'; ctx.textAlign='right';
-      const lv = Math.round(maxV*f);
-      ctx.fillText(lv>=1000?(lv/1000).toFixed(lv%1000===0?0:1)+'K':lv, pad.l-4, y+3);
-    });
+    // Initial render
+    renderChartSection();
 
-    // Fill gradient under line
-    const grad = ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-    grad.addColorStop(0,'rgba(184,143,73,0.22)');
-    grad.addColorStop(1,'rgba(184,143,73,0.01)');
-    ctx.beginPath();
-    data.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
-    ctx.lineTo(xOf(n-1),pad.t+ch); ctx.lineTo(xOf(0),pad.t+ch); ctx.closePath();
-    ctx.fillStyle=grad; ctx.fill();
-
-    // Line
-    ctx.beginPath();
-    ctx.strokeStyle='#B38F49'; ctx.lineWidth=2.2; ctx.lineJoin='round'; ctx.lineCap='round';
-    data.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
-    ctx.stroke();
-
-    // Dots
-    data.forEach((d,i)=>{
-      ctx.beginPath();
-      ctx.arc(xOf(i),yOf(d.val), d.isToday?5:3.5, 0, Math.PI*2);
-      ctx.fillStyle = d.isToday ? '#7B4F1E' : '#B38F49';
-      ctx.fill();
-      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
-    });
-
-    // Labels
-    ctx.fillStyle='#a09880'; ctx.font='9px sans-serif'; ctx.textAlign='center';
-    data.forEach((d,i)=>{ ctx.fillText(d.label, xOf(i), H-5); });
-
-    // Tooltip value on today dot
-    const todayIdx = data.findIndex(d=>d.isToday);
-    if(todayIdx>=0 && data[todayIdx].val>0){
-      const tx=xOf(todayIdx), ty=yOf(data[todayIdx].val);
-      const vStr = data[todayIdx].val>=1000000?(data[todayIdx].val/1000000).toFixed(1)+'Jt':data[todayIdx].val>=1000?(data[todayIdx].val/1000).toFixed(0)+'K':String(data[todayIdx].val);
-      const tw = ctx.measureText(vStr).width+10;
-      const bx = Math.min(Math.max(tx-tw/2, pad.l), pad.l+cw-tw);
-      const by = ty-20;
-      ctx.fillStyle='#7B4F1E'; ctx.beginPath();
-      ctx.roundRect ? ctx.roundRect(bx,by,tw,15,4) : (()=>{ctx.rect(bx,by,tw,15);})();
-      ctx.fill();
-      ctx.fillStyle='#fff'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center';
-      ctx.fillText(vStr, bx+tw/2, by+10.5);
-    }
-  });
+  })(); // end IIFE buildTrendWidget
 
   // ─── 4. DEAD STOCK | STOK HABIS | PRIORITAS RESTOCK (3 kolom) ───
 
