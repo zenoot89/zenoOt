@@ -643,22 +643,23 @@ function renderDashboard() {
           pts.push({label:dayNames[d.getDay()],ds,val});
         }
         return pts;
-      } else if(mode==='realtime'){
-        // Hourly breakdown for today
+      } else if(mode==='realtime' || (mode==='yesterday' && range.from===range.to && range.from!==todayS)){
+        // Hourly breakdown — works for today (realtime) AND single-day compare (kemarin per jam)
+        const targetDs = range.from;
+        const isComp   = targetDs !== todayS;
         const pts=[];
-        const j=getJurnalInRange({from:todayS,to:todayS});
-        for(let h=0;h<24;h++){
+        const j=getJurnalInRange({from:targetDs,to:targetDs});
+        const nowH = isComp ? 23 : new Date().getHours();
+        for(let h=0;h<=nowH;h++){
           const jh=j.filter(x=>{
             const t=(x.tgl_waktu||x.waktu||'');
             const hh=parseInt((t.split(' ')[1]||'').split(':')[0])||0;
             return hh===h;
           });
           const val=_metric==='omset'?jh.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):jh.reduce((s,x)=>s+(x.qty||0),0);
-          pts.push({label:`${pad2(h)}:00`,ds:todayS,val,isToday:true});
+          pts.push({label:`${pad2(h)}:00`,ds:targetDs,val,isToday:!isComp});
         }
-        // Trim trailing zeros at end but keep at least until current hour
-        const nowH=new Date().getHours();
-        return pts.slice(0,nowH+1);
+        return pts;
       } else {
         // Day-by-day
         const pts=[];
@@ -831,24 +832,35 @@ function renderDashboard() {
       const total1=data1.reduce((s,d)=>s+d.val,0);
       const total2=data2.reduce((s,d)=>s+d.val,0);
       const max1=Math.max(...data1.map(d=>d.val),0);
-      const avg1=data1.length?Math.round(total1/data1.filter(d=>d.val>0).length||1):0;
+      const nonZero=data1.filter(d=>d.val>0);
+      const avg1=nonZero.length?Math.round(total1/nonZero.length):0;
       const diff=total2>0?Math.round((total1-total2)/total2*100):null;
-      const diffHtml=diff!==null?`<span style="color:${diff>=0?'#2D6A4F':'#C0392B'};font-weight:700;">${diff>=0?'▲':'▼'}${Math.abs(diff)}%</span> vs periode lalu`:'';
+      const diffColor=diff===null?'var(--dusty)':diff>=0?'#2D6A4F':'#C0392B';
+      const diffStr=diff===null?'—':(diff>=0?'▲':'▼')+Math.abs(diff)+'%';
+      const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
       statsEl.innerHTML=`
-        <div class="ow-chart-stat">
-          <div class="ow-chart-stat-label">Total</div>
-          <div class="ow-chart-stat-val">${fmtVFull(total1)}</div>
-          <div class="ow-chart-stat-compare">${diffHtml}</div>
+        <div class="ow-mini-grid" style="grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div class="ow-mini" style="padding:12px 14px;">
+            <div class="ow-mini-label">Total</div>
+            <div class="ow-mini-val" style="font-size:14px;">${fmtVFull(total1)}</div>
+            <div style="font-size:10px;margin-top:3px;color:${diffColor};font-weight:700;">${diffStr} vs periode lalu</div>
+          </div>
+          <div class="ow-mini" style="padding:12px 14px;">
+            <div class="ow-mini-label">Tertinggi</div>
+            <div class="ow-mini-val" style="font-size:14px;">${fmtVFull(max1)}</div>
+            <div style="font-size:10px;margin-top:3px;color:var(--dusty);">periode ini</div>
+          </div>
+          <div class="ow-mini" style="padding:12px 14px;">
+            <div class="ow-mini-label">Rata-rata</div>
+            <div class="ow-mini-val" style="font-size:14px;">${fmtVFull(avg1)}</div>
+            <div style="font-size:10px;margin-top:3px;color:var(--dusty);">per titik aktif</div>
+          </div>
+          <div class="ow-mini" style="padding:12px 14px;">
+            <div class="ow-mini-label">${lbl2}</div>
+            <div class="ow-mini-val" style="font-size:14px;color:var(--dusty);">${total2>0?fmtVFull(total2):'—'}</div>
+            <div style="font-size:10px;margin-top:3px;color:var(--dusty);">pembanding</div>
+          </div>
         </div>
-        <div class="ow-chart-stat">
-          <div class="ow-chart-stat-label">Tertinggi</div>
-          <div class="ow-chart-stat-val">${fmtVFull(max1)}</div>
-        </div>
-        <div class="ow-chart-stat">
-          <div class="ow-chart-stat-label">Rata-rata/hari</div>
-          <div class="ow-chart-stat-val">${fmtVFull(avg1)}</div>
-        </div>
-        ${total2>0?`<div class="ow-chart-stat"><div class="ow-chart-stat-label">Periode Lalu</div><div class="ow-chart-stat-val" style="color:var(--dusty);font-size:13px;">${fmtVFull(total2)}</div></div>`:''}
       `;
     }
 
@@ -857,7 +869,8 @@ function renderDashboard() {
       const mainRange = getRangeForMode(_mode, _mode==='custom_day'?_customRange:_mode==='custom_week'?_customWeek:_mode==='custom_month'?_customMonth:_mode==='custom_year'?{year:_customYear}:null);
       const compRange = getCompareRange(_mode, mainRange);
       const data1 = buildSeries(mainRange, _mode);
-      const data2 = buildSeries(compRange, _mode==='realtime'?'yesterday':_mode);
+      // For realtime: compare range is yesterday single-day → use realtime branch (hourly)
+      const data2 = buildSeries(compRange, _mode==='realtime'?'realtime':_mode);
 
       // Update label bar
       const wrap=document.getElementById(WRAP_ID);
