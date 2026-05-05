@@ -10,8 +10,16 @@ const fmtShort = v => {
   return 'Rp '+v.toLocaleString('id-ID');
 };
 const fmtNum = n => Number(n||0).toLocaleString('id-ID');
-const getTodayStr    = () => new Date().toISOString().slice(0,10);
-const getKemarinStr  = () => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); };
+// ── Date helpers — pakai local timezone (WIB UTC+7), bukan UTC ──
+const _localDateStr = (d) => {
+  // Format YYYY-MM-DD sesuai local timezone browser (WIB)
+  const yr  = d.getFullYear();
+  const mo  = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${yr}-${mo}-${day}`;
+};
+const getTodayStr    = () => _localDateStr(new Date());
+const getKemarinStr  = () => { const d=new Date(); d.setDate(d.getDate()-1); return _localDateStr(d); };
 const getBulanStr    = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); };
 const getBulanLaluStr= () => { const d=new Date(); d.setMonth(d.getMonth()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); };
 const getDaysInMonth = () => { const d=new Date(); return new Date(d.getFullYear(),d.getMonth()+1,0).getDate(); };
@@ -238,7 +246,7 @@ function renderDashboard() {
   const trend7=[];
   for(let i=6;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i);
-    const ds=d.toISOString().slice(0,10);
+    const ds=_localDateStr(d);
     const label=d.toLocaleDateString('id-ID',{weekday:'short'});
     const val=jurnal.filter(j=>j.tgl===ds).reduce((s,j)=>s+getHppProduk(j.var)*(j.qty||0),0);
     trend7.push({label,val,ds});

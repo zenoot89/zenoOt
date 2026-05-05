@@ -11,6 +11,17 @@ const SUPABASE_URL = 'https://wsvsvmfclrlkllryamma.supabase.co';   // contoh: ht
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzdnN2bWZjbHJsa2xscnlhbW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDc5OTQsImV4cCI6MjA5Mjc4Mzk5NH0.6btOTqkTri8te6eURWmUcQDFIfCdVA210Gw_Wx5UomA';       // dari Settings > API
 
 // ================================================================
+// DATE HELPER — Local timezone (WIB), bukan UTC
+// ================================================================
+const _localDateStr = (d) => {
+  d = d || new Date();
+  const yr  = d.getFullYear();
+  const mo  = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${yr}-${mo}-${day}`;
+};
+
+// ================================================================
 // DATA LAYER — Supabase Implementation
 // ================================================================
 const DataLayer = {
@@ -1523,7 +1534,7 @@ function inputRestockQuick() {
   const varName=document.getElementById('rq-variasi').value;
   const qty=+document.getElementById('rq-qty').value||0;
   const supplier=document.getElementById('rq-supplier').value;
-  const tgl=new Date().toISOString().split('T')[0];
+  const tgl=_localDateStr(new Date());
   if (!varName||qty<=0) { toast('Lengkapi SKU dan Qty','err'); return; }
   if (!DB.stok.find(x=>x.var===varName)) {
     const p=DB.produk.find(x=>x.var===varName);
@@ -2519,7 +2530,7 @@ function parseMassal() {
 function doInputMassal() {
   const raw=document.getElementById('massal-paste-area').value.trim();
   const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
-  const tgl = new Date().toISOString().split('T')[0];
+  const tgl = _localDateStr(new Date());
   let updated=0;
   lines.forEach(line=>{
     const parts=line.split('\t');
