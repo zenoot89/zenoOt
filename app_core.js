@@ -1800,6 +1800,8 @@ function _populateJurnalChannelFilter(){
 
 function renderJurnal() {
   _populateJurnalChannelFilter();
+  // Render target global di bawah tabel
+  if (typeof renderJurnalTargetGlobal === 'function') renderJurnalTargetGlobal();
   const q=jurnalQ.toLowerCase();
   const rows=DB.jurnal.filter(r=>{
     if(q && !r.var.toLowerCase().includes(q) && !r.ch.toLowerCase().includes(q)) return false;
@@ -1819,6 +1821,102 @@ function renderJurnal() {
     const idx=DB.jurnal.indexOf(r);
     return `<tr><td class="mono">${i+1}</td><td class="mono">${r.tgl}</td><td>${chTag(r.ch)}</td><td>${r.var}</td><td class="mono" style="text-align:center">${r.qty}</td><td class="mono">${fmt(r.hpp)}</td><td class="mono" style="color:var(--brown);font-weight:600">${fmt(modalKeluar)}</td><td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button></td></tr>`;
   }).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada transaksi sesuai filter</td></tr>`;
+  // Render target global di bawah tabel
+  renderJurnalTargetGlobal();
+}
+
+// ── Target Global Bulan Ini — di bawah Jurnal Penjualan ────────────────
+function renderJurnalTargetGlobal() {
+  const el = document.getElementById('jurnal-target-global');
+  if (!el) return;
+
+  const yr = new Date().getFullYear();
+  const mo = String(new Date().getMonth()+1).padStart(2,'0');
+  const bulanKey = yr + '-' + mo;
+
+  // Load dari PLAN (Supabase-aware, fallback localStorage)
+  let plan = {};
+  try {
+    if (typeof PLAN !== 'undefined' && PLAN.loadSync) {
+      plan = PLAN.loadSync('global', bulanKey) || {};
+    } else {
+      plan = JSON.parse(localStorage.getItem('zenot_planning_' + yr + '_' + mo) || '{}');
+    }
+  } catch(e) {}
+
+  const targetOmset = plan.targetOmset || 0;
+  const targetPcs   = plan.targetProduksi || 0;
+
+  // Hitung aktual dari jurnal bulan ini (HPP x qty)
+  const bulanStr = yr + '-' + mo;
+  const jBulan = DB.jurnal.filter(j => (j.tgl||'').startsWith(bulanStr));
+  const aktualOmset = jBulan.reduce((s,j) => {
+    const p = (DB.produk||[]).find(x => (x.var||'').toUpperCase() === (j.var||'').toUpperCase());
+    return s + (p ? (p.hpp||0) : 0) * (j.qty||0);
+  }, 0);
+  const aktualPcs = jBulan.reduce((s,j) => s + (j.qty||0), 0);
+  const aktualTrx = jBulan.length;
+
+  const daysInMonth = new Date(yr, new Date().getMonth()+1, 0).getDate();
+  const dayNow = new Date().getDate();
+  const daysLeft = daysInMonth - dayNow;
+  const pctOmset = targetOmset > 0 ? Math.min(100, Math.round(aktualOmset/targetOmset*100)) : 0;
+  const pctPcs   = targetPcs   > 0 ? Math.min(100, Math.round(aktualPcs/targetPcs*100))     : 0;
+  const sisaOmset = Math.max(0, targetOmset - aktualOmset);
+  const perHari   = daysLeft > 0 && sisaOmset > 0 ? Math.round(sisaOmset/daysLeft) : 0;
+
+  const fmtRp = v => 'Rp ' + Number(Math.round(v)).toLocaleString('id-ID');
+  const pctColor = p => p>=80?'#16a34a':p>=50?'#D97706':'#C0392B';
+  const progressBar = (pct, color) =>
+    '<div style="height:8px;background:var(--cream);border-radius:99px;overflow:hidden;margin:6px 0 3px;">' +
+    '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:99px;transition:width .6s;"></div></div>';
+
+  if (!targetOmset && !targetPcs) {
+    el.innerHTML =
+      '<div style="text-align:center;padding:18px;background:var(--cream);border-radius:10px;font-size:13px;color:var(--dusty);">' +
+      'Target bulan ini belum diset.<br>' +
+      '<a href="#" onclick="try{go(\'planning-kpi\',null)}catch(e){}" style="color:var(--brown);font-weight:700;margin-top:4px;display:inline-block;">→ Set Target di Perencanaan</a>' +
+      '</div>';
+    return;
+  }
+
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">' +
+      // Omset card
+      '<div style="background:var(--cream);border-radius:12px;padding:14px 16px;">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dusty);font-weight:700;margin-bottom:4px;">Omset vs Target</div>' +
+        '<div style="font-size:20px;font-weight:800;color:var(--charcoal);">' + fmtRp(aktualOmset) + '</div>' +
+        '<div style="font-size:11px;color:var(--dusty);margin-bottom:2px;">dari target ' + (targetOmset>0?fmtRp(targetOmset):'—') + '</div>' +
+        (targetOmset>0 ? progressBar(pctOmset, pctColor(pctOmset)) : '') +
+        (targetOmset>0 ?
+          '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;">' +
+          '<b style="color:' + pctColor(pctOmset) + '">' + pctOmset + '% tercapai</b>' +
+          '<span style="color:var(--dusty)">' + daysLeft + ' hari tersisa</span></div>' : '') +
+      '</div>' +
+      // Volume card
+      '<div style="background:var(--cream);border-radius:12px;padding:14px 16px;">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dusty);font-weight:700;margin-bottom:4px;">Volume Produksi</div>' +
+        '<div style="font-size:20px;font-weight:800;color:var(--charcoal);">' + aktualPcs.toLocaleString('id-ID') + ' <span style="font-size:13px;font-weight:400">pcs</span></div>' +
+        '<div style="font-size:11px;color:var(--dusty);margin-bottom:2px;">dari target ' + (targetPcs>0?targetPcs.toLocaleString('id-ID')+' pcs':'—') + '</div>' +
+        (targetPcs>0 ? progressBar(pctPcs, pctColor(pctPcs)) : '') +
+        (targetPcs>0 ? '<div style="font-size:11px;margin-top:2px;"><b style="color:' + pctColor(pctPcs) + '">' + pctPcs + '% tercapai</b></div>' : '') +
+      '</div>' +
+    '</div>' +
+    // Stats bawah
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">' +
+      '<div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;">Transaksi</div>' +
+        '<div style="font-size:18px;font-weight:800;color:var(--charcoal);margin-top:2px;">' + aktualTrx + '</div>' +
+      '</div>' +
+      '<div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;">Sisa Target</div>' +
+        '<div style="font-size:15px;font-weight:800;color:' + (sisaOmset>0?'#C0392B':'#16a34a') + ';margin-top:2px;">' + (sisaOmset>0?fmtRp(sisaOmset):'🎉 Done!') + '</div>' +
+      '</div>' +
+      '<div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;">Perlu/Hari</div>' +
+        '<div style="font-size:15px;font-weight:800;color:' + (perHari>0?'#D97706':'#16a34a') + ';margin-top:2px;">' + (perHari>0?fmtRp(perHari):'✅') + '</div>' +
+      '</div>' +
+    '</div>';
 }
 
 function openEditJurnal(idx) {
@@ -3636,3 +3734,6 @@ function onAssignToggle() {}
 async function saveAssignChannel() { _persistAssign(); toast('Assign channel tersimpan!'); }
 
 // renderChannel tetap dihandle oleh fungsi di atas (renderChannel di app_core)
+
+// ================================================================
+// JURNAL TARGET GLOBAL — widget di bawah jurnal penjualan
