@@ -11,13 +11,7 @@ const fmtShort = v => {
 };
 const fmtNum = n => Number(n||0).toLocaleString('id-ID');
 // ── Date helpers — pakai local timezone (WIB UTC+7), bukan UTC ──
-const _localDateStr = (d) => {
-  // Format YYYY-MM-DD sesuai local timezone browser (WIB)
-  const yr  = d.getFullYear();
-  const mo  = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${yr}-${mo}-${day}`;
-};
+// _localDateStr didefinisikan di app_core.js (load lebih dulu)
 const getTodayStr    = () => _localDateStr(new Date());
 const getKemarinStr  = () => { const d=new Date(); d.setDate(d.getDate()-1); return _localDateStr(d); };
 const getBulanStr    = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); };
