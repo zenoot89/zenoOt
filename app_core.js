@@ -1847,6 +1847,17 @@ function populateJVariasi() {
   if(varEl && induk) varEl.innerHTML=DB.produk
     .filter(p=>p.induk===induk&&(p.status_produk||'aktif')!=='arsip')
     .map(p=>`<option>${p.var}</option>`).join('');
+  onJVariasiChange(); // auto-fill harga saat induk berubah
+}
+
+// Auto-fill harga jual saat variasi dipilih
+function onJVariasiChange() {
+  const varName=document.getElementById('j-sku-variasi')?.value;
+  const hargaEl=document.getElementById('j-harga');
+  if (!hargaEl || !varName) return;
+  const p=DB.produk.find(x=>x.var===varName);
+  if (p && p.jual>0) hargaEl.value=p.jual;
+  else if (p && p.hpp>0) hargaEl.value=p.hpp;
 }
 
 function addJurnal() {
@@ -1855,13 +1866,18 @@ function addJurnal() {
   const varName=document.getElementById('j-sku-variasi').value;
   const qty=+document.getElementById('j-qty').value||0;
   if (!tgl||!varName||qty<=0) { toast('Lengkapi Tanggal, SKU, dan Qty','err'); return; }
-  const p=DB.produk.find(x=>x.var===varName); const hpp=p?p.hpp:0;
-  DB.jurnal.unshift({uuid: DataLayer._uuid(), tgl, ch, var:varName, qty, harga:0, hpp});
+  const p=DB.produk.find(x=>x.var===varName);
+  const hpp=p?p.hpp:0;
+  // FIX: ambil harga dari field — fallback ke price list (p.jual), terakhir baru 0
+  const hargaInput=+document.getElementById('j-harga')?.value||0;
+  const harga=hargaInput>0 ? hargaInput : (p&&p.jual>0 ? p.jual : hpp);
+  DB.jurnal.unshift({uuid: DataLayer._uuid(), tgl, ch, var:varName, qty, harga, hpp});
   if (!DB.stok.find(x=>x.var===varName)) DB.stok.push({var:varName,awal:0,masuk:0,keluar:0,hpp,safety:4});
   recalcStok();
   document.getElementById('j-qty').value='';
+  const hargaEl=document.getElementById('j-harga'); if(hargaEl) hargaEl.value='';
   closeModal('modal-tambah-jurnal'); saveDB(); renderJurnal(); renderStok(); renderDashboard();
-  toast(`Transaksi ${qty} pcs ${varName} disimpan!`);
+  toast(`✅ ${qty} pcs ${varName} @ ${fmt(harga)} disimpan!`);
 }
 
 // ═══ JURNAL FILTER STATE ═══
@@ -2064,6 +2080,11 @@ function onEjSkuChange() {
   if (prod) {
     const hppEl = document.getElementById('ej-hpp');
     if (hppEl) hppEl.value = prod.hpp || 0;
+    // FIX: auto-fill harga jual jika field kosong
+    const hargaEl = document.getElementById('ej-harga');
+    if (hargaEl && (!hargaEl.value || +hargaEl.value === 0)) {
+      hargaEl.value = prod.jual>0 ? prod.jual : (prod.hpp||0);
+    }
   }
 }
 function saveEditJurnal() {
@@ -2073,13 +2094,17 @@ function saveEditJurnal() {
   const newCh   = document.getElementById('ej-ch').value;
   const newTgl  = document.getElementById('ej-tgl').value;
   const newHpp  = +document.getElementById('ej-hpp').value||0;
+  // FIX: ambil harga dari field ej-harga, bukan hardcode 0
+  const hargaInput = +document.getElementById('ej-harga')?.value||0;
+  const prod   = DB.produk.find(p=>p.var===newVar);
+  const newHarga = hargaInput>0 ? hargaInput : (prod&&prod.jual>0 ? prod.jual : newHpp);
   const uuid    = DB.jurnal[idx].uuid;
-  DB.jurnal[idx] = {...DB.jurnal[idx], tgl:newTgl, ch:newCh, var:newVar, qty:newQty, harga:0, hpp:newHpp};
+  DB.jurnal[idx] = {...DB.jurnal[idx], tgl:newTgl, ch:newCh, var:newVar, qty:newQty, harga:newHarga, hpp:newHpp};
   recalcStok();
   // Sync edit ke Supabase
   if (uuid && SUPABASE_URL) {
     const j=DB.jurnal[idx];
-    DataLayer._upsert('jurnal',[{uuid,tgl:j.tgl,ch:j.ch,var:j.var,qty:j.qty,harga:0,hpp:j.hpp}],'uuid').catch(e=>console.warn('Edit jurnal gagal sync:',e));
+    DataLayer._upsert('jurnal',[{uuid,tgl:j.tgl,ch:j.ch,var:j.var,qty:j.qty,harga:j.harga,hpp:j.hpp}],'uuid').catch(e=>console.warn('Edit jurnal gagal sync:',e));
   }
   closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderStok(); renderDashboard(); toast('✅ Transaksi diperbarui!');
 }

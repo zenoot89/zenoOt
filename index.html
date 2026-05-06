@@ -1081,11 +1081,15 @@
     <!-- Baris 2: SKU Induk | SKU Variasi -->
     <div class="form-row">
       <div class="fg"><label class="lbl">SKU Induk</label><select class="sel" id="j-sku-induk" onchange="onJIndukChange()"></select></div>
-      <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="j-sku-variasi"></select></div>
+      <div class="fg"><label class="lbl">SKU Variasi</label><select class="sel" id="j-sku-variasi" onchange="onJVariasiChange()"></select></div>
     </div>
-    <!-- Baris 3: Qty | Simpan sejajar -->
-    <div class="form-row" style="align-items:flex-end;">
+    <!-- Baris 3: Qty | Harga Jual -->
+    <div class="form-row">
       <div class="fg"><label class="lbl">Qty Terjual</label><input class="inp" type="number" id="j-qty" placeholder="0" min="1"></div>
+      <div class="fg"><label class="lbl">Harga Jual/pc <span style="color:#888;font-size:.75em;">(auto dari price list)</span></label><input class="inp" type="number" id="j-harga" placeholder="0" min="0"></div>
+    </div>
+    <!-- Baris 4: Simpan -->
+    <div class="form-row" style="align-items:flex-end;">
       <div class="fg"><button class="btn btn-p btn-full" style="height:42px;" onclick="addJurnal()">📝 Simpan</button></div>
     </div>
   </div>
