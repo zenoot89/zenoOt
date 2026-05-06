@@ -1920,6 +1920,11 @@ function renderJurnal() {
     if(jurnalDateFrom && r.tgl < jurnalDateFrom) return false;
     if(jurnalDateTo && r.tgl > jurnalDateTo) return false;
     return true;
+  // Urutkan: terbaru di atas (tgl DESC, lalu sid DESC untuk transaksi sama hari)
+  }).sort((a,b)=>{
+    if(b.tgl > a.tgl) return 1;
+    if(b.tgl < a.tgl) return -1;
+    return (b.sid||0)-(a.sid||0);
   });
   let modal=0,qty=0;
   rows.forEach(r=>{modal+=r.hpp*r.qty;qty+=r.qty;});
