@@ -692,7 +692,7 @@ function renderDashboard() {
           const ds=dateStr(d);
           const label=String(d.getDate());
           const j=getJurnalInRange({from:ds,to:ds});
-          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label,ds,val});
         }
         return pts;
@@ -702,7 +702,7 @@ function renderDashboard() {
         for(let m=1;m<=12;m++){
           const mStr=`${_customYear}-${pad2(m)}`;
           const j=(DB.jurnal||[]).filter(x=>x.tgl&&x.tgl.startsWith(mStr));
-          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
           const monthNames=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
           pts.push({label:monthNames[m-1],ds:mStr,val});
         }
@@ -714,7 +714,7 @@ function renderDashboard() {
           const d=dateOffset(from,i);
           const ds=dateStr(d);
           const j=getJurnalInRange({from:ds,to:ds});
-          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label:dayNames[d.getDay()],ds,val});
         }
         return pts;
@@ -731,7 +731,7 @@ function renderDashboard() {
             const hh=parseInt((t.split(' ')[1]||'').split(':')[0])||0;
             return hh===h;
           });
-          const val=_metric==='omset'?jh.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):jh.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?jh.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):jh.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label:`${pad2(h)}:00`,ds:targetDs,val,isToday:!isComp});
         }
         return pts;
@@ -744,7 +744,7 @@ function renderDashboard() {
           const isToday=ds===todayS;
           const label=d.toLocaleDateString('id-ID',{weekday:'short'})+(isToday?'*':'');
           const j=getJurnalInRange({from:ds,to:ds});
-          const val=_metric==='omset'?j.reduce((s,x)=>s+getHpp(x.var)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label,ds,val,isToday});
         }
         return pts;

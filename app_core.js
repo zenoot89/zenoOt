@@ -498,13 +498,43 @@ async function submitTambahToko() {
   }
 }
 
+let _retryCloudTimer = null;
+
+async function _retryCloudLoad() {
+  if (_cloudConnected) return;
+  try {
+    const result = await Promise.race([
+      DataLayer.fetch(),
+      new Promise((_, r) => setTimeout(() => r(new Error('Timeout')), 8000))
+    ]);
+    if (result && result.ok && result.data) {
+      const saved = result.data;
+      if (saved.produk)  DB.produk  = saved.produk;
+      if (saved.stok)    DB.stok    = saved.stok;
+      if (saved.jurnal)  DB.jurnal  = saved.jurnal;
+      if (saved.restock) DB.restock = saved.restock;
+      DataLayer.saveLocal(DB);
+      _normalizeJurnalChannel();
+      recalcKeluar();
+      setCloudStatus(true);
+      // Re-render dashboard dengan data terbaru
+      if (typeof renderDashboard === 'function') renderDashboard();
+    }
+  } catch(e) { /* tetap offline, coba lagi nanti */ }
+}
+
 function setCloudStatus(ok) {
   _cloudConnected = ok;
+  // Auto-retry jika offline — coba setiap 30 detik
+  clearInterval(_retryCloudTimer);
+  if (!ok) {
+    _retryCloudTimer = setInterval(_retryCloudLoad, 30000);
+  }
   // Badge baru — fixed pojok kiri bawah
   const badge = document.getElementById('backup-badge-fixed');
   const indicator = document.getElementById('cloud-indicator-fixed');
   if (badge) {
-    badge.innerHTML = ok ? '☁️ Cloud Aktif' : '⚠️ Offline';
+    badge.innerHTML = ok ? '☁️ Cloud Aktif' : '⚠️ Offline — <span onclick="_retryCloudLoad()" style="cursor:pointer;text-decoration:underline;">Coba Lagi</span>';
     if (indicator) indicator.classList.toggle('offline', !ok);
   }
   // Legacy badge (fallback)
@@ -512,7 +542,7 @@ function setCloudStatus(ok) {
   if (legacyBadge) {
     legacyBadge.style.display = 'flex';
     if (ok) { legacyBadge.style.background='#EFF7F3';legacyBadge.style.borderColor='#A8D5BE';legacyBadge.style.color='#2D6A4F';legacyBadge.innerHTML='☁️ Cloud Aktif'; }
-    else { legacyBadge.style.background='#FFF3CD';legacyBadge.style.borderColor='#FFEAA7';legacyBadge.style.color='#856404';legacyBadge.innerHTML='⚠️ Mode Offline'; }
+    else { legacyBadge.style.background='#FFF3CD';legacyBadge.style.borderColor='#FFEAA7';legacyBadge.style.color='#856404';legacyBadge.innerHTML='⚠️ Offline — <span onclick="_retryCloudLoad()" style="cursor:pointer;text-decoration:underline;">Coba Lagi</span>'; }
   }
 }
 function setBackupMode(on) { _backupModeActive = on; }
