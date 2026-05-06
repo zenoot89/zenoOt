@@ -1879,7 +1879,9 @@ function addJurnal() {
   const hpp=p?p.hpp:0;
   const hargaInput=+document.getElementById('j-harga')?.value||0;
   const harga=hargaInput>0 ? hargaInput : (p&&p.jual>0 ? p.jual : hpp);
-  const newEntry = {uuid: DataLayer._uuid(), tgl, ch, var:varName, qty, harga, hpp, _saving: true};
+  // sid = microsecond timestamp — dipakai sort agar entry baru selalu di atas jika tgl sama
+  const sid = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+  const newEntry = {uuid: DataLayer._uuid(), sid, tgl, ch, var:varName, qty, harga, hpp, _saving: true};
   DB.jurnal.unshift(newEntry);
   if (!DB.stok.find(x=>x.var===varName)) DB.stok.push({var:varName,awal:0,masuk:0,keluar:0,hpp,safety:4});
   recalcStok();
@@ -1915,7 +1917,7 @@ function addJurnal() {
   // 4. Sync cloud background — update indikator setelah selesai
   const syncStart = Date.now();
   DataLayer._upsert('jurnal',[{
-    uuid:newEntry.uuid, tgl:newEntry.tgl, ch:newEntry.ch,
+    uuid:newEntry.uuid, sid:newEntry.sid, tgl:newEntry.tgl, ch:newEntry.ch,
     var:newEntry.var, qty:newEntry.qty, harga:newEntry.harga, hpp:newEntry.hpp
   }],'uuid').then(()=>{
     // Berhasil — restore tombol aksi normal
