@@ -781,7 +781,8 @@ async function renderDashboard() {
       if(!cvs)return;
       const par=cvs.parentElement;
       const W=par?par.clientWidth||500:500;
-      const H=130;
+      const isMobile = W < 500;
+      const H = isMobile ? 160 : 190;
       cvs.width=W; cvs.height=H;
       const ctx=cvs.getContext('2d');
       ctx.clearRect(0,0,W,H);
@@ -792,21 +793,21 @@ async function renderDashboard() {
       // Merge max from both
       const allVals=[...data1.map(d=>d.val),...data2.map(d=>d.val)];
       const maxV=Math.max(...allVals,1);
-      const pad={t:14,r:16,b:26,l:50};
+      const pad={t:18,r:20,b:32,l:isMobile?44:54};
       const cw=W-pad.l-pad.r;
       const ch=H-pad.t-pad.b;
       const xOf=i=>pad.l+(n===1?cw/2:(i/(n-1))*cw);
       const yOf=v=>pad.t+ch-(v/maxV)*ch;
 
       // Grid
-      ctx.strokeStyle='#f0ece6'; ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(180,168,155,0.35)'; ctx.lineWidth=1;
       [0.25,0.5,0.75,1].forEach(f=>{
         const y=pad.t+ch*(1-f);
         ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
-        ctx.fillStyle='#c0b8af';ctx.font='9px sans-serif';ctx.textAlign='right';
+        ctx.fillStyle='#a09880';ctx.font=`${isMobile?9:10}px sans-serif`;ctx.textAlign='right';
         const lv=Math.round(maxV*f);
-        const ls=_metric==='qty'?(lv>=1000?(lv/1000).toFixed(0)+'K':lv):( lv>=1000000?(lv/1000000).toFixed(1)+'Jt':lv>=1000?(lv/1000).toFixed(0)+'K':lv);
-        ctx.fillText(ls,pad.l-5,y+3);
+        const ls=_metric==='qty'?(lv>=1000?(lv/1000).toFixed(0)+'K':lv):(lv>=1000000?(lv/1000000).toFixed(1)+'Jt':lv>=1000?(lv/1000).toFixed(0)+'K':lv);
+        ctx.fillText(ls,pad.l-6,y+3.5);
       });
 
       // ── Compare line (abu dashed) ──
@@ -834,23 +835,34 @@ async function renderDashboard() {
       ctx.lineTo(xOf(n-1),pad.t+ch);ctx.lineTo(xOf(0),pad.t+ch);ctx.closePath();
       ctx.fillStyle=grad;ctx.fill();
 
-      // ── Main line (merah/coklat) ──
+      // ── Main gradient fill lebih vivid ──
+      const grad2=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+      grad2.addColorStop(0,'rgba(192,57,43,0.22)');
+      grad2.addColorStop(0.5,'rgba(192,57,43,0.08)');
+      grad2.addColorStop(1,'rgba(192,57,43,0.01)');
       ctx.beginPath();
-      ctx.strokeStyle='#C0392B';ctx.lineWidth=2.3;ctx.lineJoin='round';ctx.lineCap='round';
+      data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
+      ctx.lineTo(xOf(n-1),pad.t+ch);ctx.lineTo(xOf(0),pad.t+ch);ctx.closePath();
+      ctx.fillStyle=grad2;ctx.fill();
+
+      // ── Main line (merah) lebih tebal ──
+      ctx.beginPath();
+      ctx.strokeStyle='#C0392B';ctx.lineWidth=isMobile?2.5:2.8;ctx.lineJoin='round';ctx.lineCap='round';
       data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
       ctx.stroke();
 
-      // Main dots
+      // Main dots — lebih besar dan jelas
       data1.forEach((d,i)=>{
         if(!d.val&&!d.isToday)return;
+        const r=d.isToday?7:4;
         ctx.beginPath();
-        ctx.arc(xOf(i),yOf(d.val),d.isToday?5:3.5,0,Math.PI*2);
+        ctx.arc(xOf(i),yOf(d.val),r,0,Math.PI*2);
         ctx.fillStyle=d.isToday?'#7B1B0A':'#C0392B';
-        ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
       });
 
       // ── X Labels — thin out if >14 points ──
-      ctx.fillStyle='#a09880';ctx.font='9px sans-serif';ctx.textAlign='center';
+      ctx.fillStyle='#8a8070';ctx.font=`${isMobile?9:10}px sans-serif`;ctx.textAlign='center';
       const step=n>14?Math.ceil(n/7):1;
       data1.forEach((d,i)=>{
         if(i%step!==0&&i!==n-1)return;
@@ -930,26 +942,26 @@ async function renderDashboard() {
       const diffStr=diff===null?'—':(diff>=0?'▲':'▼')+Math.abs(diff)+'%';
       const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
       statsEl.innerHTML=`
-        <div class="ow-mini-grid" style="grid-template-columns:repeat(4,1fr);gap:10px;">
-          <div class="ow-mini" style="padding:12px 14px;">
-            <div class="ow-mini-label">Total</div>
-            <div class="ow-mini-val" style="font-size:14px;">${fmtVFull(total1)}</div>
-            <div style="font-size:10px;margin-top:3px;color:${diffColor};font-weight:700;">${diffStr} vs periode lalu</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Total</div>
+            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(total1)}</div>
+            <div style="font-size:10.5px;font-weight:700;color:${diffColor};">${diffStr} vs periode lalu</div>
           </div>
-          <div class="ow-mini" style="padding:12px 14px;">
-            <div class="ow-mini-label">Tertinggi</div>
-            <div class="ow-mini-val" style="font-size:14px;">${fmtVFull(max1)}</div>
-            <div style="font-size:10px;margin-top:3px;color:var(--dusty);">periode ini</div>
+          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Tertinggi</div>
+            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(max1)}</div>
+            <div style="font-size:10.5px;color:var(--dusty);">periode ini</div>
           </div>
-          <div class="ow-mini" style="padding:12px 14px;">
-            <div class="ow-mini-label">Rata-rata</div>
-            <div class="ow-mini-val" style="font-size:14px;">${fmtVFull(avg1)}</div>
-            <div style="font-size:10px;margin-top:3px;color:var(--dusty);">per titik aktif</div>
+          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Rata-rata</div>
+            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(avg1)}</div>
+            <div style="font-size:10.5px;color:var(--dusty);">per titik aktif</div>
           </div>
-          <div class="ow-mini" style="padding:12px 14px;">
-            <div class="ow-mini-label">${lbl2}</div>
-            <div class="ow-mini-val" style="font-size:14px;color:var(--dusty);">${total2>0?fmtVFull(total2):'—'}</div>
-            <div style="font-size:10px;margin-top:3px;color:var(--dusty);">pembanding</div>
+          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
+            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">${lbl2}</div>
+            <div style="font-size:16px;font-weight:800;color:var(--dusty);font-family:'DM Serif Display',serif;">${total2>0?fmtVFull(total2):'—'}</div>
+            <div style="font-size:10.5px;color:var(--dusty);">pembanding</div>
           </div>
         </div>
       `;

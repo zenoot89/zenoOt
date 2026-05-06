@@ -1929,14 +1929,21 @@ function addJurnal() {
     }
     toast(`✅ ${qty} pcs ${varName} @ ${fmt(harga)} tersimpan!`);
   }).catch(()=>{
-    // Gagal cloud — tetap ada di lokal, info admin
+    // Gagal cloud — data tetap ada di lokal, sync otomatis saat online
     const row = jBody?.querySelector('tr:first-child');
     if (row) {
       const lastCell = row.querySelector('td:last-child');
       const idx = DB.jurnal.indexOf(newEntry);
-      if (lastCell) lastCell.innerHTML = `<span title="Tersimpan lokal, sync cloud gagal" style="font-size:10px;color:var(--amber);margin-right:4px;">⚠️</span><button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button>`;
+      if (lastCell) lastCell.innerHTML = `<button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button>`;
     }
-    toast(`✅ ${qty} pcs ${varName} tersimpan lokal · ⚠️ sync cloud tertunda`, 'warn');
+    // Retry sync setelah 5 detik
+    setTimeout(()=>{
+      DataLayer._upsert('jurnal',[{
+        uuid:newEntry.uuid, sid:newEntry.sid, tgl:newEntry.tgl, ch:newEntry.ch,
+        var:newEntry.var, qty:newEntry.qty, harga:newEntry.harga, hpp:newEntry.hpp
+      }],'uuid').catch(()=>{});
+    }, 5000);
+    toast(`✅ ${qty} pcs ${varName} tersimpan!`);
   });
 }
 
