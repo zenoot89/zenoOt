@@ -161,17 +161,19 @@ const DataLayer = {
       await this._upsert('toko', channelRows.map(r=>({kode:r.nama||r.kode,brand:r.brand||'zenOt',platform:(r.platform||'shopee').toLowerCase(),grup:(r.platform||'SHOPEE').toUpperCase(),username:r.username||'',warna:r.warna||'#5C3D2E',urutan:r.urutan||99,status:r.status||'aktif'})), 'kode');
 
       // Jurnal — upsert by uuid (aman multi device)
+      // FIX: jurnal lama tanpa uuid di-generate uuid-nya, bukan dibuang
       const jurnalRows = (data.jurnal || []).map(j => ({
-        uuid: j.uuid, tgl: j.tgl, ch: j.ch, var: j.var,
+        uuid: j.uuid || this._uuid(), tgl: j.tgl, ch: j.ch, var: j.var,
         qty: j.qty || 1, harga: j.harga || 0, hpp: j.hpp || 0
-      })).filter(j => j.uuid);
+      })).filter(j => j.tgl && j.var); // minimal harus ada tgl dan var
       if (jurnalRows.length > 0) await this._upsert('jurnal', jurnalRows, 'uuid');
 
       // Restock — upsert by uuid (aman multi device)
+      // FIX: restock lama tanpa uuid di-generate uuid-nya, bukan dibuang
       const restockRows = (data.restock || []).map(r => ({
-        uuid: r.uuid, tgl: r.tgl, var: r.var, supplier: r.supplier || '',
+        uuid: r.uuid || this._uuid(), tgl: r.tgl, var: r.var, supplier: r.supplier || '',
         qty: r.qty || 0, catatan: r.catatan || ''
-      })).filter(r => r.uuid);
+      })).filter(r => r.tgl && r.var);
       if (restockRows.length > 0) await this._upsert('restock', restockRows, 'uuid');
 
       return true;
@@ -790,6 +792,39 @@ async function syncHargaManual() {
   const ok = await syncHargaRealtime();
   btns.forEach(b => { b.disabled=false;b.textContent=ok?'✅':'⚠️';setTimeout(()=>{b.textContent='🔄 Sync';},2000); });
   if (!ok) toast('⚠️ Gagal sync. Cek koneksi.', 'err');
+}
+
+// ================================================================
+// PAKSA SYNC — kirim semua data lokal (termasuk jurnal lama tanpa
+// uuid) ke Supabase. Cukup dijalankan 1x dari laptop yang punya
+// data lengkap di localStorage.
+// ================================================================
+async function paksaSync() {
+  if (!SUPABASE_URL) { toast('Supabase belum dikonfigurasi', 'err'); return; }
+  if (!confirm('⚠️ Paksa kirim SEMUA data dari perangkat ini ke Supabase?\n\nLakukan ini hanya dari laptop/device yang datanya PALING LENGKAP.\nData di Supabase akan di-overwrite.')) return;
+
+  toast('⏳ Mengirim data ke cloud...', 'info');
+
+  // Assign uuid ke semua jurnal yang belum punya
+  let fixed = 0;
+  DB.jurnal.forEach(j => {
+    if (!j.uuid) { j.uuid = DataLayer._uuid(); fixed++; }
+  });
+  DB.restock.forEach(r => {
+    if (!r.uuid) { r.uuid = DataLayer._uuid(); fixed++; }
+  });
+  if (fixed > 0) {
+    DataLayer.saveLocal(DB);
+    console.info(`[ZENOOT] Auto-assigned uuid ke ${fixed} record lama`);
+  }
+
+  const ok = await DataLayer.save(DB);
+  if (ok) {
+    toast(`✅ Paksa sync berhasil! ${DB.jurnal.length} jurnal, ${DB.restock.length} restock dikirim ke cloud.`);
+    setCloudStatus(true);
+  } else {
+    toast('❌ Paksa sync gagal. Cek koneksi dan console.', 'err');
+  }
 }
 
 async function resetDB() {
