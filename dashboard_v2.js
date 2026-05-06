@@ -262,7 +262,7 @@ function _owInjectCSS() {
 }
 
 // ── Main render ──
-function renderDashboard() {
+async function renderDashboard() {
   _owInjectCSS();
 
   const todayStr     = getTodayStr();
@@ -337,23 +337,39 @@ function renderDashboard() {
   const mo = String(new Date().getMonth()+1).padStart(2,'0');
   const bulanKey = `${yr}-${mo}`;
 
-  // ── Baca targetOmset: prioritas dari Biaya Ops Global, fallback ke plan ──
+  // ── Baca targetOmset: prioritas Supabase → localStorage fallback ──
   let targetOmset = 0;
   try {
-    // 1. Sumber utama: Biaya Operasional Global (diset user di menu Biaya Operasional)
-    const bgRaw = localStorage.getItem('zenot_biaya_ops_global');
-    if (bgRaw) {
-      const bg = JSON.parse(bgRaw);
-      if (bg.biayaOpsGlobal > 0 && bg.rasioOpsGlobal > 0) {
-        targetOmset = Math.round(bg.biayaOpsGlobal / (bg.rasioOpsGlobal / 100));
+    // 1. Sumber utama: Biaya Operasional Global dari Supabase
+    if (typeof PLAN !== 'undefined' && PLAN._sbLoad) {
+      const sbBiaya = await PLAN._sbLoad('__biaya_global__', bulanKey).catch(()=>null);
+      if (sbBiaya && sbBiaya.biayaOpsGlobal > 0 && sbBiaya.rasioOpsGlobal > 0) {
+        targetOmset = Math.round(sbBiaya.biayaOpsGlobal / (sbBiaya.rasioOpsGlobal / 100));
+        // Sync ke localStorage agar akses berikutnya lebih cepat
+        try { localStorage.setItem('zenot_biaya_ops_global', JSON.stringify(sbBiaya)); } catch(e) {}
       }
     }
-    // 2. Fallback: plan 'global' key baru (zenot_plan_global_YYYY-MM)
+    // 2. Fallback localStorage: Biaya Operasional Global
+    if (targetOmset === 0) {
+      const bgRaw = localStorage.getItem('zenot_biaya_ops_global');
+      if (bgRaw) {
+        const bg = JSON.parse(bgRaw);
+        if (bg.biayaOpsGlobal > 0 && bg.rasioOpsGlobal > 0) {
+          targetOmset = Math.round(bg.biayaOpsGlobal / (bg.rasioOpsGlobal / 100));
+        }
+      }
+    }
+    // 3. Fallback: plan 'global' dari Supabase
+    if (targetOmset === 0 && typeof PLAN !== 'undefined' && PLAN._sbLoad) {
+      const sbPlan = await PLAN._sbLoad('global', bulanKey).catch(()=>null);
+      if (sbPlan && sbPlan.targetOmset > 0) targetOmset = sbPlan.targetOmset;
+    }
+    // 4. Fallback: plan 'global' localStorage
     if (targetOmset === 0 && typeof PLAN !== 'undefined' && PLAN.loadSync) {
       const plan = PLAN.loadSync('global', bulanKey) || {};
       targetOmset = plan.targetOmset || 0;
     }
-    // 3. Fallback: key lama (zenot_planning_YYYY_MM)
+    // 5. Fallback: key lama (zenot_planning_YYYY_MM)
     if (targetOmset === 0) {
       const oldPlan = JSON.parse(localStorage.getItem(`zenot_planning_${yr}_${mo}`) || '{}');
       targetOmset = oldPlan.targetOmset || 0;

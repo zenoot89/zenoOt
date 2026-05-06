@@ -539,22 +539,29 @@ async function saveBiayaOpsGlobal() {
 
   const target = Math.round(biaya / (rasio / 100));
   const data = { biayaOpsGlobal: biaya, rasioOpsGlobal: rasio, updatedAt: new Date().toISOString() };
-  _bgSave(data);
+
+  // ── Simpan ke localStorage DAN Supabase ──
+  try { localStorage.setItem(BIAYA_GLOBAL_KEY, JSON.stringify(data)); } catch(e) {}
+  // Await Supabase agar semua device dapat data terbaru
+  try {
+    const bulan = PLAN.keyBulan();
+    await PLAN._sbSave('__biaya_global__', bulan, data);
+  } catch(e) { console.warn('Gagal sync biaya ops ke Supabase:', e); }
 
   // ── Sync targetOmset ke SEMUA key supaya Dashboard pasti baca ──
   try {
     const d     = new Date();
     const yr    = d.getFullYear();
     const mo    = String(d.getMonth()+1).padStart(2,'0');
-    const bulan = PLAN.keyBulan(); // "2026-05"
+    const bulan = PLAN.keyBulan();
 
-    // KEY BARU — dibaca oleh dashboard_v2.js via PLAN.loadSync('global')
-    const existingPlan = PLAN.loadSync('global', bulan) || {};
+    // Ambil plan existing dari Supabase dulu, lalu merge
+    const existingPlan = await PLAN._sbLoad('global', bulan).catch(()=>null) || PLAN.loadSync('global', bulan) || {};
     const mergedPlan   = { ...existingPlan, targetOmset: target, _srcBiayaOps: true };
     PLAN._lsSave('global', bulan, mergedPlan);
-    PLAN._sbSave('global', bulan, mergedPlan).catch(()=>{});
+    await PLAN._sbSave('global', bulan, mergedPlan).catch(()=>{});
 
-    // KEY LAMA — fallback di app_core.js renderProgress() & dashboard lama
+    // KEY LAMA — fallback
     const oldKey  = `zenot_planning_${yr}_${mo}`;
     const oldPlan = JSON.parse(localStorage.getItem(oldKey) || '{}');
     localStorage.setItem(oldKey, JSON.stringify({ ...oldPlan, targetOmset: target }));
