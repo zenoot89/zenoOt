@@ -11,6 +11,26 @@ const SUPABASE_URL = 'https://wsvsvmfclrlkllryamma.supabase.co';   // contoh: ht
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzdnN2bWZjbHJsa2xscnlhbW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMDc5OTQsImV4cCI6MjA5Mjc4Mzk5NH0.6btOTqkTri8te6eURWmUcQDFIfCdVA210Gw_Wx5UomA';       // dari Settings > API
 
 // ================================================================
+// GLOBAL FETCH HELPER — FIX ANDROID CHROME
+// Semua request ke Supabase wajib pakai ini supaya CORS preflight
+// berjalan benar di Android Chrome / Samsung Internet / WebView
+// ================================================================
+function _sbFetch(url, options = {}) {
+  const sbHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    ...(options.headers || {})
+  };
+  return fetch(url, {
+    mode: 'cors',
+    credentials: 'omit',
+    ...options,
+    headers: sbHeaders
+  });
+}
+
+// ================================================================
 // DATE HELPER — Local timezone (WIB), bukan UTC
 // ================================================================
 const _localDateStr = (d) => {
@@ -27,46 +47,61 @@ const _localDateStr = (d) => {
 const DataLayer = {
 
   // Helper: base headers
-  _headers() {
+  // FIX ANDROID: tambah mode:'cors' explicit di setiap fetch call (lihat _fetch helper)
+  _headers(prefer = 'return=minimal') {
     return {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': 'return=minimal'
+      'Prefer': prefer
     };
+  },
+
+  // Helper: wrapper fetch dengan mode:cors explicit (fix Android Chrome)
+  async _fetch(url, options = {}) {
+    const res = await fetch(url, {
+      mode: 'cors',           // FIX ANDROID: explicit CORS mode
+      credentials: 'omit',   // FIX ANDROID: jangan kirim cookies — cegah preflight tambahan
+      ...options,
+      headers: { ...options.headers }
+    });
+    return res;
   },
 
   // Helper: fetch dari satu tabel
   async _getTable(table) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=id.desc`, {
-      headers: { ...this._headers(), 'Prefer': 'return=representation' }
+    const res = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=id.desc`, {
+      headers: this._headers('return=representation')
     });
-    if (!res.ok) throw new Error(`Gagal fetch ${table}: ${res.status}`);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.status);
+      throw new Error(`Gagal fetch ${table}: ${res.status} — ${errText}`);
+    }
     return res.json();
   },
 
   // Helper: upsert (insert or update by unique key)
   async _upsert(table, rows, onConflict) {
     if (!rows || rows.length === 0) return;
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
+    const res = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
       method: 'POST',
-      headers: { ...this._headers(), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      headers: this._headers('resolution=merge-duplicates,return=minimal'),
       body: JSON.stringify(rows)
     });
     if (!res.ok) {
-      const err = await res.text();
+      const err = await res.text().catch(() => res.status);
       throw new Error(`Gagal upsert ${table}: ${err}`);
     }
   },
 
   // Helper: delete satu row by key (uuid atau var)
   async _deleteByKey(table, key, value) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${key}=eq.${encodeURIComponent(value)}`, {
+    const res = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?${key}=eq.${encodeURIComponent(value)}`, {
       method: 'DELETE',
       headers: this._headers()
     });
     if (!res.ok) {
-      const err = await res.text();
+      const err = await res.text().catch(() => res.status);
       throw new Error(`Gagal delete ${table}: ${err}`);
     }
   },
@@ -81,20 +116,18 @@ const DataLayer = {
 
   // Helper: hapus semua lalu insert ulang (untuk data yang tidak punya unique key jelas)
   async _replaceAll(table, rows) {
-    // Delete all rows (id >= 1 covers all bigserial)
-    await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=gte.1`, {
+    await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?id=gte.1`, {
       method: 'DELETE',
       headers: this._headers()
     });
     if (!rows || rows.length === 0) return;
-    // Insert fresh
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    const res = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
       method: 'POST',
-      headers: { ...this._headers(), 'Prefer': 'return=minimal' },
+      headers: this._headers('return=minimal'),
       body: JSON.stringify(rows)
     });
     if (!res.ok) {
-      const errText = await res.text();
+      const errText = await res.text().catch(() => res.status);
       throw new Error(`Gagal insert ${table}: ${errText}`);
     }
   },
@@ -250,9 +283,8 @@ const TOKO_COLORS = ['#5C3D2E','#5A7A6A','#3D7EAA','#C9A84C','#7C3AED'];
 async function loadTokoList() {
   try {
     // Ambil SEMUA toko dulu, filter di client (handle variasi status: aktif/AKTIF/null)
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/toko?select=*&order=urutan.asc`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    const res = await _sbFetch(
+      `${SUPABASE_URL}/rest/v1/toko?select=*&order=urutan.asc`
     );
     if (!res.ok) return;
     const rows = await res.json();
@@ -288,14 +320,9 @@ async function loadTokoList() {
 // ── Simpan toko baru ke Supabase ──
 async function saveToko(kode, brand, platform, grup, username, warna) {
   const urutan = window._tokoList.length + 1;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/toko`, {
+  const res = await _sbFetch(`${SUPABASE_URL}/rest/v1/toko`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': 'return=representation'
-    },
+    headers: { 'Prefer': 'return=representation' },
     body: JSON.stringify([{ kode, brand, platform, grup, username, warna, urutan, status: 'aktif' }])
   });
   if (!res.ok) throw new Error(await res.text());
@@ -305,9 +332,8 @@ async function saveToko(kode, brand, platform, grup, username, warna) {
 
 // ── Hapus toko dari Supabase ──
 async function deleteToko(kode) {
-  await fetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
-    method: 'DELETE',
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
+    method: 'DELETE'
   });
 }
 
@@ -645,9 +671,8 @@ async function loadDB() {
         // Load assignChannel dari Supabase dulu, fallback localStorage
         try {
           // Load assignChannel dari produk_toko (tabel proper)
-          const chRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/produk_toko?select=var,toko_kode,aktif`,
-            { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+          const chRes = await _sbFetch(
+            `${SUPABASE_URL}/rest/v1/produk_toko?select=var,toko_kode,aktif`
           );
           if (chRes.ok) {
             const chRows = await chRes.json();
@@ -724,9 +749,8 @@ function _applyCloudData(d) {
   if (d.channel) DB.channel = d.channel; // legacy fallback
   // Reload assignChannel dari produk_toko saat sync
   if (SUPABASE_URL) {
-    fetch(`${SUPABASE_URL}/rest/v1/produk_toko?select=var,toko_kode,aktif`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    }).then(r => r.ok ? r.json() : [])
+    _sbFetch(`${SUPABASE_URL}/rest/v1/produk_toko?select=var,toko_kode,aktif`)
+      .then(r => r.ok ? r.json() : [])
       .then(rows => {
         if (rows && rows.length > 0) {
           DB.assignChannel = {};
@@ -3019,9 +3043,9 @@ async function chSimpan() {
   try {
     if (_chEditKode) {
       // UPDATE — patch ke Supabase
-      await fetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(_chEditKode)}`, {
+      await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(_chEditKode)}`, {
         method: 'PATCH',
-        headers: { 'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({ brand, platform, grup, username, warna })
       });
       // Update local
@@ -3031,9 +3055,9 @@ async function chSimpan() {
     } else {
       // INSERT — tambah baru ke Supabase
       const urutan = window._tokoList.length + 1;
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/toko`, {
+      const res = await _sbFetch(`${SUPABASE_URL}/rest/v1/toko`, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation' },
+        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify([{ ...payload, urutan }])
       });
       if (!res.ok) throw new Error(await res.text());
@@ -3062,9 +3086,9 @@ async function chToggleStatus(kode) {
   if (!t) return;
   const newStatus = t.status === 'aktif' ? 'nonaktif' : 'aktif';
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
+    await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=minimal' },
+      headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ status: newStatus })
     });
     t.status = newStatus;
@@ -3077,9 +3101,8 @@ async function chToggleStatus(kode) {
 async function chHapus(kode) {
   if (!confirm(`Hapus channel "${kode}"? Data jurnal yang memakai kode ini tidak terhapus.`)) return;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
-      method: 'DELETE',
-      headers: { 'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}` }
+    await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
+      method: 'DELETE'
     });
     const idx = window._tokoList.findIndex(t => t.kode === kode);
     if (idx !== -1) window._tokoList.splice(idx, 1);
@@ -3095,7 +3118,7 @@ function tambahChannel() { chShowForm(); } // backward compat
 function toggleChannelStatus(idx) {
   const t=window._tokoList[idx]; if(!t)return;
   const newStatus=t.status==='aktif'?'nonaktif':'aktif';
-  fetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(t.kode)}`,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=minimal'},body:JSON.stringify({status:newStatus})}).then(()=>{t.status=newStatus;_chRefreshList();renderTokoDropdown();toast(`Status ${t.kode} → ${newStatus}`);}).catch(e=>toast('Gagal: '+e.message,'err'));
+  _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(t.kode)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status:newStatus})}).then(()=>{t.status=newStatus;_chRefreshList();renderTokoDropdown();toast(`Status ${t.kode} → ${newStatus}`);}).catch(e=>toast('Gagal: '+e.message,'err'));
   saveDB(); _chRefreshList();
   _syncChannelDropdowns();
 }
@@ -3671,14 +3694,9 @@ async function _syncAssignToSupabase() {
   }
   if (!rows.length) return;
   // Upsert ke produk_toko
-  await fetch(`${SUPABASE_URL}/rest/v1/produk_toko`, {
+  await _sbFetch(`${SUPABASE_URL}/rest/v1/produk_toko`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
-    },
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(rows)
   });
 }
