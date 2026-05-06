@@ -2537,9 +2537,44 @@ function resetHargaFilter() {
   renderHarga();
 }
 
+function _getHargaParams() {
+  // Ambil parameter dari localStorage (sync dari Biaya Operasional)
+  let bgData = {};
+  try { bgData = JSON.parse(localStorage.getItem('zenot_biaya_ops_global') || '{}'); } catch(e) {}
+  let npmInduk = {};
+  try { npmInduk = JSON.parse(localStorage.getItem('zenot_npm_induk') || '{}'); } catch(e) {}
+  return {
+    opsRasio    : bgData.rasioOpsGlobal  || 10,   // % operasional
+    packing     : bgData.biayaPacking    || 2000,  // Rp/pcs
+    labaDefault : bgData.targetLaba      || 10,    // % NPM default
+    resellerDefault: bgData.marginReseller || 15,  // % reseller default
+    npmInduk
+  };
+}
+
+function _hitungHarga(r, params) {
+  const { opsRasio, packing, labaDefault, resellerDefault, npmInduk } = params;
+  const hpp        = r.hpp || 0;
+  const npm        = npmInduk[r.induk]?.npm       ?? labaDefault;
+  const resellerPct= npmInduk[r.induk]?.reseller  ?? resellerDefault;
+  const totalBeban = (opsRasio + npm) / 100; // contoh: 0.20
+  // Harga Jual: (HPP + Packing) / (1 - totalBeban)
+  const jual       = totalBeban < 1 && hpp > 0
+    ? Math.ceil((hpp + packing) / (1 - totalBeban) / 500) * 500
+    : 0;
+  // Reseller: HPP / (1 - resellerPct%)
+  const reseller   = resellerPct < 100 && hpp > 0
+    ? Math.ceil(hpp / (1 - resellerPct / 100) / 500) * 500
+    : 0;
+  // GM% = (jual - hpp) / jual * 100
+  const gm         = jual > 0 ? Math.round((jual - hpp) / jual * 100) : 0;
+  return { jual, reseller, gm, npm };
+}
+
 function renderHarga() {
   populateHargaFilters();
   const q=hargaQ.toLowerCase();
+  const params = _getHargaParams();
   const rows=DB.produk.filter(r=>{
     if(hargaFilInduk && r.induk!==hargaFilInduk) return false;
     if(hargaFilSupplier && (r.suplaier||'')!==hargaFilSupplier) return false;
@@ -2547,14 +2582,25 @@ function renderHarga() {
     return true;
   }).sort((a,b)=>a.induk.localeCompare(b.induk)||a.var.localeCompare(b.var));
   const body=document.getElementById('harga-body');
-  if(body)body.innerHTML=rows.length?rows.map((r,i)=>`<tr>
-    <td class="mono">${i+1}</td><td><strong>${r.induk}</strong></td><td>${r.var}</td>
-    <td class="mono">${fmt(r.hpp)}</td>
-    <td><span class="badge bb">${r.npm}%</span></td>
-    <td class="mono" style="color:var(--sage);font-weight:600">${fmt(r.jual)}</td>
-    <td class="mono">${fmt(r.reseller)}</td>
-    <td><span class="badge ${r.gm>=60?'bg':'bo'}">${r.gm}%</span></td>
-  </tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk sesuai filter</td></tr>`;
+  if(!body) return;
+  if(!rows.length){
+    body.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk sesuai filter</td></tr>`;
+    return;
+  }
+  body.innerHTML=rows.map((r,i)=>{
+    const { jual, reseller, gm, npm } = _hitungHarga(r, params);
+    const gmBadge = gm >= 50 ? 'bg' : gm >= 30 ? 'bo' : 'br';
+    return `<tr>
+      <td class="mono">${i+1}</td>
+      <td><strong>${r.induk}</strong></td>
+      <td>${r.var}</td>
+      <td class="mono">${fmt(r.hpp)}</td>
+      <td><span class="badge bb">${npm}%</span></td>
+      <td class="mono" style="color:var(--sage);font-weight:700">${jual > 0 ? fmt(jual) : '<span style="color:var(--dusty)">—</span>'}</td>
+      <td class="mono">${reseller > 0 ? fmt(reseller) : '<span style="color:var(--dusty)">—</span>'}</td>
+      <td><span class="badge ${gmBadge}">${gm}%</span></td>
+    </tr>`;
+  }).join('');
 }
 
 // ================================================================

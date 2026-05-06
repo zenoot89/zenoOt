@@ -537,12 +537,20 @@ async function saveBiayaOpsGlobal() {
     return;
   }
 
-  const target = Math.round(biaya / (rasio / 100));
-  const data = { biayaOpsGlobal: biaya, rasioOpsGlobal: rasio, updatedAt: new Date().toISOString() };
+  const packing  = parseInt((document.getElementById('bg-packing')?.value||'').replace(/[^\d]/g,''), 10) || 2000;
+  const laba     = parseFloat(document.getElementById('bg-laba')?.value || 10) || 10;
+  const target   = Math.round(biaya / (rasio / 100));
+  const data = {
+    biayaOpsGlobal  : biaya,
+    rasioOpsGlobal  : rasio,
+    biayaPacking    : packing,
+    targetLaba      : laba,
+    marginReseller  : 15,
+    updatedAt       : new Date().toISOString()
+  };
 
   // ── Simpan ke localStorage DAN Supabase ──
   try { localStorage.setItem(BIAYA_GLOBAL_KEY, JSON.stringify(data)); } catch(e) {}
-  // Await Supabase agar semua device dapat data terbaru
   try {
     const bulan = PLAN.keyBulan();
     await PLAN._sbSave('__biaya_global__', bulan, data);
@@ -596,36 +604,84 @@ async function renderBiayaOpsGlobal() {
     const sbData = await PLAN._sbLoad('__biaya_global__', PLAN.keyBulan());
     if (sbData && Object.keys(sbData).length > 0) {
       data = sbData;
-      _bgSave(data); // update localStorage
+      _bgSave(data);
     }
   } catch(e) {}
 
-  const biaya  = data.biayaOpsGlobal  || 0;
-  const rasio  = data.rasioOpsGlobal  || 0;
-  const target = (rasio > 0 && biaya > 0) ? Math.round(biaya / (rasio / 100)) : 0;
+  // Load npm per induk dari Supabase
+  let npmInduk = {};
+  try {
+    const sbNpm = await PLAN._sbLoad('__npm_induk__', 'global').catch(()=>null);
+    if (sbNpm) npmInduk = sbNpm;
+    else {
+      const ls = localStorage.getItem('zenot_npm_induk');
+      if (ls) npmInduk = JSON.parse(ls);
+    }
+  } catch(e) {}
+
+  const biaya    = data.biayaOpsGlobal  || 0;
+  const rasio    = data.rasioOpsGlobal  || 0;
+  const packing  = data.biayaPacking    || 2000;
+  const labaDefault   = data.targetLaba      || 10;
+  const resellerDefault = data.marginReseller || 15;
+  const target   = (rasio > 0 && biaya > 0) ? Math.round(biaya / (rasio / 100)) : 0;
   const fmt    = n => n > 0 ? 'Rp ' + Number(n).toLocaleString('id-ID') : '—';
   const fmtR   = n => n > 0 ? n + '%' : '—';
   const biayaFmt = biaya > 0 ? biaya.toLocaleString('id-ID') : '';
+  const packFmt  = packing > 0 ? packing.toLocaleString('id-ID') : '';
+
+  // Kumpulkan daftar induk dari DB.produk
+  const indukList = [...new Set((typeof DB !== 'undefined' ? DB.produk || [] : []).map(p => p.induk).filter(Boolean))].sort();
+
+  // Build npm table rows
+  const npmRows = indukList.length === 0
+    ? `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--dusty);font-style:italic;">Belum ada produk. Tambahkan produk di Kelola Produk.</td></tr>`
+    : indukList.map(induk => {
+        const npm = npmInduk[induk]?.npm ?? labaDefault;
+        const res = npmInduk[induk]?.reseller ?? resellerDefault;
+        return `<tr>
+          <td class="bg-td" style="text-align:left;font-family:'DM Mono',monospace;font-weight:600;">${induk}</td>
+          <td class="bg-td">
+            <div class="bg-input-wrap" style="max-width:90px;margin:0 auto;">
+              <input class="bg-input" type="number" min="1" max="99" step="1"
+                style="text-align:center;"
+                value="${npm}"
+                onchange="window._npmIndukChange('${induk}','npm',this.value)">
+              <span class="bg-input-suffix">%</span>
+            </div>
+          </td>
+          <td class="bg-td">
+            <div class="bg-input-wrap" style="max-width:90px;margin:0 auto;">
+              <input class="bg-input" type="number" min="1" max="99" step="1"
+                style="text-align:center;"
+                value="${res}"
+                onchange="window._npmIndukChange('${induk}','reseller',this.value)">
+              <span class="bg-input-suffix">%</span>
+            </div>
+          </td>
+          <td class="bg-td" style="font-size:11px;color:var(--dusty);">
+            ${(typeof DB !== 'undefined' ? DB.produk||[] : []).filter(p=>p.induk===induk).length} varian
+          </td>
+        </tr>`;
+      }).join('');
 
   el.innerHTML = `
   <style>
-    .bg-wrap{max-width:760px;}
-    .bg-title{font-size:20px;font-weight:800;font-family:'DM Serif Display',serif;color:var(--charcoal);margin-bottom:4px;}
-    .bg-title span{color:var(--brown);}
+    .bg-wrap{max-width:820px;}
     .bg-sub{font-size:11px;color:var(--dusty);margin-bottom:20px;}
     .bg-usaha{display:inline-block;font-size:16px;font-weight:800;color:var(--brown);background:color-mix(in srgb,var(--brown) 10%,transparent);padding:7px 18px;border-radius:20px;margin-bottom:18px;letter-spacing:.5px;border:1.5px solid color-mix(in srgb,var(--brown) 25%,transparent);}
     .bg-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
     .bg-table{width:100%;border-collapse:collapse;}
     .bg-th{padding:10px 16px;font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;background:var(--bg);border-bottom:2px solid var(--border);text-align:center;}
     .bg-th:first-child{text-align:left;}
-    .bg-td{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-family:'DM Mono',monospace;font-weight:500;color:var(--charcoal);text-align:center;vertical-align:middle;}
-    .bg-td:first-child{text-align:left;font-family:inherit;font-weight:600;}
+    .bg-td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;color:var(--charcoal);text-align:center;vertical-align:middle;}
     .bg-td:last-child{border-bottom:none;}
     .bg-label-row{font-size:11px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;}
     .bg-form-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
     .bg-form-title{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
     .bg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
-    @media(max-width:560px){.bg-form-grid{grid-template-columns:1fr;}}
+    .bg-form-grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+    @media(max-width:660px){.bg-form-grid{grid-template-columns:1fr;}.bg-form-grid4{grid-template-columns:1fr 1fr;}}
     .bg-field-label{font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
     .bg-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);overflow:hidden;transition:border-color .2s;}
     .bg-input-wrap:focus-within{border-color:var(--brown);background:var(--card);}
@@ -640,57 +696,77 @@ async function renderBiayaOpsGlobal() {
     .bg-save-btn:disabled{opacity:.45;cursor:not-allowed;}
     .bg-hint{font-size:10px;color:var(--dusty);margin-top:3px;font-style:italic;}
     .bg-empty{color:var(--dusty);font-style:italic;}
+    .bg-sec-title{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:4px;}
+    .bg-sec-sub{font-size:10px;color:var(--dusty);margin-bottom:14px;}
+    .bg-fill-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+    .bg-fill-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--charcoal);cursor:pointer;transition:all .15s;}
+    .bg-fill-btn:hover{border-color:var(--brown);color:var(--brown);}
+    .bg-fill-btn.active{background:var(--brown);color:var(--cream);border-color:var(--brown);}
+    .bg-npm-scroll{max-height:400px;overflow-y:auto;}
   </style>
 
   <div class="bg-wrap">
     <div class="bg-sub">Data biaya operasional keseluruhan usaha — bukan per toko.</div>
     <div class="bg-usaha">🏢 RAJUTAN DIMI</div>
 
-    <!-- TABEL RINGKASAN -->
+    <!-- SECTION 1: TABEL RINGKASAN -->
     <div class="bg-card">
       <table class="bg-table">
-        <thead>
-          <tr>
-            <th class="bg-th">Keterangan</th>
-            <th class="bg-th">Biaya Operasional</th>
-            <th class="bg-th">Rasio Operasional</th>
-            <th class="bg-th">Target Omset</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="bg-td bg-label-row">Keseluruhan Usaha</td>
-            <td class="bg-td" id="bg-row-biaya">${biaya > 0 ? fmt(biaya) : '<span class="bg-empty">—</span>'}</td>
-            <td class="bg-td" id="bg-row-rasio">${rasio > 0 ? fmtR(rasio) : '<span class="bg-empty">—</span>'}</td>
-            <td class="bg-td" id="bg-row-target">${target > 0 ? fmt(target) : '<span class="bg-empty">—</span>'}</td>
-          </tr>
-        </tbody>
+        <thead><tr>
+          <th class="bg-th">Keterangan</th>
+          <th class="bg-th">Biaya Operasional</th>
+          <th class="bg-th">Rasio Operasional</th>
+          <th class="bg-th">Target Omset</th>
+        </tr></thead>
+        <tbody><tr>
+          <td class="bg-td bg-label-row">Keseluruhan Usaha</td>
+          <td class="bg-td" id="bg-row-biaya">${biaya > 0 ? fmt(biaya) : '<span class="bg-empty">—</span>'}</td>
+          <td class="bg-td" id="bg-row-rasio">${rasio > 0 ? fmtR(rasio) : '<span class="bg-empty">—</span>'}</td>
+          <td class="bg-td" id="bg-row-target">${target > 0 ? fmt(target) : '<span class="bg-empty">—</span>'}</td>
+        </tr></tbody>
       </table>
     </div>
 
-    <!-- FORM INPUT -->
+    <!-- SECTION 2: PARAMETER BIAYA -->
     <div class="bg-form-card">
-      <div class="bg-form-title">✏️ Perbarui Data</div>
-      <div class="bg-form-grid">
+      <div class="bg-form-title">⚙️ Parameter Biaya Global</div>
+      <div class="bg-form-grid4">
         <div>
           <div class="bg-field-label">Biaya Operasional (Rp)</div>
           <div class="bg-input-wrap">
             <span class="bg-input-prefix">Rp</span>
             <input class="bg-input" type="text" id="bg-biaya" placeholder="0"
-              value="${biayaFmt}"
-              oninput="_bgFmtInput(this)">
+              value="${biayaFmt}" oninput="_bgFmtInput(this)">
           </div>
-          <div class="bg-hint">Gaji, sewa, utilitas, transport, dll</div>
+          <div class="bg-hint">Gaji, sewa, utilitas, transport</div>
         </div>
         <div>
           <div class="bg-field-label">Rasio Operasional (%)</div>
           <div class="bg-input-wrap">
             <input class="bg-input" type="number" id="bg-rasio" placeholder="0"
-              value="${rasio || ''}" step="0.1" min="0.1" max="100"
-              oninput="_bgRecalc()">
+              value="${rasio||''}" step="0.1" min="0" max="100" oninput="_bgRecalc()">
             <span class="bg-input-suffix">%</span>
           </div>
-          <div class="bg-hint">Target % ops dari total omset usaha</div>
+          <div class="bg-hint">% ops dari total omset</div>
+        </div>
+        <div>
+          <div class="bg-field-label">Biaya Packing/pcs (Rp)</div>
+          <div class="bg-input-wrap">
+            <span class="bg-input-prefix">Rp</span>
+            <input class="bg-input" type="text" id="bg-packing" placeholder="0"
+              value="${packing > 0 ? packing.toLocaleString('id-ID') : ''}"
+              oninput="this.value=this.value.replace(/[^\d]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.')">
+          </div>
+          <div class="bg-hint">Plastik, kardus, selotip, dll</div>
+        </div>
+        <div>
+          <div class="bg-field-label">Target Laba Default (%)</div>
+          <div class="bg-input-wrap">
+            <input class="bg-input" type="number" id="bg-laba" placeholder="0"
+              value="${labaDefault||''}" step="1" min="0" max="100">
+            <span class="bg-input-suffix">%</span>
+          </div>
+          <div class="bg-hint">Default NPM jika belum diset per induk</div>
         </div>
       </div>
       <div class="bg-result">
@@ -700,10 +776,119 @@ async function renderBiayaOpsGlobal() {
         </div>
         <div class="bg-result-val" id="bg-target-val">${target > 0 ? fmt(target) : '—'}</div>
       </div>
-      <button class="bg-save-btn" id="bg-save-btn" onclick="saveBiayaOpsGlobal()">💾 Simpan</button>
+      <button class="bg-save-btn" id="bg-save-btn" onclick="saveBiayaOpsGlobal()">💾 Simpan Parameter</button>
+    </div>
+
+    <!-- SECTION 3: NPM & RESELLER PER INDUK -->
+    <div class="bg-form-card">
+      <div class="bg-sec-title">📊 NPM & Margin Reseller per SKU Induk</div>
+      <div class="bg-sec-sub">Atur target laba dan margin reseller per produk. Harga jual di Price List otomatis terhitung dari data ini.</div>
+
+      <!-- Toolbar: isi semua -->
+      <div class="bg-fill-bar">
+        <span style="font-size:12px;font-weight:600;color:var(--dusty);">Isi semua:</span>
+        <button class="bg-fill-btn" onclick="window._npmFillAll()">Semua Produk (default)</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;color:var(--dusty);">NPM</span>
+          <div class="bg-input-wrap" style="width:70px;">
+            <input class="bg-input" type="number" id="npm-fill-val" value="${labaDefault}" min="1" max="99" style="text-align:center;">
+          </div>
+          <span style="font-size:12px;color:var(--dusty);">% Reseller</span>
+          <div class="bg-input-wrap" style="width:70px;">
+            <input class="bg-input" type="number" id="res-fill-val" value="${resellerDefault}" min="1" max="99" style="text-align:center;">
+          </div>
+          <button class="bg-fill-btn" onclick="window._npmFillAllCustom()">Terapkan</button>
+        </div>
+      </div>
+
+      <!-- Tabel per induk -->
+      <div class="bg-npm-scroll">
+        <table class="bg-table">
+          <thead><tr>
+            <th class="bg-th" style="text-align:left;">SKU Induk</th>
+            <th class="bg-th">NPM (%)</th>
+            <th class="bg-th">Margin Reseller (%)</th>
+            <th class="bg-th">Jumlah Varian</th>
+          </tr></thead>
+          <tbody id="bg-npm-tbody">${npmRows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="bg-save-btn" onclick="window._npmSaveAll()" style="background:var(--sage);">💾 Simpan NPM & Reseller</button>
+      </div>
     </div>
   </div>`;
+
+  // State npm lokal untuk edit realtime
+  window._npmIndukData = JSON.parse(JSON.stringify(npmInduk));
 }
+
+// ─── HELPER: NPM per Induk ───────────────────────────────────────
+window._npmIndukData = {};
+
+window._npmIndukChange = function(induk, field, val) {
+  if (!window._npmIndukData[induk]) window._npmIndukData[induk] = {};
+  window._npmIndukData[induk][field] = parseFloat(val) || 0;
+};
+
+window._npmFillAll = function() {
+  const labaDefault = parseFloat(document.getElementById('bg-laba')?.value) || 10;
+  const resDefault  = parseFloat(document.getElementById('res-fill-val')?.value) || 15;
+  document.getElementById('npm-fill-val').value = labaDefault;
+  document.getElementById('res-fill-val').value = resDefault;
+  window._npmFillAllCustom();
+};
+
+window._npmFillAllCustom = function() {
+  const npm = parseFloat(document.getElementById('npm-fill-val')?.value) || 10;
+  const res = parseFloat(document.getElementById('res-fill-val')?.value) || 15;
+  const inputs = document.querySelectorAll('#bg-npm-tbody input[type=number]');
+  let i = 0;
+  while (i < inputs.length) {
+    const npmInput = inputs[i];
+    const resInput = inputs[i+1];
+    if (npmInput) { npmInput.value = npm; }
+    if (resInput) { resInput.value = res; }
+    // update data
+    const tr = npmInput?.closest('tr');
+    if (tr) {
+      const induk = tr.querySelector('td:first-child')?.textContent?.trim();
+      if (induk) {
+        if (!window._npmIndukData[induk]) window._npmIndukData[induk] = {};
+        window._npmIndukData[induk].npm = npm;
+        window._npmIndukData[induk].reseller = res;
+      }
+    }
+    i += 2;
+  }
+  if (typeof toast === 'function') toast('✅ Semua produk diisi — klik Simpan untuk menyimpan');
+};
+
+window._npmSaveAll = async function() {
+  // Baca semua nilai dari input langsung
+  const rows = document.querySelectorAll('#bg-npm-tbody tr');
+  const result = {};
+  rows.forEach(tr => {
+    const induk = tr.querySelector('td:first-child')?.textContent?.trim();
+    const inputs = tr.querySelectorAll('input[type=number]');
+    if (induk && inputs.length >= 2) {
+      result[induk] = {
+        npm:      parseFloat(inputs[0].value) || 10,
+        reseller: parseFloat(inputs[1].value) || 15
+      };
+    }
+  });
+  window._npmIndukData = result;
+  try {
+    localStorage.setItem('zenot_npm_induk', JSON.stringify(result));
+    await PLAN._sbSave('__npm_induk__', 'global', result);
+    if (typeof toast === 'function') toast('✅ NPM & Reseller berhasil disimpan!');
+    // Refresh price list jika sedang aktif
+    if (typeof renderHarga === 'function') renderHarga();
+  } catch(e) {
+    if (typeof toast === 'function') toast('✅ Tersimpan lokal · ⚠️ Sync cloud gagal', 'warn');
+  }
+};
 
 // ─── EXPOSE ─────────────────────────────────────────────────────
 window.renderPlanningKPI      = renderPlanningKPI;
