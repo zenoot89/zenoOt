@@ -1148,10 +1148,9 @@ function renderDashboard() {
     .slice(0,5)
     .map(([induk])=>induk);
 
-  // Step 3: kumpulkan semua variant dari top induk, max 10 SKU total
+  // Step 3: kumpulkan variant dari top induk yang stoknya HABIS atau KRITIS saja
   const restockBestSeller = [];
   for (const indukKey of topInduk) {
-    if (restockBestSeller.length >= 10) break;
     // Cari semua stok yang induknya cocok
     const variants = DB.stok.filter(r => {
       const p = (DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(r.var||'').toUpperCase());
@@ -1159,13 +1158,26 @@ function renderDashboard() {
       return ind === indukKey;
     });
     for (const r of variants) {
-      if (restockBestSeller.length >= 10) break;
-      restockBestSeller.push({ ...r, _induk: indukKey, _indukSales: indukSalesMap[indukKey]||0 });
+      const akhir = getAkhir(r);
+      const safety = r.safety || 4;
+      // Hanya masuk jika stok habis (0) atau kritis (<= safety stock)
+      if (akhir <= safety) {
+        restockBestSeller.push({ ...r, _induk: indukKey, _indukSales: indukSalesMap[indukKey]||0, _akhir: akhir });
+      }
     }
   }
+  // Urutkan: HABIS dulu, lalu stok paling sedikit, lalu induk terlaris
+  restockBestSeller.sort((a, b) => {
+    if (a._akhir <= 0 && b._akhir > 0) return -1;
+    if (b._akhir <= 0 && a._akhir > 0) return 1;
+    if (a._akhir !== b._akhir) return a._akhir - b._akhir;
+    return b._indukSales - a._indukSales;
+  });
+  // Batasi max 10 SKU setelah sorting
+  restockBestSeller.splice(10);
 
   const restockHtml = restockBestSeller.length===0
-    ? `<div class="ow-empty">Belum ada data penjualan bulan ini</div>`
+    ? `<div class="ow-empty">Semua stok produk terlaris masih aman 👍</div>`
     : restockBestSeller.map((r,i)=>{
         const akhir = getAkhir(r);
         const cls   = akhir<=0?'stok-red':akhir<=(r.safety||4)?'stok-amber':'';
