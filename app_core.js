@@ -143,7 +143,7 @@ const DataLayer = {
 
       return true;
     } catch(e) {
-      console.error('[DataLayer.save]', e.message);
+      console.error('[DataLayer.save] ❌', e.message);
       return false;
     }
   },
@@ -190,27 +190,43 @@ const DataLayer = {
           channel: channel
             .filter(t => t.status === 'aktif')  // filter toko aktif
             .map(c => ({
-            nama: c.nama, platform: c.platform, status: c.status
-          }))
+              nama:     c.kode,                          // FIX: tabel 'toko' pakai kolom 'kode', bukan 'nama'
+              kode:     c.kode,
+              brand:    c.brand    || 'zenOt',
+              platform: c.platform || 'shopee',
+              grup:     c.grup     || (c.platform||'shopee').toUpperCase(),
+              username: c.username || '',
+              warna:    c.warna    || '#5C3D2E',
+              urutan:   c.urutan   || 99,
+              status:   c.status   || 'aktif'
+            }))
         }
       };
     } catch(e) {
-      console.error('[DataLayer.fetch]', e.message);
+      console.error('[DataLayer.fetch] ❌', e.message);
       return null;
     }
   },
 
   // localStorage fallback — aktif sebagai backup
+  // FIX: pakai versioned key supaya cache lama (dari device lain) tidak mencemari data baru
+  _localKey: 'zenot_db_v2',
   saveLocal(data) {
-    try { localStorage.setItem('zenot_db_backup', JSON.stringify(data)); } catch(e) {}
+    try { localStorage.setItem(this._localKey, JSON.stringify(data)); } catch(e) {}
+    // Bersihkan key lama jika masih ada
+    try { localStorage.removeItem('zenot_db_backup'); } catch(e) {}
   },
   loadLocal() {
     try {
-      const raw = localStorage.getItem('zenot_db_backup');
+      // Coba key baru dulu
+      let raw = localStorage.getItem(this._localKey);
+      // Fallback ke key lama (migrasi 1x)
+      if (!raw) raw = localStorage.getItem('zenot_db_backup');
       return raw ? JSON.parse(raw) : null;
     } catch(e) { return null; }
   },
   clearLocal() {
+    try { localStorage.removeItem(this._localKey); } catch(e) {}
     try { localStorage.removeItem('zenot_db_backup'); } catch(e) {}
   }
 };
@@ -607,10 +623,11 @@ async function loadDB() {
   if (SUPABASE_URL) {
     try {
       showLoadingOverlay("☁️ Memuat data dari cloud...");
+      console.info('[ZENOOT] Mencoba connect ke Supabase:', SUPABASE_URL.split('.')[0] + '...');
 
-      // Timeout 8 detik — kalau cloud lambat/offline, pakai localStorage
+      // Timeout 15 detik — HP 4G butuh lebih lama (dari 8s → 15s)
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout")), 8000)
+        setTimeout(() => reject(new Error("Timeout")), 15000)
       );
       const result = await Promise.race([DataLayer.fetch(), timeoutPromise]);
 
@@ -621,6 +638,8 @@ async function loadDB() {
         if (saved.jurnal)  DB.jurnal  = saved.jurnal;
         if (saved.restock) DB.restock = saved.restock;
         if (saved.channel) DB.channel = saved.channel; // legacy fallback
+        console.info(`[ZENOOT] ✅ Cloud load OK — produk:${DB.produk.length} stok:${DB.stok.length} jurnal:${DB.jurnal.length} channel:${DB.channel.length}`);
+        if (DB.channel.length === 0) console.warn('[ZENOOT] ⚠️ Channel kosong! Cek tabel "toko" di Supabase — pastikan ada row dengan status=aktif');
         // Simpan ke localStorage sebagai cache
         DataLayer.saveLocal(DB);
         // Load assignChannel dari Supabase dulu, fallback localStorage
@@ -660,7 +679,10 @@ async function loadDB() {
         setCloudStatus(true);
         hideLoadingOverlay(); return;
       }
-    } catch(e) { console.warn("Cloud load gagal:", e.message); hideLoadingOverlay(); }
+    } catch(e) {
+      console.error('[ZENOOT] ❌ Cloud load GAGAL:', e.message, '— fallback ke localStorage');
+      hideLoadingOverlay();
+    }
 
     // Fallback: coba load dari localStorage
     const local = DataLayer.loadLocal();
@@ -835,38 +857,8 @@ const DEFAULT_PRODUK = [
 
 let DB = {
   produk: JSON.parse(JSON.stringify(DEFAULT_PRODUK)),
-  stok: [
-    {var:'Turtleneck_HITAM-XL',awal:12,masuk:0,keluar:0,hpp:38833,safety:4},
-    {var:'MAYRA_HITAM',awal:13,masuk:0,keluar:0,hpp:55850,safety:6},
-    {var:'MAYRA_MAUVE',awal:3,masuk:0,keluar:0,hpp:55850,safety:6},
-    {var:'MAYRA_ MARUN',awal:10,masuk:0,keluar:0,hpp:55850,safety:6},
-    {var:'MAYRA_KHAKI',awal:6,masuk:0,keluar:0,hpp:55850,safety:6},
-    {var:'MAYRA_ COFFEE',awal:8,masuk:0,keluar:0,hpp:55850,safety:6},
-    {var:'MAYRA_DENIM',awal:14,masuk:0,keluar:0,hpp:55850,safety:6},
-    {var:'CALYRA_HITAM',awal:5,masuk:0,keluar:0,hpp:54167,safety:4},
-    {var:'CALYRA_KREAM',awal:11,masuk:0,keluar:0,hpp:54167,safety:4},
-    {var:'CALYRA_DENIM',awal:7,masuk:0,keluar:0,hpp:54167,safety:4},
-    {var:'STARLA_HITAM',awal:9,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_OFFWHITE',awal:5,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_EMERALD',awal:10,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_KHAKI',awal:14,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_BRONZE',awal:11,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_DUSTY',awal:10,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_MARUN',awal:19,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'STARLA_COFFEE',awal:12,masuk:0,keluar:0,hpp:45833,safety:5},
-    {var:'LUNEA_MARUN',awal:1,masuk:0,keluar:0,hpp:50000,safety:4},
-    {var:'WAKUTA_HITAM',awal:3,masuk:0,keluar:0,hpp:35000,safety:3},
-    {var:'WAKUTA_BW',awal:6,masuk:0,keluar:0,hpp:35000,safety:3},
-    {var:'WAKUTA_Cream',awal:2,masuk:0,keluar:0,hpp:35000,safety:3},
-    {var:'WAKUTA_Denim',awal:3,masuk:0,keluar:0,hpp:35000,safety:3},
-    {var:'WAKUTA_Nilla',awal:3,masuk:0,keluar:0,hpp:35000,safety:3},
-    {var:'NAJWA_HITAM',awal:1,masuk:0,keluar:0,hpp:50000,safety:3},
-    {var:'NAJWA_BW',awal:2,masuk:0,keluar:0,hpp:50000,safety:3},
-    {var:'NAJWA_KREAM',awal:1,masuk:0,keluar:0,hpp:50000,safety:3},
-  ],
-  jurnal: [
-    {tgl:'2026-04-22',ch:'SHP. ALLEY',var:'MAYRA_HITAM',qty:1,harga:55850,hpp:55850},
-  ],
+  stok: [],    // FIX: kosongkan — data stok diambil murni dari Supabase
+  jurnal: [],  // FIX: kosongkan — tidak ada data dummy
   restock: [],
   channel: [
     // Channel diambil dari Supabase — tidak ada hardcode
