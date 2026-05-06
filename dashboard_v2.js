@@ -1322,19 +1322,26 @@ async function renderDashboard() {
     .ow-col3-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
     /* Responsive: laptop, Android, iPhone */
     @media(max-width:900px){
-      .ow-row3col{grid-template-columns:1fr;}
-      .ow-col3-scroll{max-height:none;overflow-y:visible;}
+      /* MOBILE: kolom jadi flex column, bisa ubah urutan */
+      .ow-row3col{display:flex;flex-direction:column;}
+      /* MOBILE: scroll aktif dengan tinggi tetap */
+      .ow-col3-scroll{max-height:260px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
       .ow-col3-card{padding:14px 14px;}
       .ow-col3-hd{height:auto;margin-bottom:6px;padding:2px 0;}
+      /* MOBILE: urutan — Prioritas Restock dulu, lalu Stok Habis, lalu Dead Stock */
+      .ow-col3-restock{order:1;}
+      .ow-col3-habis{order:2;}
+      .ow-col3-dead{order:3;}
     }
     @media(max-width:480px){
       .ow-col3-card{padding:12px 12px;border-radius:12px;}
+      .ow-col3-scroll{max-height:220px;}
     }
   </style>
   <div class="ow-row3col">
 
-    <!-- Dead Stock -->
-    <div class="ow-col3">
+    <!-- Dead Stock — order:3 di mobile, kolom pertama di laptop -->
+    <div class="ow-col3 ow-col3-dead">
       <div class="ow-col3-hd">
         <span class="ow-sec-title">🧟 Dead Stock</span>
         <span class="ow-card-badge ow-badge-amber">${deadStock.length} SKU · ${fmtShort(deadStokNilai)}</span>
@@ -1347,8 +1354,8 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- Stok Habis -->
-    <div class="ow-col3">
+    <!-- Stok Habis — order:2 di mobile, kolom kedua di laptop -->
+    <div class="ow-col3 ow-col3-habis">
       <div class="ow-col3-hd">
         <span class="ow-sec-title">📦 Stok Habis</span>
         <span class="ow-card-badge ${stokHabis.length>0?'ow-badge-red':'ow-badge-green'}">${stokHabis.length} SKU</span>
@@ -1361,8 +1368,8 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- Prioritas Restock -->
-    <div class="ow-col3">
+    <!-- Prioritas Restock — order:1 di mobile (paling atas), kolom ketiga di laptop -->
+    <div class="ow-col3 ow-col3-restock">
       <div class="ow-col3-hd">
         <span class="ow-sec-title">🔁 Prioritas Restock</span>
         <span class="ow-card-badge ow-badge-amber">Best Seller Top 5</span>
