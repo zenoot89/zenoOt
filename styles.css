@@ -2570,129 +2570,130 @@ thead th {
 
 @media (max-width: 1024px) and (orientation: landscape) {
 
-  /* === MAIN: scroll container, NO padding atas === */
+  /* === MAIN: tetap flex container — frozen system tetap aktif === */
   .main {
-    overflow-y: auto !important;
+    overflow-y: hidden !important;
     overflow-x: hidden !important;
-    padding: 0 8px 12px 8px !important;
+    padding: 4px 8px 8px 8px !important;
     height: 100vh !important;
     box-sizing: border-box !important;
-    display: block !important; /* bukan flex — biar page tidak kacau */
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  /* Topbar judul: compact, ada sedikit padding atas */
+  /* Topbar judul: compact */
   .topbar {
-    padding-top: 8px !important;
-    margin-bottom: 6px !important;
+    padding-top: 6px !important;
+    margin-bottom: 4px !important;
+    flex-shrink: 0 !important;
   }
-  .page-title { font-size: 17px !important; }
-  .date-badge { font-size: 10px !important; padding: 4px 8px !important; }
+  .page-title { font-size: 15px !important; }
+  .date-badge { font-size: 10px !important; padding: 3px 8px !important; }
 
-  /* === 4 PAGE FROZEN: lepas semua flex frozen === */
+  /* === 4 PAGE FROZEN: tetap flex, tinggi penuh sisa viewport === */
   #page-stok,
   #page-jurnal,
   #page-produk,
   #page-harga {
     display: none !important;
-    height: auto !important;
-    overflow: visible !important;
-    flex: none !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
   }
   #page-stok.active,
   #page-jurnal.active,
   #page-produk.active,
   #page-harga.active {
-    display: block !important; /* bukan flex */
+    display: flex !important;
   }
 
-  /* === FREEZE-BAR: static, ikut scroll === */
+  /* === FREEZE-BAR: sticky, compact di landscape === */
   .freeze-bar {
-    position: static !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    flex-shrink: 0 !important;
     padding-bottom: 6px !important;
   }
 
-  /* === TBL-CURVE-WRAP: hanya horizontal scroll, tinggi auto === */
+  /* === TBL-CURVE-WRAP: flex 1, scroll vertikal + horizontal === */
   #page-stok .tbl-curve-wrap,
   #page-jurnal .tbl-curve-wrap,
   #page-produk .tbl-curve-wrap,
   #page-harga .tbl-curve-wrap {
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    max-height: none !important;
-    height: auto !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
     border-radius: 10px !important;
-    margin-bottom: 8px !important;
-    display: block !important;
+    margin-bottom: 0 !important;
   }
 
-  /* === TBL-WRAP dalam landscape: auto saja === */
+  /* === TBL-WRAP dalam landscape: scroll vertikal + horizontal === */
   #page-stok .tbl-curve-wrap .tbl-wrap,
   #page-jurnal .tbl-curve-wrap .tbl-wrap,
   #page-produk .tbl-curve-wrap .tbl-wrap,
   #page-harga .tbl-curve-wrap .tbl-wrap {
-    overflow-x: visible !important;
-    overflow-y: visible !important;
-    max-height: none !important;
-    height: auto !important;
+    flex: 1 !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
   }
 
-  /* === THEAD STICKY: top:0 relatif .main yang scroll === */
+  /* === THEAD STICKY: beku di atas area scroll tbl-wrap === */
   #page-stok .tbl-curve-wrap thead th,
   #page-jurnal .tbl-curve-wrap thead th,
   #page-produk .tbl-curve-wrap thead th,
   #page-harga .tbl-curve-wrap thead th {
     position: sticky !important;
     top: 0 !important;
-    z-index: 50 !important;
+    z-index: 10 !important;
     background: var(--cream, #f0ebe0) !important;
-    border-bottom: 2.5px solid #b5afa4 !important;
-    box-shadow: 0 3px 10px rgba(0,0,0,.13) !important;
+    border-bottom: 2px solid #b5afa4 !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12) !important;
   }
 
-  /* === TABEL ISI: baris lebih besar & jelas === */
+  /* === TABEL ISI: baris compact landscape === */
   #page-stok table,
   #page-jurnal table,
   #page-produk table,
   #page-harga table {
-    font-size: 13.5px !important;
+    font-size: 12.5px !important;
   }
   #page-stok tbody td,
   #page-jurnal tbody td,
   #page-produk tbody td,
   #page-harga tbody td {
-    padding: 13px 14px !important;
-    font-size: 13.5px !important;
+    padding: 9px 12px !important;
+    font-size: 12.5px !important;
     border-bottom: 1px solid var(--border, #e5e0d8) !important;
   }
 
   /* Toolbar compact */
   .freeze-bar .search-bar,
   .freeze-bar .sel,
-  .freeze-bar .inp { height: 32px !important; font-size: 12px !important; }
-  .freeze-bar .btn { height: 32px !important; font-size: 12px !important; padding: 0 10px !important; }
+  .freeze-bar .inp { height: 30px !important; font-size: 12px !important; }
+  .freeze-bar .btn { height: 30px !important; font-size: 11px !important; padding: 0 9px !important; }
 
-  /* Jurnal stat cards: compact landscape */
+  /* Jurnal stat cards: 4 kolom compact landscape */
   #page-jurnal .freeze-bar .grid4 {
     grid-template-columns: repeat(4,1fr) !important;
-    gap: 6px !important;
-    margin-bottom: 6px !important;
+    gap: 5px !important;
+    margin-bottom: 5px !important;
   }
-  #page-jurnal .freeze-bar .stat { padding: 8px 10px !important; }
-  #page-jurnal .freeze-bar .stat-val { font-size: 14px !important; }
+  #page-jurnal .freeze-bar .stat { padding: 6px 8px !important; }
+  #page-jurnal .freeze-bar .stat-val { font-size: 13px !important; }
   #page-jurnal .freeze-bar .stat-label { font-size: 9px !important; }
 
-  /* Scrollbar .main tipis */
-  .main::-webkit-scrollbar { width: 4px; }
-  .main::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 4px; }
-  .main::-webkit-scrollbar-track { background: transparent; }
-
-  /* Scrollbar horizontal tbl-curve-wrap */
-  #page-stok .tbl-curve-wrap::-webkit-scrollbar,
-  #page-jurnal .tbl-curve-wrap::-webkit-scrollbar,
-  #page-produk .tbl-curve-wrap::-webkit-scrollbar,
-  #page-harga .tbl-curve-wrap::-webkit-scrollbar { height: 4px; }
-  #page-stok .tbl-curve-wrap::-webkit-scrollbar-thumb,
-  #page-jurnal .tbl-curve-wrap::-webkit-scrollbar-thumb,
-  #page-produk .tbl-curve-wrap::-webkit-scrollbar-thumb,
-  #page-harga .tbl-curve-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 4px; }
+  /* Scrollbar horizontal tbl-wrap */
+  #page-stok .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar,
+  #page-jurnal .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar,
+  #page-produk .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar,
+  #page-harga .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar { height: 3px; width: 3px; }
+  #page-stok .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar-thumb,
+  #page-jurnal .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar-thumb,
+  #page-produk .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar-thumb,
+  #page-harga .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
 }
