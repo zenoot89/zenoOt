@@ -336,7 +336,10 @@
      PAGE: STOK PRODUK
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-stok">
-  <div class="freeze-bar">
+  <div class="freeze-bar" id="fb-stok">
+    <button class="fb-toggle" onclick="toggleFreezeBar('fb-stok')" title="Sembunyikan/tampilkan filter">
+      <span class="fb-toggle-icon">▲</span>
+    </button>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <input class="search-bar" style="max-width:280px;margin:0" placeholder="🔍 Cari SKU..." oninput="filterStok(this.value)" id="stok-search">
       <select class="sel" id="stok-fil-supplier" style="max-width:160px" onchange="onSupplierFilterChange()"><option value="">Semua Supplier</option></select>
@@ -433,7 +436,10 @@
      PAGE: JURNAL PENJUALAN
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-jurnal">
-  <div class="freeze-bar">
+  <div class="freeze-bar" id="fb-jurnal">
+    <button class="fb-toggle" onclick="toggleFreezeBar('fb-jurnal')" title="Sembunyikan/tampilkan filter">
+      <span class="fb-toggle-icon">▲</span>
+    </button>
     <div class="grid4" style="margin-bottom:10px;">
       <div class="stat c1"><div class="stat-label">Total Omset</div><div class="stat-val" style="font-size:16px" id="j-rev">Rp 0</div></div>
       <div class="stat c2"><div class="stat-label">Total Qty</div><div class="stat-val" id="j-tot-qty">0</div></div>
@@ -482,7 +488,10 @@
      PAGE: KELOLA PRODUK
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-produk">
-  <div class="freeze-bar">
+  <div class="freeze-bar" id="fb-produk">
+    <button class="fb-toggle" onclick="toggleFreezeBar('fb-produk')" title="Sembunyikan/tampilkan filter">
+      <span class="fb-toggle-icon">▲</span>
+    </button>
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
     <input class="search-bar" style="margin:0;flex:1;max-width:340px" placeholder="🔍 Cari produk..." oninput="filterProduk(this.value)">
     <select class="inp" style="max-width:160px" onchange="filterProdukStatus(this.value)">
@@ -629,7 +638,10 @@
 </div>
 
 <div class="page" id="page-harga">
-  <div class="freeze-bar">
+  <div class="freeze-bar" id="fb-harga">
+    <button class="fb-toggle" onclick="toggleFreezeBar('fb-harga')" title="Sembunyikan/tampilkan filter">
+      <span class="fb-toggle-icon">▲</span>
+    </button>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <input class="search-bar" style="margin:0;flex:1;max-width:280px" placeholder="🔍 Cari SKU / Induk..." oninput="filterHarga(this.value)" id="harga-search">
       <select class="sel" id="harga-fil-induk" style="max-width:180px" onchange="filterHargaFromDropdown()"><option value="">Semua Produk</option></select>
@@ -1364,5 +1376,74 @@
 <script src="ai_module.js"></script>
 <script src="daily_checklist.js"></script>
 <script src="dashboard_v2.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   FREEZE-BAR COLLAPSE — khusus landscape HP
+   Auto-collapse saat masuk landscape, expand saat portrait
+═══════════════════════════════════════════════════════ */
+const _fbIds = ['fb-stok','fb-jurnal','fb-produk','fb-harga'];
+
+function isLandscapeHP() {
+  return window.innerWidth <= 1024
+    && window.innerHeight < window.innerWidth
+    && window.innerHeight <= 600;
+}
+
+function toggleFreezeBar(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('fb-collapsed');
+  // Simpan state per id di sessionStorage
+  try {
+    sessionStorage.setItem('fb_' + id, el.classList.contains('fb-collapsed') ? '1' : '0');
+  } catch(e) {}
+}
+
+function applyFreezeBarLandscape() {
+  const isLS = isLandscapeHP();
+  _fbIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isLS) {
+      // Landscape HP: collapse kecuali user sudah expand manual (state '0')
+      let saved;
+      try { saved = sessionStorage.getItem('fb_' + id); } catch(e) {}
+      if (saved !== '0') el.classList.add('fb-collapsed');
+    } else {
+      // Portrait / desktop: selalu expand
+      el.classList.remove('fb-collapsed');
+    }
+  });
+}
+
+// Jalankan saat orientasi berubah dan saat load
+window.addEventListener('orientationchange', () => {
+  setTimeout(applyFreezeBarLandscape, 120);
+});
+window.addEventListener('resize', () => {
+  applyFreezeBarLandscape();
+});
+
+// Reset state saat pindah halaman agar landscape selalu mulai collapsed
+const _origGo = window.go;
+if (typeof _origGo === 'function') {
+  window.go = function(page, el) {
+    // Reset semua state sehingga landscape selalu collapsed fresh
+    _fbIds.forEach(id => {
+      try { sessionStorage.removeItem('fb_' + id); } catch(e) {}
+    });
+    _origGo(page, el);
+    setTimeout(applyFreezeBarLandscape, 80);
+  };
+}
+
+// Init setelah DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(applyFreezeBarLandscape, 200);
+});
+// Fallback jika DOMContentLoaded sudah lewat
+setTimeout(applyFreezeBarLandscape, 400);
+</script>
 </body>
 </html>

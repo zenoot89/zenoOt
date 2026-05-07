@@ -2697,3 +2697,98 @@ thead th {
   #page-produk .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar-thumb,
   #page-harga .tbl-curve-wrap .tbl-wrap::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FREEZE-BAR COLLAPSE — landscape HP
+   Toggle button + animasi collapse konten freeze-bar
+════════════════════════════════════════════════════════════════ */
+
+/* Tombol toggle — pojok kanan freeze-bar, selalu visible */
+.fb-toggle {
+  display: none; /* hidden di desktop & portrait */
+  position: absolute;
+  right: 10px;
+  top: 6px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5dfd5);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 10px;
+  color: var(--dusty, #8a7f72);
+  cursor: pointer;
+  z-index: 25;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  transition: background .15s;
+}
+.fb-toggle:active { background: var(--border, #e5dfd5); }
+
+/* Konten di dalam freeze-bar (semua child selain tombol) */
+.freeze-bar > *:not(.fb-toggle) {
+  transition: opacity .2s ease, max-height .25s ease;
+  overflow: hidden;
+}
+
+/* State collapsed */
+.freeze-bar.fb-collapsed > *:not(.fb-toggle) {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Collapsed: freeze-bar jadi sangat tipis */
+.freeze-bar.fb-collapsed {
+  padding-bottom: 0 !important;
+  padding-top: 0 !important;
+  min-height: 28px;
+}
+
+/* Arrow icon rotate saat expand */
+.freeze-bar .fb-toggle-icon {
+  display: inline-block;
+  transition: transform .2s ease;
+}
+.freeze-bar.fb-collapsed .fb-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Label teks di samping arrow saat collapsed */
+.fb-toggle::before {
+  content: 'Filter';
+  margin-right: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+/* ── Hanya aktif di landscape HP ── */
+@media (max-width: 1024px) and (orientation: landscape) and (max-height: 600px) {
+  /* Tampilkan tombol toggle */
+  .fb-toggle {
+    display: flex;
+    align-items: center;
+  }
+
+  /* freeze-bar perlu relative agar tombol bisa absolute */
+  .freeze-bar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    /* min-height saat collapsed agar tombol tetap visible */
+    min-height: 28px;
+  }
+
+  /* Konten freeze-bar: set max-height default untuk animasi */
+  .freeze-bar > *:not(.fb-toggle) {
+    max-height: 300px; /* cukup besar untuk konten apapun */
+  }
+
+  /* Saat collapsed: padding top kecil biar tombol tidak gepeng */
+  .freeze-bar.fb-collapsed {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+}
