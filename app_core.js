@@ -781,6 +781,192 @@ async function syncHargaRealtime() {
   return false;
 }
 
+
+// ================================================================
+// SUPABASE REALTIME — WebSocket untuk live update chart & jurnal
+// Device manapun tambah transaksi → semua device update otomatis
+// ================================================================
+let _realtimeWs         = null;   // WebSocket instance
+let _realtimeConnected  = false;  // status koneksi
+let _realtimeRetryTimer = null;   // retry timer saat disconnect
+let _realtimeRetryCount = 0;      // jumlah retry
+let _lastJurnalCount    = 0;      // deteksi ada transaksi baru
+
+function _realtimeIndicator(status) {
+  // status: 'connecting' | 'live' | 'offline'
+  let el = document.getElementById('zenoot-rt-dot');
+  if (!el) {
+    el = document.createElement('span');
+    el.id = 'zenoot-rt-dot';
+    el.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;margin-left:8px;transition:all .3s;';
+    // Cari save-indicator atau header area
+    const saveEl = document.getElementById('save-indicator');
+    if (saveEl && saveEl.parentNode) saveEl.parentNode.insertBefore(el, saveEl);
+    else document.body.appendChild(el);
+  }
+  if (status === 'live') {
+    el.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#2D6A4F;animation:rt-pulse 1.5s infinite;display:inline-block;"></span> LIVE';
+    el.style.cssText += 'background:rgba(45,106,79,.12);color:#2D6A4F;';
+  } else if (status === 'connecting') {
+    el.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#D97706;display:inline-block;"></span> Connecting...';
+    el.style.cssText += 'background:rgba(217,119,6,.1);color:#D97706;';
+  } else {
+    el.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#C0392B;display:inline-block;"></span> Offline';
+    el.style.cssText += 'background:rgba(192,57,43,.1);color:#C0392B;';
+  }
+}
+
+function _injectRtPulseStyle() {
+  if (document.getElementById('rt-pulse-style')) return;
+  const s = document.createElement('style');
+  s.id = 'rt-pulse-style';
+  s.textContent = '@keyframes rt-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.3);}}';
+  document.head.appendChild(s);
+}
+
+function startRealtimeSync() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  _injectRtPulseStyle();
+
+  // Supabase Realtime WebSocket endpoint
+  const wsUrl = SUPABASE_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
+
+  _realtimeIndicator('connecting');
+
+  try {
+    _realtimeWs = new WebSocket(wsUrl);
+  } catch(e) {
+    console.warn('[ZENOOT RT] WebSocket gagal dibuat:', e);
+    _scheduleRealtimeRetry();
+    return;
+  }
+
+  _realtimeWs.onopen = function() {
+    _realtimeConnected = true;
+    _realtimeRetryCount = 0;
+    _realtimeIndicator('live');
+    console.info('[ZENOOT RT] ✅ Realtime WebSocket connected');
+
+    // Join Phoenix channel untuk tabel jurnal
+    const joinMsg = JSON.stringify({
+      topic: 'realtime:public:jurnal',
+      event: 'phx_join',
+      payload: { config: { broadcast: { self: false }, presence: { key: '' } } },
+      ref: '1'
+    });
+    _realtimeWs.send(joinMsg);
+  };
+
+  _realtimeWs.onmessage = function(evt) {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch(e) { return; }
+
+    // Heartbeat — balas ping dari Supabase agar koneksi tetap hidup
+    if (msg.event === 'phx_reply' && msg.ref === '1') {
+      // join confirmed — mulai heartbeat
+      _startRealtimeHeartbeat();
+      return;
+    }
+    if (msg.event === 'heartbeat') {
+      _realtimeWs.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: null }));
+      return;
+    }
+
+    // Tangkap event INSERT/UPDATE/DELETE di tabel jurnal
+    const ev = msg.event;
+    const payload = msg.payload || {};
+    if (
+      (ev === 'INSERT' || ev === 'UPDATE' || ev === 'DELETE') ||
+      (payload.type && (payload.type === 'INSERT' || payload.type === 'UPDATE' || payload.type === 'DELETE'))
+    ) {
+      console.info('[ZENOOT RT] 📡 Perubahan jurnal terdeteksi:', ev || payload.type);
+      _onRealtimeJurnalChange(payload);
+    }
+  };
+
+  _realtimeWs.onerror = function(e) {
+    console.warn('[ZENOOT RT] WebSocket error:', e);
+  };
+
+  _realtimeWs.onclose = function(e) {
+    _realtimeConnected = false;
+    _realtimeIndicator('offline');
+    console.warn('[ZENOOT RT] WebSocket ditutup, code:', e.code, '— retry dalam', _realtimeRetryCount < 3 ? '5s' : '30s');
+    _scheduleRealtimeRetry();
+  };
+}
+
+let _rtHeartbeatTimer = null;
+function _startRealtimeHeartbeat() {
+  if (_rtHeartbeatTimer) clearInterval(_rtHeartbeatTimer);
+  _rtHeartbeatTimer = setInterval(() => {
+    if (_realtimeWs && _realtimeWs.readyState === WebSocket.OPEN) {
+      _realtimeWs.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: null }));
+    }
+  }, 25000); // setiap 25 detik — Supabase timeout 60s
+}
+
+function _scheduleRealtimeRetry() {
+  if (_rtHeartbeatTimer) { clearInterval(_rtHeartbeatTimer); _rtHeartbeatTimer = null; }
+  if (_realtimeRetryTimer) clearTimeout(_realtimeRetryTimer);
+  const delay = _realtimeRetryCount < 3 ? 5000 : 30000;
+  _realtimeRetryCount++;
+  _realtimeRetryTimer = setTimeout(() => {
+    if (!navigator.onLine) { _scheduleRealtimeRetry(); return; }
+    startRealtimeSync();
+  }, delay);
+}
+
+// Debounce agar tidak flood render saat banyak data masuk sekaligus
+let _rtRenderDebounce = null;
+function _onRealtimeJurnalChange(payload) {
+  // Jika ada record baru dari Supabase, merge ke DB.jurnal lokal
+  const rec = payload.record || payload.new;
+  if (rec && rec.uuid) {
+    const exists = DB.jurnal.findIndex(j => j.uuid === rec.uuid);
+    if (exists === -1 && payload.type === 'INSERT') {
+      DB.jurnal.unshift(rec);
+      recalcStok();
+      DataLayer.saveLocal(DB);
+    } else if (exists !== -1 && payload.type === 'UPDATE') {
+      DB.jurnal[exists] = {...DB.jurnal[exists], ...rec};
+      recalcStok();
+      DataLayer.saveLocal(DB);
+    } else if (exists !== -1 && payload.type === 'DELETE') {
+      DB.jurnal.splice(exists, 1);
+      recalcStok();
+      DataLayer.saveLocal(DB);
+    }
+  }
+
+  // Debounce render 300ms — kalau ada banyak event sekaligus, render 1x saja
+  clearTimeout(_rtRenderDebounce);
+  _rtRenderDebounce = setTimeout(() => {
+    const p = _currentPage;
+    if (p === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+    else if (p === 'jurnal' && typeof renderJurnal === 'function') renderJurnal();
+    // Selalu update chart KPI tanpa full re-render jika ada window._owChartRefresh
+    if (typeof window._owChartRefresh === 'function') window._owChartRefresh();
+  }, 300);
+}
+
+function stopRealtimeSync() {
+  if (_realtimeWs) { _realtimeWs.close(); _realtimeWs = null; }
+  if (_rtHeartbeatTimer) { clearInterval(_rtHeartbeatTimer); _rtHeartbeatTimer = null; }
+  if (_realtimeRetryTimer) { clearTimeout(_realtimeRetryTimer); _realtimeRetryTimer = null; }
+  _realtimeConnected = false;
+}
+
+// Stop WS saat tab/browser ditutup — hindari ghost connection
+window.addEventListener('beforeunload', stopRealtimeSync);
+// Reconnect saat tab aktif kembali (dari background)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !_realtimeConnected) {
+    console.info('[ZENOOT RT] Tab aktif kembali — reconnect realtime');
+    startRealtimeSync();
+  }
+});
+
 let _autoRefreshTimer = null;
 function startAutoRefreshHarga(intervalMenit = 2) {
   if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
@@ -1980,10 +2166,20 @@ function _populateJurnalChannelFilter(){
 
 // ── Helper: hitung omset dari satu record jurnal ──────────────────
 function _jOmset(r) {
-  if (r.harga && r.harga > 0) return r.harga * r.qty;
-  const p = DB.produk.find(x=>x.var===r.var);
-  if (p) return _hitungHarga(p, _getHargaParams()).jual * r.qty;
-  return (r.hpp || 0) * r.qty;
+  // Ambil harga jual: prioritas r.harga, tapi jika r.harga === r.hpp
+  // berarti data lama yang salah (harga jual diisi HPP) → ambil dari Price List
+  const params = _getHargaParams();
+  const p = DB.produk.find(x => x.var === r.var);
+  const hargaDariPL = p ? _hitungHarga(p, params).jual : 0;
+  if (r.harga && r.harga > 0 && r.harga !== (r.hpp || 0)) {
+    // Harga custom valid (bukan HPP)
+    return r.harga * r.qty;
+  }
+  if (hargaDariPL > 0) {
+    // Gunakan harga dari Price List BEP
+    return hargaDariPL * r.qty;
+  }
+  return (r.harga || r.hpp || 0) * r.qty;
 }
 
 function renderJurnal() {
@@ -2011,8 +2207,11 @@ function renderJurnal() {
     const p = DB.produk.find(x=>x.var===r.var);
     // Prioritas: harga yang dicatat saat transaksi (r.harga) jika ada & > 0
     // fallback: hitung dari BEP formula
-    const hargaJual = (r.harga && r.harga > 0) ? r.harga
-      : (p ? _hitungHarga(p, params).jual : 0);
+    // Kalau harga = hpp → data lama salah → gunakan Price List
+    const hargaDariPL = p ? _hitungHarga(p, params).jual : 0;
+    const hargaJual = (r.harga && r.harga > 0 && r.harga !== (r.hpp||0))
+      ? r.harga
+      : (hargaDariPL > 0 ? hargaDariPL : (r.harga || 0));
     totalOmset += hargaJual * r.qty;
     totalQty   += r.qty;
   });
@@ -2022,8 +2221,11 @@ function renderJurnal() {
   document.getElementById('j-avg').textContent=fmt(rows.length?Math.round(totalOmset/rows.length):0);
   document.getElementById('jurnal-body').innerHTML=rows.length?rows.map((r,i)=>{
     const p = DB.produk.find(x=>x.var===r.var);
-    const hargaJual = (r.harga && r.harga > 0) ? r.harga
-      : (p ? _hitungHarga(p, params).jual : 0);
+    // Kalau harga = hpp → data lama salah → gunakan Price List
+    const _plJual = p ? _hitungHarga(p, params).jual : 0;
+    const hargaJual = (r.harga && r.harga > 0 && r.harga !== (r.hpp||0))
+      ? r.harga
+      : (_plJual > 0 ? _plJual : (r.harga || 0));
     const omset = hargaJual * r.qty;
     const idx=DB.jurnal.indexOf(r);
     return `<tr><td class="mono">${i+1}</td><td class="mono">${r.tgl}</td><td>${chTag(r.ch)}</td><td>${r.var}</td><td class="mono" style="text-align:center">${r.qty}</td><td class="mono" style="color:var(--sage);font-weight:600">${fmt(hargaJual)}</td><td class="mono" style="color:var(--brown);font-weight:700">${fmt(omset)}</td><td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button></td></tr>`;
@@ -2066,7 +2268,9 @@ function renderJurnalProyeksi() {
   let aktualOmset = 0;
   jBulan.forEach(j => {
     const p = (DB.produk||[]).find(x => (x.var||'').toUpperCase() === (j.var||'').toUpperCase());
-    const harga = (j.harga && j.harga > 0) ? j.harga : (p ? _hitungHarga(p, params).jual : 0);
+    const _plJ = p ? _hitungHarga(p, params).jual : 0;
+    const harga = (j.harga && j.harga > 0 && j.harga !== (j.hpp||0))
+      ? j.harga : (_plJ > 0 ? _plJ : (j.harga || 0));
     aktualOmset += harga * (j.qty||0);
   });
 
@@ -3884,7 +4088,10 @@ try { localStorage.removeItem(DB_KEY); } catch(e) {}
   populateRsInduk();
   if (typeof initSkuPerformaToko === 'function') initSkuPerformaToko();
   if (localStorage.getItem('zenot_sidebar_collapsed')==='1') toggleSidebarCollapse();
-  startAutoRefreshHarga(2);
+  // Mulai Realtime WebSocket (Supabase live subscription)
+  startRealtimeSync();
+  // Fallback polling setiap 30 detik — jaga-jaga kalau WS tidak support (old browser)
+  startAutoRefreshHarga(0.5); // 30 detik
 })();
 
 // ================================================================

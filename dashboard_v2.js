@@ -282,6 +282,25 @@ function _owInjectCSS() {
 }
 
 // ── Main render ──
+// Helper: hitung omset satu jurnal entry dengan fallback ke Price List
+// (dipakai renderDashboard agar konsisten dengan _jOmset di app_core)
+function _dashOmset(j) {
+  const p = (DB.produk||[]).find(x => x.var === j.var);
+  let pl = 0;
+  if (p && typeof _hitungHarga === 'function') {
+    const params = typeof _getHargaParams === 'function' ? _getHargaParams() : {};
+    pl = _hitungHarga(p, params).jual || 0;
+  }
+  const h = Number(j.harga) || 0;
+  const hpp = Number(j.hpp) || 0;
+  // Kalau harga valid dan bukan sama dengan HPP → pakai harga custom
+  if (h > 0 && h !== hpp) return h * (j.qty || 0);
+  // Kalau ada harga dari price list → pakai price list
+  if (pl > 0) return pl * (j.qty || 0);
+  // Fallback terakhir: pakai harga apapun yang ada
+  return h * (j.qty || 0);
+}
+
 async function renderDashboard() {
   _owInjectCSS();
 
@@ -305,13 +324,13 @@ async function renderDashboard() {
   };
 
   // Omset = harga jual × qty (bukan HPP)
-  const omsetHari     = jHari.reduce((s,j)=>s+(j.harga||0)*(j.qty||0),0);
-  const omsetKemarin  = jKemarin.reduce((s,j)=>s+(j.harga||0)*(j.qty||0),0);
-  const omsetBulan    = jBulan.reduce((s,j)=>s+(j.harga||0)*(j.qty||0),0);
-  const omsetBulanLalu= jBulanLalu.reduce((s,j)=>s+(j.harga||0)*(j.qty||0),0);
+  const omsetHari     = jHari.reduce((s,j)=>s+_dashOmset(j),0);
+  const omsetKemarin  = jKemarin.reduce((s,j)=>s+_dashOmset(j),0);
+  const omsetBulan    = jBulan.reduce((s,j)=>s+_dashOmset(j),0);
+  const omsetBulanLalu= jBulanLalu.reduce((s,j)=>s+_dashOmset(j),0);
   // Laba = (harga jual - HPP) × qty
-  const labaBulan     = jBulan.reduce((s,j)=>s+((j.harga||0)-(getHppProduk(j.var)||0))*(j.qty||0),0);
-  const labaBulanLalu = jBulanLalu.reduce((s,j)=>s+((j.harga||0)-(getHppProduk(j.var)||0))*(j.qty||0),0);
+  const labaBulan     = jBulan.reduce((s,j)=>s+(_dashOmset(j) - (getHppProduk(j.var)||0)*(j.qty||0)),0);
+  const labaBulanLalu = jBulanLalu.reduce((s,j)=>s+(_dashOmset(j) - (getHppProduk(j.var)||0)*(j.qty||0)),0);
   const qtyBulan      = jBulan.reduce((s,j)=>s+(j.qty||0),0);
   const trxBulan      = jBulan.length;
   const marginPct     = omsetBulan>0 ? Math.round(labaBulan/omsetBulan*100) : 0;
@@ -342,13 +361,13 @@ async function renderDashboard() {
   jBulan.forEach(j=>{
     if(!j.ch) return;
     if(!chMap[j.ch]) chMap[j.ch]={omset:0,qty:0,trx:0};
-    chMap[j.ch].omset+=(j.harga||0)*(j.qty||0);
+    chMap[j.ch].omset+=_dashOmset(j);
     chMap[j.ch].qty+=(j.qty||0); chMap[j.ch].trx+=1;
   });
   jBulanLalu.forEach(j=>{
     if(!j.ch) return;
     if(!chMapLalu[j.ch]) chMapLalu[j.ch]={omset:0};
-    chMapLalu[j.ch].omset+=(j.harga||0)*(j.qty||0);
+    chMapLalu[j.ch].omset+=_dashOmset(j);
   });
   const channels = Object.entries(chMap).sort((a,b)=>b[1].omset-a[1].omset);
   const totalChOmset = channels.reduce((s,[,v])=>s+v.omset,0);
@@ -447,8 +466,8 @@ async function renderDashboard() {
   // ══════════════════════════════════════════════
   // labaBulan sudah dihitung di atas: sum(harga - hpp) * qty
   // Gross margin % dari omset (omset = harga jual)
-  const omsetHargaJual   = jBulan.reduce((s,j)=>s+(j.harga||0)*(j.qty||0), 0);
-  const grossMarginAmt   = jBulan.reduce((s,j)=>s+((j.harga||0)-(getHppProduk(j.var)||0))*(j.qty||0), 0);
+  const omsetHargaJual   = jBulan.reduce((s,j)=>s+_dashOmset(j), 0);
+  const grossMarginAmt   = jBulan.reduce((s,j)=>s+(_dashOmset(j) - (getHppProduk(j.var)||0)*(j.qty||0)), 0);
   const grossMarginPct   = omsetHargaJual > 0 ? Math.round(grossMarginAmt / omsetHargaJual * 100) : 0;
   // Ambil biaya ops dari localStorage
   let biayaOpsPerBulan = 0;
@@ -497,7 +516,7 @@ async function renderDashboard() {
     const d=new Date(); d.setDate(d.getDate()-i);
     const ds=_localDateStr(d);
     const label=d.toLocaleDateString('id-ID',{weekday:'short'});
-    const val=jurnal.filter(j=>j.tgl===ds).reduce((s,j)=>s+(j.harga||0)*(j.qty||0),0);
+    const val=jurnal.filter(j=>j.tgl===ds).reduce((s,j)=>s+_dashOmset(j),0);
     trend7.push({label,val,ds});
   }
   const trend7Max=Math.max(...trend7.map(t=>t.val),1);
@@ -728,7 +747,7 @@ async function renderDashboard() {
           const ds=dateStr(d);
           const label=String(d.getDate());
           const j=getJurnalInRange({from:ds,to:ds});
-          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+_dashOmset(x),0):j.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label,ds,val});
         }
         return pts;
@@ -738,7 +757,7 @@ async function renderDashboard() {
         for(let m=1;m<=12;m++){
           const mStr=`${_customYear}-${pad2(m)}`;
           const j=(DB.jurnal||[]).filter(x=>x.tgl&&x.tgl.startsWith(mStr));
-          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+_dashOmset(x),0):j.reduce((s,x)=>s+(x.qty||0),0);
           const monthNames=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
           pts.push({label:monthNames[m-1],ds:mStr,val});
         }
@@ -750,7 +769,7 @@ async function renderDashboard() {
           const d=dateOffset(from,i);
           const ds=dateStr(d);
           const j=getJurnalInRange({from:ds,to:ds});
-          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+_dashOmset(x),0):j.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label:dayNames[d.getDay()],ds,val});
         }
         return pts;
@@ -767,7 +786,7 @@ async function renderDashboard() {
             const hh=parseInt((t.split(' ')[1]||'').split(':')[0])||0;
             return hh===h;
           });
-          const val=_metric==='omset'?jh.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):jh.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?jh.reduce((s,x)=>s+_dashOmset(x),0):jh.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label:`${pad2(h)}:00`,ds:targetDs,val,isToday:!isComp});
         }
         return pts;
@@ -780,7 +799,7 @@ async function renderDashboard() {
           const isToday=ds===todayS;
           const label=d.toLocaleDateString('id-ID',{weekday:'short'})+(isToday?'*':'');
           const j=getJurnalInRange({from:ds,to:ds});
-          const val=_metric==='omset'?j.reduce((s,x)=>s+(x.harga||0)*(x.qty||0),0):j.reduce((s,x)=>s+(x.qty||0),0);
+          const val=_metric==='omset'?j.reduce((s,x)=>s+_dashOmset(x),0):j.reduce((s,x)=>s+(x.qty||0),0);
           pts.push({label,ds,val,isToday});
         }
         return pts;
@@ -1269,6 +1288,11 @@ async function renderDashboard() {
 
     // Initial render
     renderChartSection();
+
+    // Expose lightweight chart-only refresh for realtime sync
+    window._owChartRefresh = function() {
+      if(_mode === 'realtime') renderChartSection();
+    };
 
   })(); // end IIFE buildTrendWidget
 
