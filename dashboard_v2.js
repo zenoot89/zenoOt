@@ -189,10 +189,13 @@ function _owInjectCSS() {
 .ow-chart-stat{
   display:flex;
   flex-direction:column;
-  gap:3px;
-  background:var(--cream);
-  border-radius:10px;
-  padding:10px 12px;
+  gap:4px;
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  padding:12px 14px;
+  min-height:72px;
+  justify-content:center;
 }
 .ow-chart-stat-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;margin-bottom:2px;}
 .ow-chart-stat-val{font-size:14px;font-weight:800;color:var(--charcoal);line-height:1.2;}
@@ -265,6 +268,9 @@ function _owInjectCSS() {
   .ow-mini-label{font-size:10px;}
   .ow-card{padding:14px 12px;}
   .ow-chart-stat-val{font-size:12px;}
+  .ow-chart-stat-label{font-size:9px;}
+  .ow-chart-stat{padding:10px 10px;min-height:60px;}
+  .ow-chart-stats{grid-template-columns:repeat(2,1fr);gap:6px;}
   .ow-chart-legend{font-size:11px;}
 
   /* Dead stock row fix — nilai HPP + qty tidak tumpuk */
@@ -938,6 +944,52 @@ async function renderDashboard() {
         const d1=cvs._data1||[], d2=cvs._data2||[];
         drawChart(d1,d2);
       });
+      // Touch support (Android/iPhone) - tap/drag to show tooltip
+      function _handleTouch(e){
+        if(!cvs._meta)return;
+        e.preventDefault();
+        const touch=e.touches[0]||e.changedTouches[0];
+        if(!touch)return;
+        const rect=cvs.getBoundingClientRect();
+        const mx=(touch.clientX-rect.left)*(cvs.width/rect.width);
+        const {pad,cw,n,xOf,yOf,W,H,maxV}=cvs._meta;
+        const d1=cvs._data1||[], d2=cvs._data2||[];
+        if(!d1.length)return;
+        let best=-1, bestDist=Infinity;
+        d1.forEach((_,i)=>{const dx=Math.abs(xOf(i)-mx);if(dx<bestDist){bestDist=dx;best=i;}});
+        if(best<0)return;
+        const ctx=cvs.getContext('2d');
+        drawChart(d1,d2);
+        const tx=xOf(best);
+        ctx.beginPath();ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=1;
+        ctx.moveTo(tx,pad.t);ctx.lineTo(tx,pad.t+H-pad.b-pad.t);ctx.stroke();
+        const v1=d1[best]?.val||0, v2=d2[best]?.val||0;
+        const lbl1=d1[best]?.label||'';
+        const lines=[lbl1, (_metric==='omset'?'Omset: ':'Qty: ')+fmtVFull(v1)];
+        if(d2.some(d=>d.val>0)) lines.push('Compare: '+fmtVFull(v2));
+        const fSize=10;
+        ctx.font=`${fSize}px sans-serif`;
+        const bw=Math.max(...lines.map(l=>ctx.measureText(l).width))+20;
+        const bh=lines.length*15+12;
+        let bx=tx+8, by=pad.t+2;
+        if(bx+bw>W-4)bx=tx-bw-8;
+        ctx.fillStyle='rgba(40,30,20,.88)';
+        ctx.beginPath();
+        if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,6);else ctx.rect(bx,by,bw,bh);
+        ctx.fill();
+        lines.forEach((l,li)=>{
+          ctx.fillStyle=li===1?'#ff8870':li===2?'#bfb8b0':'#fff';
+          ctx.font=li===0?`bold ${fSize}px sans-serif`:`${fSize}px sans-serif`;
+          ctx.textAlign='left';
+          ctx.fillText(l,bx+10,by+15+li*15);
+        });
+      }
+      cvs.addEventListener('touchstart',_handleTouch,{passive:false});
+      cvs.addEventListener('touchmove',_handleTouch,{passive:false});
+      cvs.addEventListener('touchend',function(){
+        const d1=cvs._data1||[], d2=cvs._data2||[];
+        setTimeout(()=>drawChart(d1,d2),800);
+      },{passive:true});
     }
 
     // ── Update stats bar ──
@@ -956,27 +1008,25 @@ async function renderDashboard() {
       const diffStr=diff===null?'—':(diff>=0?'▲':'▼')+Math.abs(diff)+'%';
       const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
       statsEl.innerHTML=`
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Total</div>
-            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(total1)}</div>
-            <div style="font-size:10.5px;font-weight:700;color:${diffColor};">${diffStr} vs periode lalu</div>
-          </div>
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Tertinggi</div>
-            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(max1)}</div>
-            <div style="font-size:10.5px;color:var(--dusty);">periode ini</div>
-          </div>
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Rata-rata</div>
-            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(avg1)}</div>
-            <div style="font-size:10.5px;color:var(--dusty);">per titik aktif</div>
-          </div>
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">${lbl2}</div>
-            <div style="font-size:16px;font-weight:800;color:var(--dusty);font-family:'DM Serif Display',serif;">${total2>0?fmtVFull(total2):'—'}</div>
-            <div style="font-size:10.5px;color:var(--dusty);">pembanding</div>
-          </div>
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">Total</div>
+          <div class="ow-chart-stat-val">${fmtVFull(total1)}</div>
+          <div class="ow-chart-stat-compare" style="font-weight:700;color:${diffColor};">${diffStr} vs periode lalu</div>
+        </div>
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">Tertinggi</div>
+          <div class="ow-chart-stat-val">${fmtVFull(max1)}</div>
+          <div class="ow-chart-stat-compare">periode ini</div>
+        </div>
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">Rata-rata</div>
+          <div class="ow-chart-stat-val">${fmtVFull(avg1)}</div>
+          <div class="ow-chart-stat-compare">per titik aktif</div>
+        </div>
+        <div class="ow-chart-stat">
+          <div class="ow-chart-stat-label">${lbl2}</div>
+          <div class="ow-chart-stat-val" style="color:${total2>0?'var(--charcoal)':'var(--dusty)'};">${total2>0?fmtVFull(total2):'—'}</div>
+          <div class="ow-chart-stat-compare">pembanding</div>
         </div>
       `;
     }

@@ -2150,7 +2150,7 @@ function openEditJurnal(idx) {
   set('ej-idx',   idx);
   set('ej-tgl',   r.tgl);
   set('ej-qty',   r.qty);
-  set('ej-harga', r.harga);
+  set('ej-harga', (() => { const _p=(DB.produk||[]).find(p=>p.var===r.var); return (_p && r.harga>0 && r.harga===(r.hpp||0)) ? (_hitungHarga(_p,_getHargaParams()).jual||r.harga) : r.harga; })());
   set('ej-hpp',   r.hpp);
 
   openModal('modal-edit-jurnal');
@@ -2199,6 +2199,41 @@ function saveEditJurnal() {
   closeModal('modal-edit-jurnal'); saveDB(); renderJurnal(); renderStok(); renderDashboard(); toast('✅ Transaksi diperbarui!');
 }
 
+
+// ── Repair: fix jurnal lama yg harga === hpp (bukan harga jual sebenarnya) ──
+function repairJurnalHarga() {
+  if (!DB.jurnal || !DB.produk) { toast('Data belum siap, coba lagi sebentar', 'err'); return; }
+  const params = _getHargaParams();
+  let fixed = 0;
+  const toSync = [];
+  DB.jurnal.forEach((r, i) => {
+    if (r.harga > 0 && r.hpp > 0 && r.harga === r.hpp) {
+      const p = DB.produk.find(x => x.var === r.var);
+      if (p) {
+        const hargaBenar = _hitungHarga(p, params).jual;
+        if (hargaBenar > 0 && hargaBenar !== r.harga) {
+          DB.jurnal[i] = {...r, harga: hargaBenar};
+          if (r.uuid) toSync.push({uuid:r.uuid, tgl:r.tgl, ch:r.ch, var:r.var, qty:r.qty, harga:hargaBenar, hpp:r.hpp});
+          fixed++;
+        }
+      }
+    }
+  });
+  if (fixed === 0) { toast("Tidak ada data yang perlu diperbaiki ✅"); return; }
+  saveDB();
+  if (toSync.length && SUPABASE_URL) {
+    toast("🔄 Memperbaiki & sync " + fixed + " data...");
+    DataLayer._upsert("jurnal", toSync, "uuid")
+      .then(() => { toast("✅ " + fixed + " transaksi berhasil diperbaiki & sync ke cloud!"); })
+      .catch(e => {
+        console.warn("Repair sync gagal:", e);
+        toast("⚠️ " + fixed + " diperbaiki di lokal, sync cloud gagal — coba 🔄 Sync manual", "warn");
+      });
+  } else {
+    toast("✅ " + fixed + " transaksi berhasil diperbaiki harga jualnya!");
+  }
+  renderJurnal(); renderDashboard();
+}
 function deleteJurnal(idx) {
   if (!confirm('Hapus transaksi ini?')) return;
   const j=DB.jurnal[idx];

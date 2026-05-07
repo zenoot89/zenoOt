@@ -447,6 +447,7 @@
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
       <input class="search-bar" id="j-search" style="margin:0;flex:1;min-width:100px;height:36px;padding:0 10px;font-size:12px;" placeholder="🔍 Cari..." oninput="filterJurnal(this.value)">
       <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal" style="height:36px;padding:0 12px;flex-shrink:0;">🔄 Sync</button>
+      <button class="btn btn-o btn-sm" onclick="repairJurnalHarga()" title="Perbaiki otomatis data jurnal yg harga jual = HPP (seharusnya harga jual dari Price List)" style="height:36px;padding:0 12px;flex-shrink:0;border-color:#C0392B;color:#C0392B;">🔧 Repair Harga</button>
       <select class="sel" id="j-fil-ch" style="height:36px;flex:1;min-width:120px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
       <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 16px;white-space:nowrap;flex-shrink:0;">➕ Tambah</button>
       <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-jurnal-stok')" style="height:36px;padding:0 12px;flex-shrink:0;" title="Reset Jurnal & Stok">🗑 Reset</button>
