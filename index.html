@@ -335,31 +335,37 @@
 <!-- ════════════════════════════════════════════════════════════════
      PAGE: STOK PRODUK
 ════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-stok">
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
-    <input class="search-bar" style="max-width:280px;margin:0" placeholder="🔍 Cari SKU..." oninput="filterStok(this.value)" id="stok-search">
-    <select class="sel" id="stok-fil-supplier" style="max-width:160px" onchange="onSupplierFilterChange()"><option value="">Semua Supplier</option></select>
-    <select class="sel" id="stok-fil-induk" style="max-width:160px" onchange="renderStok()"><option value="">Semua Produk</option></select>
-    <select class="sel" id="stok-fil-status" style="max-width:130px" onchange="renderStok()">
-      <option value="">Semua Status</option><option>Aman</option><option>Rendah</option><option>Kritis</option><option>Habis</option>
-    </select>
-    <button class="btn btn-o btn-sm" onclick="resetStokFilter()">↺ Reset</button>
-    <div style="margin-left:auto;display:flex;gap:8px;">
-      <button class="btn btn-s" onclick="openModal('modal-restock-quick')">➕ Input Masuk</button>
-      <button class="btn btn-o" onclick="openModal('modal-stok-massal')">📋 Massal</button>
-      <button class="btn btn-o" onclick="syncStokDanRender()">🔄 Sync</button>
-      <button class="btn btn-d btn-sm" onclick="openModalResetStok()" style="padding:0 12px;" title="Reset Stok &amp; Jurnal per SKU">🗑 Reset</button>
+<div class="page page-sticky" id="page-stok">
+  <!-- ═══ FROZEN ZONE ═══ -->
+  <div class="sticky-zone">
+    <div class="sticky-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <input class="search-bar" style="max-width:280px;margin:0" placeholder="🔍 Cari SKU..." oninput="filterStok(this.value)" id="stok-search">
+      <select class="sel" id="stok-fil-supplier" style="max-width:160px" onchange="onSupplierFilterChange()"><option value="">Semua Supplier</option></select>
+      <select class="sel" id="stok-fil-induk" style="max-width:160px" onchange="renderStok()"><option value="">Semua Produk</option></select>
+      <select class="sel" id="stok-fil-status" style="max-width:130px" onchange="renderStok()">
+        <option value="">Semua Status</option><option>Aman</option><option>Rendah</option><option>Kritis</option><option>Habis</option>
+      </select>
+      <button class="btn btn-o btn-sm" onclick="resetStokFilter()">↺ Reset</button>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-s" onclick="openModal('modal-restock-quick')">➕ Input Masuk</button>
+        <button class="btn btn-o" onclick="openModal('modal-stok-massal')">📋 Massal</button>
+        <button class="btn btn-o" onclick="syncStokDanRender()">🔄 Sync</button>
+        <button class="btn btn-d btn-sm" onclick="openModalResetStok()" style="padding:0 12px;" title="Reset Stok &amp; Jurnal per SKU">🗑 Reset</button>
+      </div>
     </div>
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr>
-        <th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>Status</th>
-        <th onclick="sortStok('akhir')" style="cursor:pointer;user-select:none" id="th-stok-akhir">Stok Akhir <span id="sort-arrow-akhir">↕</span></th>
-        <th>Awal</th><th>Masuk</th><th>Sales</th><th>HPP/pc</th><th>Nilai Stok</th><th>Supplier</th><th>Aksi</th>
-      </tr></thead>
-      <tbody id="stok-body"></tbody>
-    </table>
+  <!-- ═══ SCROLL ZONE ═══ -->
+  <div class="scroll-zone">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>Status</th>
+          <th onclick="sortStok('akhir')" style="cursor:pointer;user-select:none" id="th-stok-akhir">Stok Akhir <span id="sort-arrow-akhir">↕</span></th>
+          <th>Awal</th><th>Masuk</th><th>Sales</th><th>HPP/pc</th><th>Nilai Stok</th><th>Supplier</th><th>Aksi</th>
+        </tr></thead>
+        <tbody id="stok-body"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -427,53 +433,57 @@
 <!-- ════════════════════════════════════════════════════════════════
      PAGE: JURNAL PENJUALAN
 ════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-jurnal">
-  <div class="grid4" style="margin-bottom:18px;">
-    <div class="stat c1"><div class="stat-label">Total Omset</div><div class="stat-val" style="font-size:16px" id="j-rev">Rp 0</div></div>
-    <div class="stat c2"><div class="stat-label">Total Qty</div><div class="stat-val" id="j-tot-qty">0</div></div>
-    <div class="stat c3"><div class="stat-label">Transaksi</div><div class="stat-val" id="j-trx">0</div></div>
-    <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
-  </div>
-
-  <!-- Filter Bar — mobile friendly -->
-  <!-- Baris 1: Cari | Sync | Channel | Tambah -->
-  <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
-    <input class="search-bar" id="j-search" style="margin:0;flex:1;min-width:100px;height:36px;padding:0 10px;font-size:12px;" placeholder="🔍 Cari..." oninput="filterJurnal(this.value)">
-    <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal" style="height:36px;padding:0 12px;flex-shrink:0;">🔄 Sync</button>
-    <select class="sel" id="j-fil-ch" style="height:36px;flex:1;min-width:120px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
-    <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 16px;white-space:nowrap;flex-shrink:0;">➕ Tambah</button>
-    <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-jurnal-stok')" style="height:36px;padding:0 12px;flex-shrink:0;" title="Reset Jurnal & Stok">🗑 Reset</button>
-  </div>
-  <!-- Baris 2: Reset | Dari | – | Sampai -->
-  <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
-    <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;flex-shrink:0;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);">↺ Reset</button>
-    <input class="inp" type="date" id="j-fil-from" style="height:36px;flex:1;" onchange="filterJurnalDate()">
-    <span style="color:var(--dusty);font-size:12px;font-weight:600;flex-shrink:0;">–</span>
-    <input class="inp" type="date" id="j-fil-to" style="height:36px;flex:1;" onchange="filterJurnalDate()">
-  </div>
-
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Tanggal</th><th>Channel</th><th>SKU Variasi</th><th>Qty</th><th>Harga Jual/pc</th><th>Omset</th><th>Aksi</th></tr></thead>
-      <tbody id="jurnal-body"></tbody>
-    </table>
-  </div>
-
-  <!-- ── TARGET GLOBAL BULAN INI ── -->
-  <div style="margin-top:20px;">
-    <div class="db-card">
-      <div class="db-card-title" style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:14px;">🎯 Target Global Bulan Ini</div>
-      <div id="jurnal-target-global"></div>
+<div class="page page-sticky" id="page-jurnal">
+  <!-- ═══ FROZEN ZONE ═══ -->
+  <div class="sticky-zone">
+    <!-- Stat Cards -->
+    <div class="sticky-stats grid4">
+      <div class="stat c1"><div class="stat-label">Total Omset</div><div class="stat-val" style="font-size:16px" id="j-rev">Rp 0</div></div>
+      <div class="stat c2"><div class="stat-label">Total Qty</div><div class="stat-val" id="j-tot-qty">0</div></div>
+      <div class="stat c3"><div class="stat-label">Transaksi</div><div class="stat-val" id="j-trx">0</div></div>
+      <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
+    </div>
+    <!-- Filter Baris 1 -->
+    <div class="sticky-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input class="search-bar" id="j-search" style="margin:0;flex:1;min-width:100px;height:36px;padding:0 10px;font-size:12px;" placeholder="🔍 Cari..." oninput="filterJurnal(this.value)">
+      <button class="btn btn-o btn-sm" onclick="syncHargaManual()" id="btn-sync-jurnal" style="height:36px;padding:0 12px;flex-shrink:0;">🔄 Sync</button>
+      <select class="sel" id="j-fil-ch" style="height:36px;flex:1;min-width:120px;" onchange="filterJurnalChannel()"><option value="">Semua Channel</option></select>
+      <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 16px;white-space:nowrap;flex-shrink:0;">➕ Tambah</button>
+      <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-jurnal-stok')" style="height:36px;padding:0 12px;flex-shrink:0;" title="Reset Jurnal & Stok">🗑 Reset</button>
+    </div>
+    <!-- Filter Baris 2 -->
+    <div class="sticky-actions-2" style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;flex-shrink:0;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);">↺ Reset</button>
+      <input class="inp" type="date" id="j-fil-from" style="height:36px;flex:1;" onchange="filterJurnalDate()">
+      <span style="color:var(--dusty);font-size:12px;font-weight:600;flex-shrink:0;">–</span>
+      <input class="inp" type="date" id="j-fil-to" style="height:36px;flex:1;" onchange="filterJurnalDate()">
     </div>
   </div>
-
+  <!-- ═══ SCROLL ZONE ═══ -->
+  <div class="scroll-zone">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Tanggal</th><th>Channel</th><th>SKU Variasi</th><th>Qty</th><th>Harga Jual/pc</th><th>Omset</th><th>Aksi</th></tr></thead>
+        <tbody id="jurnal-body"></tbody>
+      </table>
+    </div>
+    <!-- Target Global ikut scroll di bawah tabel -->
+    <div class="scroll-zone-footer">
+      <div class="db-card">
+        <div class="db-card-title" style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:14px;">🎯 Target Global Bulan Ini</div>
+        <div id="jurnal-target-global"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
      PAGE: KELOLA PRODUK
 ════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-produk">
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+<div class="page page-sticky" id="page-produk">
+  <!-- ═══ FROZEN ZONE ═══ -->
+  <div class="sticky-zone">
+  <div class="sticky-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
     <input class="search-bar" style="margin:0;flex:1;max-width:340px" placeholder="🔍 Cari produk..." oninput="filterProduk(this.value)">
     <select class="inp" style="max-width:160px" onchange="filterProdukStatus(this.value)">
       <option value="semua">Semua Status</option>
@@ -507,6 +517,7 @@
       <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-produk')">🗑 Reset</button>
     </div>
   </div>
+  </div><!-- /sticky-zone -->
 
   <!-- Modal Bulk Edit HPP -->
   <div class="overlay" id="modal-bulk-hpp">
@@ -557,6 +568,8 @@
     </div>
   </div>
 
+  <!-- ═══ SCROLL ZONE ═══ -->
+  <div class="scroll-zone">
   <div class="tbl-wrap">
     <table>
       <thead><tr>
@@ -566,10 +579,8 @@
       <tbody id="produk-body"></tbody>
     </table>
   </div>
+  </div><!-- /scroll-zone -->
 </div>
-
-<!-- ════════════════════════════════════════════════════════════════
-     PAGE: PRICE LIST
 ════════════════════════════════════════════════════════════════ -->
 <!-- ════════════════════════════════════════════════════════════════
      PAGE: TOKO MANAGER
@@ -614,18 +625,24 @@
   </div>
 </div>
 
-<div class="page" id="page-harga">
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
-    <input class="search-bar" style="margin:0;flex:1;max-width:280px" placeholder="🔍 Cari SKU / Induk..." oninput="filterHarga(this.value)" id="harga-search">
-    <select class="sel" id="harga-fil-induk" style="max-width:180px" onchange="filterHargaFromDropdown()"><option value="">Semua Produk</option></select>
-    <select class="sel" id="harga-fil-supplier" style="max-width:160px" onchange="filterHargaFromDropdown()"><option value="">Semua Supplier</option></select>
-    <button class="btn btn-o btn-sm" onclick="resetHargaFilter()">↺ Reset</button>
+<div class="page page-sticky" id="page-harga">
+  <!-- ═══ FROZEN ZONE ═══ -->
+  <div class="sticky-zone">
+    <div class="sticky-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <input class="search-bar" style="margin:0;flex:1;max-width:280px" placeholder="🔍 Cari SKU / Induk..." oninput="filterHarga(this.value)" id="harga-search">
+      <select class="sel" id="harga-fil-induk" style="max-width:180px" onchange="filterHargaFromDropdown()"><option value="">Semua Produk</option></select>
+      <select class="sel" id="harga-fil-supplier" style="max-width:160px" onchange="filterHargaFromDropdown()"><option value="">Semua Supplier</option></select>
+      <button class="btn btn-o btn-sm" onclick="resetHargaFilter()">↺ Reset</button>
+    </div>
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Induk</th><th>Variasi</th><th>HPP</th><th>NPM</th><th>Harga Jual</th><th>Reseller</th><th>GM%</th></tr></thead>
-      <tbody id="harga-body"></tbody>
-    </table>
+  <!-- ═══ SCROLL ZONE ═══ -->
+  <div class="scroll-zone">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Induk</th><th>Variasi</th><th>HPP</th><th>NPM</th><th>Harga Jual</th><th>Reseller</th><th>GM%</th></tr></thead>
+        <tbody id="harga-body"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 

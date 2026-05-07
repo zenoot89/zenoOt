@@ -2224,3 +2224,83 @@ button, .btn, .bg-fill-btn, .bg-save-btn {
   table { min-width: 520px; }
   .bg-form-grid4 { grid-template-columns: 1fr !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   STICKY HEADER SYSTEM — Kelola Produk, Jurnal, Stok, Price List
+   Zona frozen menempel di atas, hanya tabel yang scroll
+════════════════════════════════════════════════════════════════ */
+
+/* Page-level: flex column, tinggi penuh viewport minus padding .main (30px top + 30px bottom) */
+.page-sticky {
+  display: flex;
+  flex-direction: column;
+  /* 30px padding-top + ~76px topbar+margin-bottom = 106px offset */
+  height: calc(100vh - 106px);
+  overflow: hidden;
+}
+
+/* Saat page-sticky aktif, .main tidak boleh scroll sendiri */
+.main:has(.page-sticky.active) {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+/* Zona beku: semua di atas tabel */
+.sticky-zone {
+  flex-shrink: 0;
+  background: var(--bg);
+  z-index: 10;
+  padding-bottom: 4px;
+}
+
+/* Stat cards row */
+.sticky-stats {
+  margin-bottom: 14px;
+}
+
+/* Action bar row */
+.sticky-actions {
+  margin-bottom: 8px;
+}
+
+/* Second action bar row (filter tanggal) */
+.sticky-actions-2 {
+  margin-bottom: 14px;
+}
+
+/* Tabel scroll area — tumbuh mengisi sisa ruang */
+.scroll-zone {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* tbl-wrap di dalam scroll-zone tidak perlu overflow sendiri */
+.scroll-zone .tbl-wrap {
+  overflow: visible;
+  border-radius: 14px 14px 14px 14px;
+  margin-bottom: 0;
+}
+
+/* thead sticky di dalam scroll-zone */
+.scroll-zone thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--cream);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* Area bawah tabel (target, dll) tetap ikut scroll */
+.scroll-zone-footer {
+  padding-top: 16px;
+}
+
+/* Responsive — mobile */
+@media (max-width: 768px) {
+  .page-sticky {
+    /* Mobile: padding lebih kecil, topbar lebih pendek */
+    height: calc(100vh - 120px);
+  }
+}
