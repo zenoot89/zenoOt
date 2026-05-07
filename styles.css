@@ -2792,3 +2792,74 @@ thead th {
     padding-bottom: 4px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOPBAR — tanpa toko dropdown, date kiri, Filter kanan sejajar
+════════════════════════════════════════════════════════════════ */
+
+/* Tombol filter di topbar (landscape mode) — sejajar dengan date */
+#page-stok.active ~ * .topbar .fb-toggle-topbar,
+.fb-toggle-topbar {
+  display: none;
+}
+
+/* ── JURNAL PROYEKSI BAR — 1 baris tipis di atas tabel ── */
+.jurnal-proyeksi-bar {
+  flex-shrink: 0;
+  background: var(--charcoal, #2c2c2c);
+  border-radius: 10px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+}
+
+.jurnal-proyeksi-bar:empty {
+  display: none;
+}
+
+.jp-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.jp-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(255,255,255,.55);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.jp-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.jp-val.good { color: #4ade80; }
+.jp-val.warn { color: #fbbf24; }
+.jp-val.danger { color: #f87171; }
+
+.jp-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255,255,255,.15);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .jurnal-proyeksi-bar {
+    padding: 7px 12px;
+    gap: 8px;
+  }
+  .jp-val { font-size: 12px; }
+  .jp-label { font-size: 9px; }
+}

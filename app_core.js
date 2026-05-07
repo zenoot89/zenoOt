@@ -390,6 +390,7 @@ function getProdukFiltered() {
 // ── Render dropdown toko di topbar ──
 function renderTokoDropdown() {
   const el = document.getElementById('toko-dropdown-wrap');
+  if (!el) return; // elemen sudah dihapus
   if (!el) return;
 
   const toko = window._tokoAktif
@@ -1990,7 +1991,7 @@ function renderJurnal() {
   if (!body) return; // halaman jurnal belum aktif, skip
   _populateJurnalChannelFilter();
   // Render target global di bawah tabel
-  if (typeof renderJurnalTargetGlobal === 'function') renderJurnalTargetGlobal();
+  renderJurnalProyeksi();
   const q=jurnalQ.toLowerCase();
   const rows=DB.jurnal.filter(r=>{
     if(q && !r.var.toLowerCase().includes(q) && !r.ch.toLowerCase().includes(q)) return false;
@@ -2027,101 +2028,95 @@ function renderJurnal() {
     const idx=DB.jurnal.indexOf(r);
     return `<tr><td class="mono">${i+1}</td><td class="mono">${r.tgl}</td><td>${chTag(r.ch)}</td><td>${r.var}</td><td class="mono" style="text-align:center">${r.qty}</td><td class="mono" style="color:var(--sage);font-weight:600">${fmt(hargaJual)}</td><td class="mono" style="color:var(--brown);font-weight:700">${fmt(omset)}</td><td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button></td></tr>`;
   }).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada transaksi sesuai filter</td></tr>`;
-  // Render target global di bawah tabel
-  renderJurnalTargetGlobal();
+  renderJurnalProyeksi();
 }
 
-// ── Target Global Bulan Ini — di bawah Jurnal Penjualan ────────────────
-function renderJurnalTargetGlobal() {
-  const el = document.getElementById('jurnal-target-global');
+// ── Proyeksi 1 Baris — di atas tabel Jurnal ────────────────────────────
+function renderJurnalProyeksi() {
+  const el = document.getElementById('jurnal-proyeksi-bar');
   if (!el) return;
 
-  const yr = new Date().getFullYear();
-  const mo = String(new Date().getMonth()+1).padStart(2,'0');
-  const bulanKey = yr + '-' + mo;
+  const fmtRp = v => 'Rp ' + Number(Math.round(v)).toLocaleString('id-ID');
 
-  // Load dari PLAN (Supabase-aware, fallback localStorage)
-  let plan = {};
-  try {
-    if (typeof PLAN !== 'undefined' && PLAN.loadSync) {
-      plan = PLAN.loadSync('global', bulanKey) || {};
-    } else {
-      plan = JSON.parse(localStorage.getItem('zenot_planning_' + yr + '_' + mo) || '{}');
-    }
-  } catch(e) {}
+  // ── Ambil target omset dari Biaya Operasional ──
+  let bgData = {};
+  try { bgData = JSON.parse(localStorage.getItem('zenot_biaya_ops_global') || '{}'); } catch(e) {}
 
-  const targetOmset = plan.targetOmset || 0;
-  const targetPcs   = plan.targetProduksi || 0;
+  // Fallback: coba dari planning global bulan ini
+  let targetOmset = 0;
+  if (bgData.biayaOpsGlobal > 0 && bgData.rasioOpsGlobal > 0) {
+    targetOmset = Math.round(bgData.biayaOpsGlobal / (bgData.rasioOpsGlobal / 100));
+  }
+  if (!targetOmset) {
+    try {
+      const d = new Date();
+      const key = 'zenot_planning_' + d.getFullYear() + '_' + String(d.getMonth()+1).padStart(2,'0');
+      const plan = JSON.parse(localStorage.getItem(key) || '{}');
+      targetOmset = plan.targetOmset || 0;
+    } catch(e) {}
+  }
 
-  // Hitung aktual dari jurnal bulan ini (HPP x qty)
-  const bulanStr = yr + '-' + mo;
+  // ── Hitung aktual bulan ini dari jurnal ──
+  const now = new Date();
+  const bulanStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const today = bulanStr + '-' + String(now.getDate()).padStart(2,'0');
   const jBulan = DB.jurnal.filter(j => (j.tgl||'').startsWith(bulanStr));
-  const aktualOmset = jBulan.reduce((s,j) => {
+  const params = _getHargaParams();
+
+  let aktualOmset = 0;
+  jBulan.forEach(j => {
     const p = (DB.produk||[]).find(x => (x.var||'').toUpperCase() === (j.var||'').toUpperCase());
-    return s + (p ? (p.hpp||0) : 0) * (j.qty||0);
-  }, 0);
-  const aktualPcs = jBulan.reduce((s,j) => s + (j.qty||0), 0);
-  const aktualTrx = jBulan.length;
+    const harga = (j.harga && j.harga > 0) ? j.harga : (p ? _hitungHarga(p, params).jual : 0);
+    aktualOmset += harga * (j.qty||0);
+  });
 
-  const daysInMonth = new Date(yr, new Date().getMonth()+1, 0).getDate();
-  const dayNow = new Date().getDate();
-  const daysLeft = daysInMonth - dayNow;
-  const pctOmset = targetOmset > 0 ? Math.min(100, Math.round(aktualOmset/targetOmset*100)) : 0;
-  const pctPcs   = targetPcs   > 0 ? Math.min(100, Math.round(aktualPcs/targetPcs*100))     : 0;
+  const totalTrx = jBulan.length;
   const sisaOmset = Math.max(0, targetOmset - aktualOmset);
-  const perHari   = daysLeft > 0 && sisaOmset > 0 ? Math.round(sisaOmset/daysLeft) : 0;
 
-  const fmtRp = v => 'Rp ' + Number(Math.round(v)).toLocaleString('id-ID');
-  const pctColor = p => p>=80?'#16a34a':p>=50?'#D97706':'#C0392B';
-  const progressBar = (pct, color) =>
-    '<div style="height:8px;background:var(--cream);border-radius:99px;overflow:hidden;margin:6px 0 3px;">' +
-    '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:99px;transition:width .6s;"></div></div>';
+  // ── Hitung rata-rata nilai per transaksi & sisa pesanan hari ini ──
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dayNow = now.getDate();
+  const daysLeft = Math.max(1, daysInMonth - dayNow + 1); // +1 include hari ini
 
-  if (!targetOmset && !targetPcs) {
-    el.innerHTML =
-      '<div style="text-align:center;padding:18px;background:var(--cream);border-radius:10px;font-size:13px;color:var(--dusty);">' +
-      'Target bulan ini belum diset.<br>' +
-      '<a href="#" onclick="try{go(\'planning-kpi\',null)}catch(e){}" style="color:var(--brown);font-weight:700;margin-top:4px;display:inline-block;">→ Set Target di Perencanaan</a>' +
-      '</div>';
+  // Rata-rata nilai per transaksi dari semua jurnal bulan ini
+  const avgPerTrx = totalTrx > 0 ? aktualOmset / totalTrx : 0;
+
+  // Sisa pesanan yang perlu di-achieve HARI INI
+  // = sisa omset / hari tersisa / rata-rata per transaksi
+  let sisaPesananHariIni = 0;
+  if (avgPerTrx > 0 && sisaOmset > 0) {
+    const sisaPerHari = sisaOmset / daysLeft;
+    sisaPesananHariIni = Math.ceil(sisaPerHari / avgPerTrx);
+  }
+
+  // Transaksi hari ini (untuk konteks)
+  const trxHariIni = DB.jurnal.filter(j => (j.tgl||'') === today).length;
+
+  // ── Render ──
+  if (!targetOmset) {
+    el.innerHTML = '<span class="jp-label" style="color:rgba(255,255,255,.4)">💡 Set target di Biaya Operasional untuk melihat proyeksi</span>';
     return;
   }
 
+  const sisaColor = sisaOmset === 0 ? 'good' : (sisaOmset < targetOmset * 0.2 ? 'warn' : 'danger');
+  const pesananColor = sisaPesananHariIni === 0 ? 'good' : (sisaPesananHariIni <= 5 ? 'warn' : 'danger');
+
   el.innerHTML =
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">' +
-      // Omset card
-      '<div style="background:var(--cream);border-radius:12px;padding:14px 16px;">' +
-        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dusty);font-weight:700;margin-bottom:4px;">Omset vs Target</div>' +
-        '<div style="font-size:20px;font-weight:800;color:var(--charcoal);">' + fmtRp(aktualOmset) + '</div>' +
-        '<div style="font-size:11px;color:var(--dusty);margin-bottom:2px;">dari target ' + (targetOmset>0?fmtRp(targetOmset):'—') + '</div>' +
-        (targetOmset>0 ? progressBar(pctOmset, pctColor(pctOmset)) : '') +
-        (targetOmset>0 ?
-          '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;">' +
-          '<b style="color:' + pctColor(pctOmset) + '">' + pctOmset + '% tercapai</b>' +
-          '<span style="color:var(--dusty)">' + daysLeft + ' hari tersisa</span></div>' : '') +
-      '</div>' +
-      // Volume card
-      '<div style="background:var(--cream);border-radius:12px;padding:14px 16px;">' +
-        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--dusty);font-weight:700;margin-bottom:4px;">Volume Produksi</div>' +
-        '<div style="font-size:20px;font-weight:800;color:var(--charcoal);">' + aktualPcs.toLocaleString('id-ID') + ' <span style="font-size:13px;font-weight:400">pcs</span></div>' +
-        '<div style="font-size:11px;color:var(--dusty);margin-bottom:2px;">dari target ' + (targetPcs>0?targetPcs.toLocaleString('id-ID')+' pcs':'—') + '</div>' +
-        (targetPcs>0 ? progressBar(pctPcs, pctColor(pctPcs)) : '') +
-        (targetPcs>0 ? '<div style="font-size:11px;margin-top:2px;"><b style="color:' + pctColor(pctPcs) + '">' + pctPcs + '% tercapai</b></div>' : '') +
-      '</div>' +
+    '<div class="jp-item">' +
+      '<span class="jp-label">Target Omset</span>' +
+      '<span class="jp-val">' + fmtRp(targetOmset) + '</span>' +
     '</div>' +
-    // Stats bawah
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">' +
-      '<div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">' +
-        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;">Transaksi</div>' +
-        '<div style="font-size:18px;font-weight:800;color:var(--charcoal);margin-top:2px;">' + aktualTrx + '</div>' +
-      '</div>' +
-      '<div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">' +
-        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;">Sisa Target</div>' +
-        '<div style="font-size:15px;font-weight:800;color:' + (sisaOmset>0?'#C0392B':'#16a34a') + ';margin-top:2px;">' + (sisaOmset>0?fmtRp(sisaOmset):'🎉 Done!') + '</div>' +
-      '</div>' +
-      '<div style="text-align:center;padding:10px;background:var(--cream);border-radius:10px;">' +
-        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;">Perlu/Hari</div>' +
-        '<div style="font-size:15px;font-weight:800;color:' + (perHari>0?'#D97706':'#16a34a') + ';margin-top:2px;">' + (perHari>0?fmtRp(perHari):'✅') + '</div>' +
-      '</div>' +
+    '<div class="jp-divider"></div>' +
+    '<div class="jp-item">' +
+      '<span class="jp-label">Sisa Omset</span>' +
+      '<span class="jp-val ' + sisaColor + '">' + (sisaOmset > 0 ? fmtRp(sisaOmset) : '🎉 Done!') + '</span>' +
+    '</div>' +
+    '<div class="jp-divider"></div>' +
+    '<div class="jp-item">' +
+      '<span class="jp-label">Pesanan Lagi Hari Ini</span>' +
+      '<span class="jp-val ' + pesananColor + '">' +
+        (sisaPesananHariIni > 0 ? sisaPesananHariIni + ' pesanan' : '✅ Cukup') +
+      '</span>' +
     '</div>';
 }
 
