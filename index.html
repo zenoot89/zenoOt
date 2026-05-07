@@ -353,15 +353,18 @@
       </div>
     </div>
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr>
-        <th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>Status</th>
-        <th onclick="sortStok('akhir')" style="cursor:pointer;user-select:none" id="th-stok-akhir">Stok Akhir <span id="sort-arrow-akhir">↕</span></th>
-        <th>Awal</th><th>Masuk</th><th>Sales</th><th>HPP/pc</th><th>Nilai Stok</th><th>Supplier</th><th>Aksi</th>
-      </tr></thead>
-      <tbody id="stok-body"></tbody>
-    </table>
+  <div class="tbl-curve-wrap">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>SKU Induk</th><th>SKU Variasi</th><th>Status</th>
+          <th onclick="sortStok('akhir')" style="cursor:pointer;user-select:none" id="th-stok-akhir">Stok Akhir <span id="sort-arrow-akhir">↕</span></th>
+          <th>Awal</th><th>Masuk</th><th>Sales</th><th>HPP/pc</th><th>Nilai Stok</th><th>Supplier</th><th>Aksi</th>
+        </tr></thead>
+        <tbody id="stok-body"></tbody>
+      </table>
+    </div>
+    <div class="tbl-bottom-curve"></div>
   </div>
 </div>
 
@@ -455,11 +458,14 @@
     </div>
   </div>
 
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Tanggal</th><th>Channel</th><th>SKU Variasi</th><th>Qty</th><th>Harga Jual/pc</th><th>Omset</th><th>Aksi</th></tr></thead>
-      <tbody id="jurnal-body"></tbody>
-    </table>
+  <div class="tbl-curve-wrap">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Tanggal</th><th>Channel</th><th>SKU Variasi</th><th>Qty</th><th>Harga Jual/pc</th><th>Omset</th><th>Aksi</th></tr></thead>
+        <tbody id="jurnal-body"></tbody>
+      </table>
+    </div>
+    <div class="tbl-bottom-curve"></div>
   </div>
 
   <!-- ── TARGET GLOBAL BULAN INI — di luar tbl-wrap, ikut scroll halaman ── -->
@@ -562,14 +568,17 @@
     </div>
   </div>
 
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr>
-        <th style="width:36px;text-align:center;display:none;" class="chk-col"><input type="checkbox" id="produk-chk-all" onchange="produkToggleAll(this.checked)" title="Pilih Semua" style="cursor:pointer;width:15px;height:15px;"></th>
-        <th>#</th><th>SKU / Variasi</th><th>Supplier / HPP</th><th></th><th>Status</th>
-      </tr></thead>
-      <tbody id="produk-body"></tbody>
-    </table>
+  <div class="tbl-curve-wrap">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:36px;text-align:center;display:none;" class="chk-col"><input type="checkbox" id="produk-chk-all" onchange="produkToggleAll(this.checked)" title="Pilih Semua" style="cursor:pointer;width:15px;height:15px;"></th>
+          <th>#</th><th>SKU / Variasi</th><th>Supplier / HPP</th><th></th><th>Status</th>
+        </tr></thead>
+        <tbody id="produk-body"></tbody>
+      </table>
+    </div>
+    <div class="tbl-bottom-curve"></div>
   </div>
 </div>
 
@@ -628,11 +637,14 @@
       <button class="btn btn-o btn-sm" onclick="resetHargaFilter()">↺ Reset</button>
     </div>
   </div>
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr><th>#</th><th>Induk</th><th>Variasi</th><th>HPP</th><th>NPM</th><th>Harga Jual</th><th>Reseller</th><th>GM%</th></tr></thead>
-      <tbody id="harga-body"></tbody>
-    </table>
+  <div class="tbl-curve-wrap">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Induk</th><th>Variasi</th><th>HPP</th><th>NPM</th><th>Harga Jual</th><th>Reseller</th><th>GM%</th></tr></thead>
+        <tbody id="harga-body"></tbody>
+      </table>
+    </div>
+    <div class="tbl-bottom-curve"></div>
   </div>
 </div>
 
