@@ -2341,3 +2341,135 @@ button, .btn, .bg-fill-btn, .bg-save-btn {
     min-height: 200px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FROZEN HEADER — MOBILE OPTIMIZATION
+════════════════════════════════════════════════════════════════ */
+
+/* Mobile utama ≤768px */
+@media (max-width: 768px) {
+
+  /* Main harus overflow:hidden agar frozen bisa kerja */
+  .main {
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Freeze bar lebih compact di HP */
+  .freeze-bar {
+    padding-bottom: 8px;
+  }
+
+  /* Jurnal — stat cards 2 kolom di HP, lebih kecil */
+  #page-jurnal .freeze-bar .grid4 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  #page-jurnal .freeze-bar .stat {
+    padding: 10px 12px !important;
+  }
+  #page-jurnal .freeze-bar .stat-val {
+    font-size: 14px !important;
+  }
+  #page-jurnal .freeze-bar .stat-label {
+    font-size: 10px !important;
+  }
+
+  /* Filter bar jurnal — wrap lebih rapat */
+  #page-jurnal .freeze-bar > div:nth-child(2) {
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Stock produk — toolbar wrap rapi */
+  #page-stok .freeze-bar > div {
+    gap: 6px !important;
+  }
+  #page-stok .freeze-bar .search-bar {
+    max-width: 100% !important;
+    width: 100%;
+  }
+
+  /* Kelola produk — toolbar compact */
+  #page-produk .freeze-bar > div {
+    gap: 6px !important;
+  }
+  #page-produk .freeze-bar .search-bar {
+    max-width: 100% !important;
+  }
+
+  /* Price list — filter compact */
+  #page-harga .freeze-bar > div {
+    gap: 6px !important;
+  }
+  #page-harga .freeze-bar .search-bar {
+    max-width: 100% !important;
+  }
+
+  /* tbl-wrap min height agar tidak terlalu pendek */
+  #page-stok .tbl-wrap,
+  #page-jurnal .tbl-wrap,
+  #page-produk .tbl-wrap,
+  #page-harga .tbl-wrap {
+    min-height: 150px;
+  }
+}
+
+/* HP kecil ≤480px — lebih agresif compress freeze-bar */
+@media (max-width: 480px) {
+
+  .freeze-bar {
+    padding-bottom: 6px;
+  }
+
+  /* Jurnal stat 2x2 sangat compact */
+  #page-jurnal .freeze-bar .grid4 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  #page-jurnal .freeze-bar .stat {
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+  #page-jurnal .freeze-bar .stat-val {
+    font-size: 13px !important;
+  }
+  #page-jurnal .freeze-bar .stat::before {
+    height: 2px !important;
+  }
+
+  /* Filter jurnal baris 1 — sync & reset jadi icon only */
+  #page-jurnal #btn-sync-jurnal {
+    padding: 0 8px !important;
+    font-size: 12px !important;
+  }
+
+  /* Tombol-tombol kecil di toolbar */
+  #page-stok .freeze-bar .btn,
+  #page-produk .freeze-bar .btn,
+  #page-harga .freeze-bar .btn {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+  }
+
+  /* Search bar full width di HP kecil */
+  #page-stok .freeze-bar .search-bar,
+  #page-produk .freeze-bar .search-bar,
+  #page-harga .freeze-bar .search-bar {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  /* Stock: tombol kanan pindah ke bawah search */
+  #page-stok .freeze-bar > div {
+    flex-wrap: wrap !important;
+  }
+  #page-stok .freeze-bar > div > div[style*="margin-left:auto"] {
+    margin-left: 0 !important;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
