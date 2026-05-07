@@ -2524,7 +2524,10 @@ function renderProduk() {
       varNo++;
       const chk=produkSelectedVars.has(r.var);
       const dbIdx=DB.produk.indexOf(r);
-      html+=`<tr class="produk-var-row${chk?' produk-row-selected':''}">
+      const isActive=(_splitPanelOpen && _splitPanelIdx===dbIdx);
+      html+=`<tr class="produk-var-row${chk?' produk-row-selected':''}${isActive?' produk-split-active':''}"
+        onclick="if(!event.target.closest('input')){openSplitPanel(${dbIdx})}"
+        style="cursor:pointer;">
         <td style="text-align:center;display:${_produkEditMode?'table-cell':'none'}" class="chk-col">
           <input type="checkbox" class="produk-chk" value="${r.var}" data-induk="${induk}"
             ${chk?'checked':''} onchange="produkOnCheck(this)"
@@ -2535,7 +2538,6 @@ function renderProduk() {
         <td class="mono">${fmt(r.hpp)}</td>
         <td></td>
         <td>${getProdukStatusBadge(r.status_produk||'aktif')}</td>
-
       </tr>`;
     });
   });
@@ -2778,14 +2780,8 @@ function tambahProduk() {
   toast(`Produk ${varName} berhasil ditambahkan!`);
 }
 function openEditProduk(idx) {
-  const r=DB.produk[idx];
-  document.getElementById('ep-idx').value=idx;
-  document.getElementById('ep-induk').value=r.induk;
-  document.getElementById('ep-variasi').value=r.var;
-  document.getElementById('ep-hpp').value=r.hpp;
-  document.getElementById('ep-suplaier').value=r.suplaier||'';
-  document.getElementById('ep-status').value=r.status_produk||'aktif';
-  openModal('modal-edit-produk');
+  // Gunakan split panel (bukan modal)
+  openSplitPanel(idx);
 }
 async function saveEditProduk() {
   const idx=+document.getElementById('ep-idx').value;
@@ -4669,3 +4665,138 @@ async function saveAssignChannel() { _persistAssign(); toast('Assign channel ter
 
 // ================================================================
 // JURNAL TARGET GLOBAL — widget di bawah jurnal penjualan
+
+// ════════════════════════════════════════════════════════════════
+// SPLIT VIEW PANEL — Edit Produk (panel kanan, bukan popup modal)
+// ════════════════════════════════════════════════════════════════
+
+let _splitPanelOpen = false;
+let _splitPanelIdx  = -1;
+
+/** Buka split panel dan isi data produk berdasarkan index DB.produk */
+function openSplitPanel(idx) {
+  const r = DB.produk[idx];
+  if (!r) return;
+
+  _splitPanelIdx = idx;
+
+  // Isi field
+  document.getElementById('sp-idx').value       = idx;
+  document.getElementById('sp-induk').value     = r.induk    || '';
+  document.getElementById('sp-variasi').value   = r.var      || '';
+  document.getElementById('sp-hpp').value       = r.hpp      || 0;
+  document.getElementById('sp-suplaier').value  = r.suplaier || '';
+  document.getElementById('sp-status').value    = r.status_produk || 'aktif';
+
+  // Buka panel (width slide-in)
+  const panel = document.getElementById('produk-split-panel');
+  if (panel) panel.style.width = '380px';
+
+  _splitPanelOpen = true;
+
+  // Highlight baris yang sedang diedit
+  _highlightSplitRow(idx);
+
+  // Reset tombol simpan
+  const btn = document.getElementById('sp-btn-save');
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan'; }
+}
+
+/** Tutup split panel */
+function closeSplitPanel() {
+  const panel = document.getElementById('produk-split-panel');
+  if (panel) panel.style.width = '0';
+  _splitPanelOpen = false;
+  _splitPanelIdx  = -1;
+  // Hapus highlight
+  document.querySelectorAll('.produk-split-active').forEach(el => el.classList.remove('produk-split-active'));
+}
+
+/** Highlight baris aktif */
+function _highlightSplitRow(idx) {
+  document.querySelectorAll('.produk-split-active').forEach(el => el.classList.remove('produk-split-active'));
+  const r = DB.produk[idx];
+  if (!r) return;
+  const rows = document.querySelectorAll('.produk-var-row');
+  rows.forEach(row => {
+    const chk = row.querySelector('.produk-chk');
+    if (chk && chk.value === r.var) row.classList.add('produk-split-active');
+  });
+}
+
+/** Simpan perubahan dari split panel */
+async function saveSplitEditProduk() {
+  const idx = +document.getElementById('sp-idx').value;
+  if (idx < 0 || idx >= DB.produk.length) { toast('Data tidak ditemukan', 'err'); return; }
+
+  const updated = {
+    ...DB.produk[idx],
+    induk:         document.getElementById('sp-induk').value.trim().toUpperCase(),
+    var:           document.getElementById('sp-variasi').value.trim().toUpperCase(),
+    hpp:           +document.getElementById('sp-hpp').value || 0,
+    suplaier:      document.getElementById('sp-suplaier').value.trim().toUpperCase(),
+    status_produk: document.getElementById('sp-status').value || 'aktif',
+  };
+
+  if (!updated.var)   { toast('Nama variasi tidak boleh kosong!', 'err'); return; }
+  if (!updated.induk) { toast('Nama induk tidak boleh kosong!', 'err'); return; }
+
+  const btn = document.getElementById('sp-btn-save');
+  if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+
+  if (SUPABASE_URL) {
+    try {
+      await DataLayer._upsert('produk', [{
+        var: updated.var, induk: updated.induk, hpp: updated.hpp,
+        suplaier: updated.suplaier, status_produk: updated.status_produk,
+        toko: updated.toko || 'semua'
+      }], 'var');
+    } catch(e) {
+      toast('Gagal simpan ke cloud: ' + e.message, 'err');
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan'; }
+      return;
+    }
+  }
+
+  DB.produk[idx] = updated;
+  saveDB();
+  renderProduk();
+  renderHarga();
+  toast('✅ Produk diperbarui!');
+
+  // Re-highlight setelah render
+  setTimeout(() => _highlightSplitRow(idx), 50);
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan'; }
+}
+
+/** Tambah varian baru dari split panel */
+function openTambahVarianDariSplit() {
+  const idx = +document.getElementById('sp-idx').value;
+  const r = DB.produk[idx];
+  if (!r) return;
+  document.getElementById('tv-induk-ref').value = r.induk;
+  openModal('modal-tambah-varian');
+}
+
+/** Hapus varian dari split panel */
+async function hapusProdukDariSplit() {
+  const idx = +document.getElementById('sp-idx').value;
+  const r = DB.produk[idx];
+  if (!r) return;
+  if (!confirm(`Hapus varian "${r.var}" secara permanen?\nData stok dan jurnal terkait TIDAK ikut terhapus.`)) return;
+
+  const varKey = r.var;
+  closeSplitPanel();
+
+  if (SUPABASE_URL) {
+    try { await DataLayer._deleteByKey('produk', 'var', varKey); }
+    catch(e) { toast('Gagal hapus dari cloud: ' + e.message, 'err'); return; }
+  }
+
+  DB.produk.splice(idx, 1);
+  saveDB();
+  renderProduk();
+  renderHarga();
+  toast('✅ Varian ' + varKey + ' dihapus!');
+}
+// ════════════════════════════════════════════════════════════════

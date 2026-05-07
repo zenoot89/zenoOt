@@ -3026,3 +3026,69 @@ thead th {
   .pf-btn { padding: 8px 10px; }
   #produk-float-div-a, #produk-float-div-b { margin: 0 8px; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   SPLIT VIEW PANEL STYLES
+════════════════════════════════════════════════════════════════ */
+
+/* Active row highlight ketika split panel terbuka */
+.produk-var-row.produk-split-active {
+  background: rgba(139, 90, 43, 0.08) !important;
+  border-left: 3px solid var(--brown, #8b5a2b) !important;
+}
+
+/* Hover row untuk cue visual bahwa bisa diklik */
+.produk-var-row:hover {
+  background: rgba(139, 90, 43, 0.04);
+  transition: background .15s;
+}
+
+/* Split container harus mengisi penuh tinggi sisa */
+#produk-split-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Panel kanan scrollable body */
+#produk-split-panel > div {
+  min-width: 380px;
+}
+
+/* Smooth panel open/close */
+#produk-split-panel {
+  overflow: hidden;
+  transition: width .32s cubic-bezier(.4,0,.2,1);
+}
+
+/* Mobile: panel jadi full-width overlay */
+@media (max-width: 768px) {
+  #produk-split-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 200;
+    border-radius: 14px 0 0 14px;
+    box-shadow: -4px 0 24px rgba(0,0,0,.18);
+  }
+  #produk-split-panel[style*="width: 380px"],
+  #produk-split-panel[style*="width:380px"] {
+    width: 100vw !important;
+    max-width: 380px;
+  }
+}
+
+/* Fix: split-left harus mengisi penuh dengan flex */
+#produk-split-left {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#produk-split-left .tbl-curve-wrap {
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 0;
+}

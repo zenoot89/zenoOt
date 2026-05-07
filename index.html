@@ -556,18 +556,93 @@
     </div>
   </div>
 
-  <div class="tbl-curve-wrap">
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th style="width:36px;text-align:center;display:none;" class="chk-col"><input type="checkbox" id="produk-chk-all" onchange="produkToggleAll(this.checked)" title="Pilih Semua" style="cursor:pointer;width:15px;height:15px;"></th>
-          <th>#</th><th>SKU / Variasi</th><th>Supplier / HPP</th><th></th><th>Status</th>
-        </tr></thead>
-        <tbody id="produk-body"></tbody>
-      </table>
+  <!-- Split View Wrapper -->
+  <div id="produk-split-container" style="display:flex;flex:1;gap:12px;min-height:0;overflow:hidden;">
+
+    <!-- LEFT: Table -->
+    <div id="produk-split-left" style="flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;transition:flex .3s ease;">
+      <div class="tbl-curve-wrap" style="flex:1;margin-bottom:0;">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:36px;text-align:center;display:none;" class="chk-col"><input type="checkbox" id="produk-chk-all" onchange="produkToggleAll(this.checked)" title="Pilih Semua" style="cursor:pointer;width:15px;height:15px;"></th>
+              <th>#</th><th>SKU / Variasi</th><th>Supplier / HPP</th><th></th><th>Status</th>
+            </tr></thead>
+            <tbody id="produk-body"></tbody>
+          </table>
+        </div>
+        <div class="tbl-bottom-curve"></div>
+      </div>
     </div>
-    <div class="tbl-bottom-curve"></div>
-  </div>
+
+    <!-- RIGHT: Split Edit Panel -->
+    <div id="produk-split-panel" style="
+      width:0;
+      overflow:hidden;
+      flex-shrink:0;
+      transition:width .32s cubic-bezier(.4,0,.2,1);
+      display:flex;
+      flex-direction:column;
+      background:var(--card,#fff);
+      border:1px solid var(--border,#e5dfd5);
+      border-radius:14px;
+      box-shadow:0 2px 16px -4px rgba(0,0,0,.13);
+    ">
+      <div style="width:380px;display:flex;flex-direction:column;height:100%;">
+        <!-- Panel Header -->
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <span style="font-weight:700;font-size:14px;color:var(--brown);">✏️ Edit Produk</span>
+          <button onclick="closeSplitPanel()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--dusty);line-height:1;padding:2px 6px;border-radius:6px;" title="Tutup">✕</button>
+        </div>
+        <!-- Panel Body -->
+        <div style="flex:1;overflow-y:auto;padding:16px;">
+          <input type="hidden" id="sp-idx">
+
+          <div class="fg" style="margin-bottom:12px;">
+            <label class="lbl">SKU Induk</label>
+            <input class="inp" id="sp-induk">
+          </div>
+          <div class="fg" style="margin-bottom:12px;">
+            <label class="lbl">SKU Variasi</label>
+            <input class="inp" id="sp-variasi">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="fg">
+              <label class="lbl">HPP / pc</label>
+              <input class="inp" type="number" id="sp-hpp" min="0">
+            </div>
+            <div class="fg">
+              <label class="lbl">Suplaier</label>
+              <input class="inp" id="sp-suplaier">
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:16px;">
+            <label class="lbl">Status Produk</label>
+            <select class="inp" id="sp-status">
+              <option value="aktif">✅ Aktif</option>
+              <option value="slow">⚠️ Slow Moving</option>
+              <option value="deadstock">🔴 Deadstock</option>
+              <option value="clearance">🏷️ Clearance</option>
+              <option value="arsip">📦 Arsip</option>
+            </select>
+          </div>
+
+          <button id="sp-btn-save" class="btn btn-p btn-full" onclick="saveSplitEditProduk()" style="margin-bottom:10px;">💾 Simpan</button>
+
+          <div style="border-top:1px solid var(--border);margin:10px 0 12px;"></div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <button class="btn btn-s btn-full" onclick="openTambahVarianDariSplit()" style="font-size:12px;">➕ Tambah Varian</button>
+            <button class="btn btn-d btn-full" onclick="hapusProdukDariSplit()" style="font-size:12px;">🗑 Hapus Varian</button>
+          </div>
+          <div style="font-size:11px;color:var(--dusty);text-align:center;">
+            Tambah varian baru · Hapus hanya varian ini
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /split-container -->
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════
