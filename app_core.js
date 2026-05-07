@@ -2593,24 +2593,66 @@ function produkToggleAll(v){
   renderProduk();
 }
 function produkBulkDeselectAll(){produkSelectedVars.clear();renderProduk();}
+// ── Floating Action Bar ──
+let _floatBarVisible = false;
+
 function _syncProdukBulkBar(){
-  const n=produkSelectedVars.size;
-  const bar=document.getElementById('produk-bulk-bar');
-  const cnt=document.getElementById('produk-bulk-count');
-  if(bar){bar.style.display=n>0?'flex':'none';}
-  if(cnt) cnt.textContent=`${n} dipilih`;
+  const n = produkSelectedVars.size;
+  const bar = document.getElementById('produk-float-bar');
+  const cnt = document.getElementById('produk-float-count');
+  if(cnt) cnt.textContent = n;
+
+  if(!bar) return;
+
+  if(_produkEditMode){
+    // Tampilkan bar
+    if(!_floatBarVisible){
+      bar.style.display='block';
+      bar.classList.add('active');
+      // pastikan tidak closing
+      const inner=document.getElementById('produk-float-inner');
+      if(inner) inner.classList.remove('closing');
+      _floatBarVisible=true;
+    }
+    // Toggle class no-select
+    if(n===0) bar.classList.add('no-select');
+    else bar.classList.remove('no-select');
+  } else {
+    // Sembunyikan dengan animasi
+    if(_floatBarVisible){
+      const inner=document.getElementById('produk-float-inner');
+      if(inner){
+        inner.classList.add('closing');
+        setTimeout(()=>{
+          bar.style.display='none';
+          bar.classList.remove('active');
+          if(inner) inner.classList.remove('closing');
+          _floatBarVisible=false;
+        },220);
+      } else {
+        bar.style.display='none';
+        bar.classList.remove('active');
+        _floatBarVisible=false;
+      }
+    }
+  }
+
+  // Warna tombol EDIT di header
+  const editBtn=document.getElementById('produk-edit-btn');
+  if(editBtn){
+    if(_produkEditMode) editBtn.classList.add('edit-active');
+    else editBtn.classList.remove('edit-active');
+  }
 }
 
-// ── Dropdown menu toggle ──
-function toggleProdukEditMenu(e){
-  e.stopPropagation();
-  const menu=document.getElementById('produk-edit-menu');
-  const isOpen = menu.style.display==='block';
-  menu.style.display=isOpen?'none':'block';
-  // Aktifkan edit mode saat menu dibuka
-  if(!isOpen && !_produkEditMode){
+// ── Toggle edit mode ──
+function toggleProdukEditMode(){
+  if(_produkEditMode){
+    closeProdukEditMode();
+  } else {
     _produkEditMode=true;
     renderProduk();
+    _syncProdukBulkBar();
   }
 }
 function closeProdukEditMode(){
@@ -2619,10 +2661,6 @@ function closeProdukEditMode(){
   renderProduk();
   _syncProdukBulkBar();
 }
-document.addEventListener('click',()=>{
-  const menu=document.getElementById('produk-edit-menu');
-  if(menu) menu.style.display='none';
-});
 
 // ── Bulk actions ──
 function _getSelectedProdukRows(){

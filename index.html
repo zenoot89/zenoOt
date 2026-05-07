@@ -494,23 +494,11 @@
       <option value="arsip">📦 Arsip</option>
     </select>
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-      <!-- Bulk action bar -->
-      <div id="produk-bulk-bar" style="display:none;align-items:center;gap:6px;background:#fff8f0;border:1px solid #e2c97e;border-radius:8px;padding:4px 10px;">
-        <span id="produk-bulk-count" style="font-size:12px;font-weight:700;color:var(--brown);white-space:nowrap;">0 dipilih</span>
-        <button class="btn btn-sm" style="background:#fff;border:1px solid #ddd;color:#333;font-size:11px;" onclick="closeProdukEditMode()">✕ Batal</button>
-      </div>
-      <!-- EDIT dropdown -->
+      <!-- EDIT button — tetap tampil selalu -->
       <div style="position:relative;" id="produk-edit-wrap">
-        <button class="btn" style="background:#1a1a2e;color:#fff;font-weight:700;padding:8px 16px;display:flex;align-items:center;gap:6px;" onclick="toggleProdukEditMenu(event)">
-          ✏️ EDIT <span style="font-size:10px;opacity:.7;">▾</span>
+        <button class="btn" id="produk-edit-btn" style="background:#1a1a2e;color:#fff;font-weight:700;padding:8px 16px;display:flex;align-items:center;gap:6px;" onclick="toggleProdukEditMode()">
+          ✏️ EDIT
         </button>
-        <div id="produk-edit-menu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1.5px solid #e5e5e5;border-radius:10px;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:999;overflow:hidden;">
-          <div class="produk-menu-item" onclick="produkBulkEditHpp()">💰 Edit HPP</div>
-          <div class="produk-menu-item" onclick="produkBulkEditSupplier()">🏭 Edit Supplier</div>
-          <div class="produk-menu-item" onclick="produkBulkEditStatus()">🔄 Ubah Status</div>
-          <div class="produk-menu-item" onclick="produkBulkArsip()">📦 Arsip</div>
-          <div class="produk-menu-item produk-menu-danger" onclick="produkBulkHapus()">🗑️ Hapus</div>
-        </div>
       </div>
       <button class="btn btn-p" onclick="openModal('modal-tambah-produk')">➕ Tambah</button>
       <button class="btn btn-o btn-sm" onclick="openModal('modal-import-sheets')">📋 Import Sheets</button>
@@ -1497,5 +1485,64 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fallback jika DOMContentLoaded sudah lewat
 setTimeout(applyFreezeBarLandscape, 400);
 </script>
+
+<!-- ── FLOATING ACTION BAR (Kelola Produk) ─────────────────────── -->
+<div id="produk-float-bar" style="display:none;">
+  <!-- Backdrop subtle -->
+  <div id="produk-float-backdrop"></div>
+  <div id="produk-float-inner">
+    <!-- Kiri: info pilihan -->
+    <div id="produk-float-left">
+      <div id="produk-float-pill">
+        <span id="produk-float-count">0</span>
+        <span>dipilih</span>
+      </div>
+      <button id="produk-float-batal" onclick="closeProdukEditMode()">✕ Batal</button>
+    </div>
+    <!-- Divider -->
+    <div id="produk-float-div-a"></div>
+    <!-- Tengah: aksi utama -->
+    <div id="produk-float-actions">
+      <button class="pf-btn pf-hpp" onclick="produkBulkEditHpp()">
+        <span class="pf-icon">💰</span>
+        <span>Edit HPP</span>
+      </button>
+      <button class="pf-btn pf-sup" onclick="produkBulkEditSupplier()">
+        <span class="pf-icon">🏭</span>
+        <span>Supplier</span>
+      </button>
+      <button class="pf-btn pf-status" onclick="produkBulkEditStatus()">
+        <span class="pf-icon">🔄</span>
+        <span>Status</span>
+      </button>
+      <button class="pf-btn pf-arsip" onclick="produkBulkArsip()">
+        <span class="pf-icon">📦</span>
+        <span>Arsip</span>
+      </button>
+      <button class="pf-btn pf-hapus" onclick="produkBulkHapus()">
+        <span class="pf-icon">🗑️</span>
+        <span>Hapus</span>
+      </button>
+    </div>
+    <!-- Divider -->
+    <div id="produk-float-div-b"></div>
+    <!-- Kanan: tombol standar -->
+    <div id="produk-float-std">
+      <button class="pf-btn pf-tambah" onclick="openModal('modal-tambah-produk')">
+        <span class="pf-icon">➕</span>
+        <span>Tambah</span>
+      </button>
+      <button class="pf-btn pf-import" onclick="openModal('modal-import-sheets')">
+        <span class="pf-icon">📋</span>
+        <span>Import</span>
+      </button>
+      <button class="pf-btn pf-reset" onclick="openModal('modal-reset-produk')">
+        <span class="pf-icon">🗑</span>
+        <span>Reset</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
