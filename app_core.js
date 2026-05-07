@@ -2467,26 +2467,65 @@ function deleteJurnal(idx) {
 // ================================================================
 let produkQ='';
 let produkStatusFilter='semua';
+let produkSkuFilter=''; // filter by SKU induk
 let produkSelectedVars=new Set(); // Set of selected SKU Variasi
 let _produkEditMode = false; // Checkbox mode aktif/tidak
 let _produkDisplayRows=[]; // current displayed rows (for index lookup)
 
-function filterProdukStatus(v){produkStatusFilter=v;renderProduk();}
+function filterProdukStatus(v){produkStatusFilter=v;_updateProdukFilterDot();renderProduk();}
+function filterProdukBySku(v){produkSkuFilter=v;_updateProdukFilterDot();renderProduk();}
+function filterProduk(v){produkQ=v;_updateProdukFilterDot();renderProduk();}
+
+function _updateProdukFilterDot(){
+  const dot = document.getElementById('produk-filter-dot');
+  if(!dot) return;
+  const active = produkQ || produkStatusFilter!=='semua' || produkSkuFilter;
+  dot.style.display = active ? 'inline-block' : 'none';
+}
+
+function toggleProdukFilterPanel(){
+  const panel = document.getElementById('produk-filter-panel');
+  if(!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'flex';
+}
+
+function _populateProdukSkuDropdown(){
+  const sel = document.getElementById('produk-sku-sel');
+  if(!sel) return;
+  const cur = sel.value;
+  const indukList = [...new Set((DB.produk||[]).map(p=>p.induk).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Semua SKU Induk</option>' +
+    indukList.map(i=>`<option value="${i}"${i===cur?' selected':''}>${i}</option>`).join('');
+}
+
+function _initProdukBarDate(){
+  const el = document.getElementById('produk-bar-date');
+  if(!el) return;
+  const now = new Date();
+  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+  el.textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+
 function getProdukStatusBadge(s){
   const map={aktif:'<span class="badge-status badge-aktif">✅ Aktif</span>',slow:'<span class="badge-status badge-slow">⚠️ Slow</span>',deadstock:'<span class="badge-status badge-dead">🔴 Deadstock</span>',clearance:'<span class="badge-status badge-clearance">🏷️ Clearance</span>',arsip:'<span class="badge-status badge-arsip">📦 Arsip</span>'};
   return map[s]||map['aktif'];
 }
 
 function renderProduk() {
+  _initProdukBarDate();
+  _populateProdukSkuDropdown();
   const q=produkQ.toLowerCase();
   let rows=DB.produk.filter(r=>r.var.toLowerCase().includes(q)||r.induk.toLowerCase().includes(q));
   if(produkStatusFilter!=='semua') rows=rows.filter(r=>(r.status_produk||'aktif')===produkStatusFilter);
+  if(produkSkuFilter) rows=rows.filter(r=>r.induk===produkSkuFilter);
   rows=rows.sort((a,b)=>a.induk.localeCompare(b.induk)||a.var.localeCompare(b.var));
   _produkDisplayRows=rows;
 
   if(!rows.length){
     document.getElementById('produk-body').innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada produk</td></tr>';
-    _syncProdukBulkBar(); return;
+    _syncProdukMenuBtn(); return;
   }
 
   // Group by induk
@@ -2546,7 +2585,7 @@ function renderProduk() {
 
   // Apply indeterminate state (harus setelah render)
   document.querySelectorAll('.produk-chk-induk[data-indeterminate="true"]').forEach(el=>{el.indeterminate=true;});
-  _syncProdukBulkBar();
+  _syncProdukMenuBtn();
 }
 
 // ── Checkbox helpers ──
@@ -2556,7 +2595,7 @@ function produkOnCheck(el){
   // Update header checkbox induk
   const induk=el.dataset.induk;
   if(induk) _syncIndukCheckbox(induk);
-  _syncProdukBulkBar();
+  _syncProdukMenuBtn();
   // sync global header checkbox
   _syncGlobalCheckbox();
 }
@@ -2587,7 +2626,7 @@ function produkToggleInduk(el, induk){
     if(row){ if(el.checked) row.classList.add('produk-row-selected'); else row.classList.remove('produk-row-selected'); }
   });
   _syncGlobalCheckbox();
-  _syncProdukBulkBar();
+  _syncProdukMenuBtn();
 }
 
 function produkToggleAll(v){
@@ -2595,55 +2634,110 @@ function produkToggleAll(v){
   renderProduk();
 }
 function produkBulkDeselectAll(){produkSelectedVars.clear();renderProduk();}
-// ── Floating Action Bar ──
-let _floatBarVisible = false;
 
-function _syncProdukBulkBar(){
+// ── Context Menu System ──
+let _produkCtxOpen = false;
+
+function _showProdukCtx(x, y) {
+  const menu = document.getElementById('produk-ctx-menu');
+  const backdrop = document.getElementById('produk-ctx-backdrop');
+  if (!menu) return;
+
   const n = produkSelectedVars.size;
-  const bar = document.getElementById('produk-float-bar');
-  const cnt = document.getElementById('produk-float-count');
-  if(cnt) cnt.textContent = n;
+  const lbl = document.getElementById('pctx-count-label');
+  if (lbl) lbl.textContent = n === 0 ? 'Belum ada SKU dipilih' : `${n} SKU dipilih`;
 
-  if(!bar) return;
-
-  if(_produkEditMode){
-    // Tampilkan bar
-    if(!_floatBarVisible){
-      bar.style.display='block';
-      bar.classList.add('active');
-      // pastikan tidak closing
-      const inner=document.getElementById('produk-float-inner');
-      if(inner) inner.classList.remove('closing');
-      _floatBarVisible=true;
+  // Toggle disabled state
+  const actionIds = ['pctx-hpp','pctx-sup','pctx-status','pctx-arsip','pctx-hapus'];
+  actionIds.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      if (n === 0) { btn.classList.add('pctx-disabled'); btn.disabled = true; }
+      else { btn.classList.remove('pctx-disabled'); btn.disabled = false; }
     }
-    // Toggle class no-select
-    if(n===0) bar.classList.add('no-select');
-    else bar.classList.remove('no-select');
+  });
+
+  const isMobile = window.innerWidth <= 768;
+  menu.classList.remove('pctx-desktop','pctx-mobile');
+
+  if (isMobile) {
+    menu.classList.add('pctx-mobile');
+    menu.style.left = '';
+    menu.style.top = '';
   } else {
-    // Sembunyikan dengan animasi
-    if(_floatBarVisible){
-      const inner=document.getElementById('produk-float-inner');
-      if(inner){
-        inner.classList.add('closing');
-        setTimeout(()=>{
-          bar.style.display='none';
-          bar.classList.remove('active');
-          if(inner) inner.classList.remove('closing');
-          _floatBarVisible=false;
-        },220);
-      } else {
-        bar.style.display='none';
-        bar.classList.remove('active');
-        _floatBarVisible=false;
-      }
-    }
+    menu.classList.add('pctx-desktop');
+    // posisi kursor, jaga agar tidak keluar viewport
+    const mw = 220, mh = 280;
+    let px = x, py = y;
+    if (px + mw > window.innerWidth)  px = window.innerWidth - mw - 8;
+    if (py + mh > window.innerHeight) py = window.innerHeight - mh - 8;
+    menu.style.left = px + 'px';
+    menu.style.top  = py + 'px';
   }
 
-  // Warna tombol EDIT di header
-  const editBtn=document.getElementById('produk-edit-btn');
-  if(editBtn){
-    if(_produkEditMode) editBtn.classList.add('edit-active');
-    else editBtn.classList.remove('edit-active');
+  backdrop.style.display = 'block';
+  menu.style.display = 'block';
+  requestAnimationFrame(() => menu.classList.add('pctx-visible'));
+  _produkCtxOpen = true;
+}
+
+function _hideProdukCtx() {
+  const menu = document.getElementById('produk-ctx-menu');
+  const backdrop = document.getElementById('produk-ctx-backdrop');
+  if (!menu) return;
+  menu.classList.remove('pctx-visible');
+  setTimeout(() => { menu.style.display = 'none'; }, 180);
+  if (backdrop) backdrop.style.display = 'none';
+  _produkCtxOpen = false;
+}
+
+function toggleProdukContextPanel(e) {
+  if (_produkCtxOpen) { _hideProdukCtx(); return; }
+  const btn = document.getElementById('produk-menu-btn');
+  if (btn) {
+    const rect = btn.getBoundingClientRect();
+    _showProdukCtx(rect.left, rect.bottom + 6);
+  } else {
+    _showProdukCtx(e.clientX, e.clientY);
+  }
+}
+
+// Row klik kanan (desktop) / long-press (mobile)
+function _attachProdukCtxListeners() {
+  // Klik kanan di tabel produk
+  const tbl = document.getElementById('produk-body');
+  if (!tbl) return;
+  tbl.addEventListener('contextmenu', function(e) {
+    if (!_produkEditMode) return;
+    e.preventDefault();
+    _showProdukCtx(e.clientX, e.clientY);
+  });
+
+  // Long-press mobile
+  let _lpTimer = null;
+  tbl.addEventListener('touchstart', function(e) {
+    if (!_produkEditMode) return;
+    _lpTimer = setTimeout(() => {
+      e.preventDefault();
+      const t = e.touches[0];
+      _showProdukCtx(t.clientX, t.clientY);
+    }, 500);
+  }, { passive: false });
+  tbl.addEventListener('touchend',   () => clearTimeout(_lpTimer));
+  tbl.addEventListener('touchmove',  () => clearTimeout(_lpTimer));
+}
+
+function _syncProdukMenuBtn() {
+  const btn = document.getElementById('produk-menu-btn');
+  const editBtn = document.getElementById('produk-edit-btn');
+  if (!btn) return;
+  if (_produkEditMode) {
+    btn.style.display = 'flex';
+    if (editBtn) editBtn.classList.add('edit-active');
+  } else {
+    btn.style.display = 'none';
+    if (editBtn) editBtn.classList.remove('edit-active');
+    _hideProdukCtx();
   }
 }
 
@@ -2654,14 +2748,15 @@ function toggleProdukEditMode(){
   } else {
     _produkEditMode=true;
     renderProduk();
-    _syncProdukBulkBar();
+    _syncProdukMenuBtn();
+    _attachProdukCtxListeners();
   }
 }
 function closeProdukEditMode(){
   _produkEditMode=false;
   produkSelectedVars.clear();
   renderProduk();
-  _syncProdukBulkBar();
+  _syncProdukMenuBtn();
 }
 
 // ── Bulk actions ──
@@ -2737,9 +2832,16 @@ async function execBulkStatus(){
 
 async function produkBulkArsip(){
   if(!_checkBulkSel('arsip')) return;
-  if(!confirm(`Arsipkan ${produkSelectedVars.size} SKU yang dipilih?`)) return;
+  const n = produkSelectedVars.size;
+  const lbl = document.getElementById('konfirm-arsip-label');
+  if(lbl) lbl.textContent = `${n} SKU`;
+  openModal('modal-konfirm-arsip');
+}
+
+async function _execBulkArsipKonfirm(){
   const rows=_getSelectedProdukRows();
   rows.forEach(r=>r.status_produk='arsip');
+  closeModal('modal-konfirm-arsip');
   if(SUPABASE_URL){
     try{
       await DataLayer._upsert('produk',rows.map(r=>({var:r.var,induk:r.induk,hpp:r.hpp,suplaier:r.suplaier,status_produk:'arsip',toko:r.toko||'semua'})),'var');
@@ -2752,16 +2854,40 @@ async function produkBulkArsip(){
 
 async function produkBulkHapus(){
   if(!_checkBulkSel('hapus')) return;
-  if(!confirm(`Hapus ${produkSelectedVars.size} SKU yang dipilih? Aksi ini tidak bisa dibatalkan!`)) return;
+  const n = produkSelectedVars.size;
+  const lbl = document.getElementById('konfirm-hapus-label');
+  if(lbl) lbl.textContent = `${n} SKU`;
+  const inp = document.getElementById('konfirm-hapus-input');
+  const btn = document.getElementById('btn-konfirm-hapus-exec');
+  if(inp) inp.value = '';
+  if(btn) btn.disabled = true;
+  openModal('modal-konfirm-hapus');
+}
+
+async function _execBulkHapusKonfirm(){
   const toDelete=[...produkSelectedVars];
-  DB.produk=DB.produk.filter(r=>!produkSelectedVars.has(r.var));
+  closeModal('modal-konfirm-hapus');
+  document.getElementById('konfirm-hapus-input').value='';
+  document.getElementById('btn-konfirm-hapus-exec').disabled=true;
+
   if(SUPABASE_URL){
     try{
-      // Hapus stok dulu (foreign key constraint), baru produk
+      // Cloud dulu — jaga konsistensi, cegah data balik lagi
       await Promise.all(toDelete.map(v=>DataLayer._deleteByKey('stok','var',v)));
       await Promise.all(toDelete.map(v=>DataLayer._deleteByKey('produk','var',v)));
+      // Baru update local setelah cloud sukses
+      DB.produk=DB.produk.filter(r=>!toDelete.includes(r.var));
+      DB.stok=DB.stok.filter(r=>!toDelete.includes(r.var));
       toast(`🗑️ ${toDelete.length} SKU dihapus & sync ke cloud`);
-    }catch(e){toast('⚠️ Dihapus lokal, sync cloud gagal','warn');}
+    }catch(e){
+      // Cloud gagal — tetap hapus lokal tapi warn
+      DB.produk=DB.produk.filter(r=>!toDelete.includes(r.var));
+      DB.stok=DB.stok.filter(r=>!toDelete.includes(r.var));
+      toast('⚠️ Dihapus lokal, sync cloud gagal — coba lagi','warn');
+    }
+  } else {
+    DB.produk=DB.produk.filter(r=>!toDelete.includes(r.var));
+    DB.stok=DB.stok.filter(r=>!toDelete.includes(r.var));
   }
   produkSelectedVars.clear();
   saveDB();renderProduk();renderStok();renderDashboard();
@@ -2911,9 +3037,25 @@ async function deleteProduk(idx) {
   renderProduk(); renderHarga();
   toast('Produk '+varKey+' dihapus');
 }
-function resetProdukSaja() {
-  DB.produk=[]; saveDB(); setBackupMode(false); closeModal('modal-reset-produk');
-  renderProduk(); renderHarga(); renderDashboard(); toast('✅ Semua produk dihapus.');
+function _closeResetProdukModal(){
+  closeModal('modal-reset-produk');
+  const inp = document.getElementById('reset-produk-confirm-input');
+  const btn = document.getElementById('btn-reset-produk-exec');
+  if(inp) inp.value='';
+  if(btn) btn.disabled=true;
+}
+
+async function resetProdukSaja() {
+  _closeResetProdukModal();
+  if(SUPABASE_URL){
+    try{
+      // Hapus dari cloud dulu
+      await _sbFetch(`${SUPABASE_URL}/rest/v1/produk?var=neq.PLACEHOLDER_NEVER`,{method:'DELETE'});
+    }catch(e){ console.warn('[ZENOOT] Reset cloud gagal, lanjut lokal'); }
+  }
+  DB.produk=[]; saveDB(); setBackupMode(false);
+  renderProduk(); renderHarga(); renderDashboard();
+  toast('✅ Semua produk dihapus.');
 }
 
 

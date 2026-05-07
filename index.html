@@ -99,6 +99,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           <span>Price List</span>
         </div>
+        <div class="nav-item nav-item-danger" onclick="openModal('modal-reset-produk')" title="Reset semua produk">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          <span>Reset Produk</span>
+        </div>
       </div>
     </div>
 
@@ -480,31 +484,44 @@
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-produk">
   <div class="freeze-bar" id="fb-produk">
-    <button class="fb-toggle" onclick="toggleFreezeBar('fb-produk')" title="Sembunyikan/tampilkan filter">
-      <span class="fb-toggle-icon">▲</span>
-    </button>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;">
-    <input class="search-bar" style="margin:0;flex:1;max-width:340px" placeholder="🔍 Cari produk..." oninput="filterProduk(this.value)">
-    <select class="inp" style="max-width:160px" onchange="filterProdukStatus(this.value)">
-      <option value="semua">Semua Status</option>
-      <option value="aktif">✅ Aktif</option>
-      <option value="slow">⚠️ Slow Moving</option>
-      <option value="deadstock">🔴 Deadstock</option>
-      <option value="clearance">🏷️ Clearance</option>
-      <option value="arsip">📦 Arsip</option>
-    </select>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-      <!-- EDIT button — tetap tampil selalu -->
-      <div style="position:relative;" id="produk-edit-wrap">
-        <button class="btn" id="produk-edit-btn" style="background:#1a1a2e;color:#fff;font-weight:700;padding:8px 16px;display:flex;align-items:center;gap:6px;" onclick="toggleProdukEditMode()">
-          ✏️ EDIT
+    <!-- Baris 1: Tanggal + Filter -->
+    <div class="produk-bar-row1">
+      <span id="produk-bar-date" class="produk-bar-date"></span>
+      <button class="btn btn-sm produk-filter-btn" id="produk-filter-toggle-btn" onclick="toggleProdukFilterPanel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filter
+        <span id="produk-filter-dot" class="produk-filter-dot" style="display:none"></span>
+      </button>
+    </div>
+    <!-- Filter panel (collapsible) -->
+    <div id="produk-filter-panel" class="produk-filter-panel" style="display:none;">
+      <input class="inp produk-filter-search" placeholder="🔍 Cari SKU / nama produk..." oninput="filterProduk(this.value)" id="produk-search-inp">
+      <select class="inp produk-filter-sel" onchange="filterProdukStatus(this.value)" id="produk-status-sel">
+        <option value="semua">Semua Status</option>
+        <option value="aktif">✅ Aktif</option>
+        <option value="slow">⚠️ Slow Moving</option>
+        <option value="deadstock">🔴 Deadstock</option>
+        <option value="clearance">🏷️ Clearance</option>
+        <option value="arsip">📦 Arsip</option>
+      </select>
+      <select class="inp produk-filter-sel" onchange="filterProdukBySku(this.value)" id="produk-sku-sel">
+        <option value="">Semua SKU Induk</option>
+      </select>
+    </div>
+    <!-- Baris 2: Aksi -->
+    <div class="produk-bar-row2">
+      <button class="btn btn-p btn-sm" onclick="openModal('modal-tambah-produk')">➕ Tambah</button>
+      <button class="btn btn-o btn-sm" onclick="openModal('modal-import-sheets')">📋 Import</button>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <button class="btn produk-edit-btn" id="produk-edit-btn" onclick="toggleProdukEditMode()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          EDIT
+        </button>
+        <button class="btn produk-menu-btn" id="produk-menu-btn" onclick="toggleProdukContextPanel(event)" style="display:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
       </div>
-      <button class="btn btn-p" onclick="openModal('modal-tambah-produk')">➕ Tambah</button>
-      <button class="btn btn-o btn-sm" onclick="openModal('modal-import-sheets')">📋 Import Sheets</button>
-      <button class="btn btn-d btn-sm" onclick="openModal('modal-reset-produk')">🗑 Reset</button>
     </div>
-  </div>
   </div><!-- /freeze-bar -->
 
   <!-- Modal Bulk Edit HPP -->
@@ -1117,11 +1134,14 @@
 <!-- Reset Produk -->
 <div class="overlay" id="modal-reset-produk">
   <div class="modal" style="max-width:420px">
-    <div class="modal-hd">🗑 Reset Kelola Produk <button class="modal-close" onclick="closeModal('modal-reset-produk')">×</button></div>
+    <div class="modal-hd">🗑 Reset Kelola Produk <button class="modal-close" onclick="_closeResetProdukModal()">×</button></div>
     <div class="alert al-d"><span>⚠️</span><div>Aksi ini akan <strong>menghapus SEMUA produk</strong>. Stok dan jurnal TIDAK ikut terhapus.</div></div>
+    <p style="font-size:12px;color:var(--dusty);margin:12px 0 6px;">Ketik <strong>HAPUS</strong> untuk mengaktifkan tombol reset:</p>
+    <input class="inp" id="reset-produk-confirm-input" type="text" placeholder="Ketik HAPUS di sini"
+      oninput="document.getElementById('btn-reset-produk-exec').disabled=this.value!=='HAPUS'">
     <div style="display:flex;gap:10px;margin-top:14px;">
-      <button class="btn btn-d btn-full" onclick="resetProdukSaja()">🗑 Ya, Reset Produk</button>
-      <button class="btn btn-o" onclick="closeModal('modal-reset-produk')">Batal</button>
+      <button class="btn btn-d btn-full" id="btn-reset-produk-exec" disabled onclick="resetProdukSaja()">🗑 Ya, Reset Semua Produk</button>
+      <button class="btn btn-o" onclick="_closeResetProdukModal()">Batal</button>
     </div>
   </div>
 </div>
@@ -1561,60 +1581,53 @@ document.addEventListener('DOMContentLoaded', () => {
 setTimeout(applyFreezeBarLandscape, 400);
 </script>
 
-<!-- ── FLOATING ACTION BAR (Kelola Produk) ─────────────────────── -->
-<div id="produk-float-bar" style="display:none;">
-  <!-- Backdrop subtle -->
-  <div id="produk-float-backdrop"></div>
-  <div id="produk-float-inner">
-    <!-- Kiri: info pilihan -->
-    <div id="produk-float-left">
-      <div id="produk-float-pill">
-        <span id="produk-float-count">0</span>
-        <span>dipilih</span>
-      </div>
-      <button id="produk-float-batal" onclick="closeProdukEditMode()">✕ Batal</button>
+<!-- ── CONTEXT MENU (Kelola Produk) ─────────────────────── -->
+<div id="produk-ctx-backdrop" onclick="_hideProdukCtx()" style="display:none;position:fixed;inset:0;z-index:1199;"></div>
+<div id="produk-ctx-menu" style="display:none;">
+  <div class="pctx-header">
+    <span id="pctx-count-label">0 SKU dipilih</span>
+    <button class="pctx-close" onclick="_hideProdukCtx()">✕</button>
+  </div>
+  <button class="pctx-item" id="pctx-hpp" onclick="_hideProdukCtx();produkBulkEditHpp();">
+    <span class="pctx-icon">💰</span><span>Edit HPP</span>
+  </button>
+  <button class="pctx-item" id="pctx-sup" onclick="_hideProdukCtx();produkBulkEditSupplier();">
+    <span class="pctx-icon">🏭</span><span>Edit Supplier</span>
+  </button>
+  <button class="pctx-item" id="pctx-status" onclick="_hideProdukCtx();produkBulkEditStatus();">
+    <span class="pctx-icon">🔄</span><span>Edit Status</span>
+  </button>
+  <div class="pctx-divider"></div>
+  <button class="pctx-item pctx-warn" id="pctx-arsip" onclick="_hideProdukCtx();produkBulkArsip();">
+    <span class="pctx-icon">📦</span><span>Arsipkan Produk</span>
+  </button>
+  <button class="pctx-item pctx-danger" id="pctx-hapus" onclick="_hideProdukCtx();produkBulkHapus();">
+    <span class="pctx-icon">🗑️</span><span>Hapus Produk</span>
+  </button>
+</div>
+
+<!-- ── DIALOG KONFIRMASI ARSIP ─────────────────────── -->
+<div class="overlay" id="modal-konfirm-arsip">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-hd">📦 Arsipkan Produk <button class="modal-close" onclick="closeModal('modal-konfirm-arsip')">×</button></div>
+    <div class="alert al-d"><span>⚠️</span><div>Produk yang diarsipkan tidak akan muncul di laporan aktif. <strong id="konfirm-arsip-label"></strong> akan diarsipkan.</div></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-p btn-full" onclick="_execBulkArsipKonfirm()">📦 Yakin, Arsipkan</button>
+      <button class="btn btn-o" onclick="closeModal('modal-konfirm-arsip')">Batal</button>
     </div>
-    <!-- Divider -->
-    <div id="produk-float-div-a"></div>
-    <!-- Tengah: aksi utama -->
-    <div id="produk-float-actions">
-      <button class="pf-btn pf-hpp" onclick="produkBulkEditHpp()">
-        <span class="pf-icon">💰</span>
-        <span>Edit HPP</span>
-      </button>
-      <button class="pf-btn pf-sup" onclick="produkBulkEditSupplier()">
-        <span class="pf-icon">🏭</span>
-        <span>Supplier</span>
-      </button>
-      <button class="pf-btn pf-status" onclick="produkBulkEditStatus()">
-        <span class="pf-icon">🔄</span>
-        <span>Status</span>
-      </button>
-      <button class="pf-btn pf-arsip" onclick="produkBulkArsip()">
-        <span class="pf-icon">📦</span>
-        <span>Arsip</span>
-      </button>
-      <button class="pf-btn pf-hapus" onclick="produkBulkHapus()">
-        <span class="pf-icon">🗑️</span>
-        <span>Hapus</span>
-      </button>
-    </div>
-    <!-- Divider -->
-    <div id="produk-float-div-b"></div>
-    <!-- Kanan: tombol standar -->
-    <div id="produk-float-std">
-      <button class="pf-btn pf-tambah" onclick="openModal('modal-tambah-produk')">
-        <span class="pf-icon">➕</span>
-        <span>Tambah</span>
-      </button>
-      <button class="pf-btn pf-import" onclick="openModal('modal-import-sheets')">
-        <span class="pf-icon">📋</span>
-        <span>Import</span>
-      </button>
-      <button class="pf-btn pf-reset" onclick="openModal('modal-reset-produk')">
-        <span class="pf-icon">🗑</span>
-        <span>Reset</span>
-      </button>
+  </div>
+</div>
+
+<!-- ── DIALOG KONFIRMASI HAPUS ─────────────────────── -->
+<div class="overlay" id="modal-konfirm-hapus">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-hd">🗑️ Hapus Produk <button class="modal-close" onclick="closeModal('modal-konfirm-hapus')">×</button></div>
+    <div class="alert al-d"><span>⚠️</span><div>Aksi ini <strong>tidak bisa dibatalkan</strong>. <strong id="konfirm-hapus-label"></strong> akan dihapus permanen.</div></div>
+    <p style="font-size:12px;color:var(--dusty);margin-bottom:6px;">Ketik <strong>HAPUS</strong> untuk konfirmasi:</p>
+    <input class="inp" id="konfirm-hapus-input" type="text" placeholder="Ketik HAPUS" oninput="document.getElementById('btn-konfirm-hapus-exec').disabled=this.value!=='HAPUS'">
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-d btn-full" id="btn-konfirm-hapus-exec" disabled onclick="_execBulkHapusKonfirm()">🗑️ Yakin, Hapus</button>
+      <button class="btn btn-o" onclick="closeModal('modal-konfirm-hapus');document.getElementById('konfirm-hapus-input').value='';document.getElementById('btn-konfirm-hapus-exec').disabled=true;">Batal</button>
     </div>
   </div>
 </div>
