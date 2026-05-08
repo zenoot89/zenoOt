@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════
    ai_module.js — zenOt Operasional V2
-   UPGRADE AI — GLM-4-Flash untuk semua fitur AI
+   UPGRADE AI — GLM-4.5 untuk semua fitur AI
 
    ✅ FEATURE 1: AI Blueprint Analyzer — analisis SKU + action plan
    ✅ FEATURE 2: Daily Checklist AI Chat — asisten operasional harian
    ✅ FEATURE 3: Intelligence AI Advisor — insight otomatis dari data
-   ✅ Unified AI engine (GLM-4-Flash)
+   ✅ Unified AI engine (GLM-4.5)
    ✅ Streaming support untuk chat
    ✅ Context-aware (baca DB, teData, rkData)
 
@@ -29,7 +29,7 @@ async function _callGLM(prompt, systemInstruction = '', maxTokens = 1500) {
   messages.push({ role: 'user', content: prompt });
 
   const body = {
-    model: 'glm-4-flash-250414',
+    model: 'glm-4.5',
     messages,
     temperature: 0.5,
     max_tokens: maxTokens,
@@ -219,7 +219,7 @@ function _renderBlueprintAIResult(data) {
           <div style="font-size:22px;">🤖</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:#5C3D2E;">AI Strategic Blueprint</div>
-            <div style="font-size:10px;color:var(--dusty);">Dibuat ${time} · Powered by GLM-4-Flash</div>
+            <div style="font-size:10px;color:var(--dusty);">Dibuat ${time} · Powered by GLM-4.5</div>
           </div>
           <div style="margin-left:auto;text-align:right;">
             <div style="font-size:22px;font-weight:800;color:${kesehatanColor};">${data.skor_toko}/100</div>
@@ -299,7 +299,7 @@ function _injectBlueprintAIButton() {
   wrap.id = 'ai-blueprint-inject';
   wrap.innerHTML = `
     <div class="card" style="margin-bottom:0;">
-      <div class="card-title">🤖 AI Strategic Blueprint <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by GLM-4-Flash</span></div>
+      <div class="card-title">🤖 AI Strategic Blueprint <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by GLM-4.5</span></div>
       <p style="font-size:12px;color:var(--dusty);margin-bottom:12px;">
         AI akan menganalisis semua SKU kamu dan menghasilkan blueprint strategis — prioritas aksi, insight tersembunyi, dan quick wins yang bisa langsung dikerjakan.
       </p>
@@ -710,7 +710,7 @@ function _injectIntelAIAdvisor() {
   panel.className = 'card';
   panel.style.marginBottom = '16px';
   panel.innerHTML = `
-    <div class="card-title">🤖 AI Intelligence Advisor <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by GLM-4-Flash</span></div>
+    <div class="card-title">🤖 AI Intelligence Advisor <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by GLM-4.5</span></div>
     <p style="font-size:12px;color:var(--dusty);margin-bottom:12px;">AI akan menganalisis data 30 hari terakhir dan memberikan diagnosis bisnis, kekuatan/kelemahan, serta rekomendasi konkret.</p>
     <button id="btn-intel-ai" class="btn btn-p btn-sm" onclick="runIntelAIAdvisor()">🤖 Generate AI Insight</button>
     <div id="intel-ai-result" style="display:none;margin-top:12px;"></div>`;
@@ -954,7 +954,7 @@ function renderAIDrawer() {
           border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
         ">Simpan</button>
       </div>
-      ${saved ? `<p style="font-size:11px;color:#16a34a;margin:8px 0 0;">✅ API Key aktif — GLM-4-Flash siap digunakan</p>` : ''}
+      ${saved ? `<p style="font-size:11px;color:#16a34a;margin:8px 0 0;">✅ API Key aktif — GLM-4.5 siap digunakan</p>` : ''}
     </div>
   </div>`;
 
