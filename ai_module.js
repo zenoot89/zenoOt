@@ -49,19 +49,20 @@ async function _callGeminiModel(model, prompt, systemInstruction, maxTokens) {
       temperature: 0.5,
       maxOutputTokens: maxTokens,
     },
-    // Matikan thinking mode agar output JSON lebih bersih
-    thinkingConfig: { thinkingBudget: 0 },
   };
   if (systemInstruction) {
     body.system_instruction = { parts: [{ text: systemInstruction }] };
   }
+
+  // Tambahkan instruksi eksplisit agar output HANYA JSON
+  const fullPrompt = prompt + '\n\nPENTING: Balas HANYA dengan JSON yang valid. Tidak ada teks lain, tidak ada markdown, tidak ada penjelasan. Mulai langsung dengan { dan akhiri dengan }.';
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, contents: [{ parts: [{ text: fullPrompt }] }] }),
     }
   );
 
