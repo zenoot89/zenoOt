@@ -705,6 +705,7 @@ Buat analisis dalam format JSON (HANYA JSON):
 }`;
 
     const raw = await _callGemini(prompt, systemPrompt, 1500);
+    if (!parsed) { console.error('[AI DEBUG] Parse failed, raw:', raw); throw new Error('Format respons tidak valid: ' + (raw?.substring(0,100)||'kosong')); }
     const parsed = _parseJSON(raw);
     if (!parsed) throw new Error('Format respons tidak valid');
 
