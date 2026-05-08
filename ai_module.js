@@ -55,7 +55,7 @@ async function _callGeminiModel(model, prompt, systemInstruction, maxTokens) {
   }
 
   // Tambahkan instruksi eksplisit agar output HANYA JSON
-  const fullPrompt = prompt + '\n\nPENTING: Balas HANYA dengan JSON yang valid. Tidak ada teks lain, tidak ada markdown, tidak ada penjelasan. Mulai langsung dengan { dan akhiri dengan }.';
+  const fullPrompt = prompt + '\n\nPENTING: Balas HANYA dengan JSON yang valid. Tidak ada teks lain, tidak ada markdown, tidak ada penjelasan. Mulai langsung dengan { dan akhiri dengan }. WAJIB gunakan tanda kutip lurus biasa. Jangan gunakan smart quotes atau curly quotes dalam JSON.';
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
@@ -133,23 +133,56 @@ async function _callGemini(prompt, systemInstruction = '', maxTokens = 1500) {
 
 function _parseJSON(raw) {
   if (!raw) return null;
+
+  // Bersihkan markdown code block
+  let clean = raw
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+
+  // Ambil isi antara { dan } terluar
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start !== -1 && end !== -1) {
+    clean = clean.substring(start, end + 1);
+  }
+
+  // Coba parse langsung dulu
   try {
-    // Bersihkan semua variasi markdown code block
-    let clean = raw
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/```\s*$/i, '')
-      .trim();
-    // Kalau masih ada backtick di tengah, ambil isi antara { dan }
-    const start = clean.indexOf('{');
-    const end = clean.lastIndexOf('}');
-    if (start !== -1 && end !== -1) {
-      clean = clean.substring(start, end + 1);
-    }
     return JSON.parse(clean);
-  } catch (e) {
-    console.error('[AI] _parseJSON error:', e.message);
-    return null;
+  } catch (e1) {
+    // Gagal — coba sanitasi karakter bermasalah lalu parse ulang
+    try {
+      // Ganti smart quotes / curly quotes → straight quotes
+      // yang sering muncul di output AI berbahasa Indonesia
+      let sanitized = clean
+        .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"') // " " „ ‟ ″ ‶ → "
+        .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'") // ' ' ‚ ‛ ′ ‵ → '
+        .replace(/[\u2013\u2014]/g, '-')                          // – — → -
+        .replace(/[\u2026]/g, '...')                              // … → ...
+        // Hapus control characters yang tidak valid di JSON
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+      return JSON.parse(sanitized);
+    } catch (e2) {
+      // Masih gagal — coba ekstrak JSON dengan regex yang lebih agresif
+      try {
+        // Escape newline & tab di dalam string value yang tidak ter-escape
+        const fixed = clean.replace(
+          /"((?:[^"\\]|\\.)*)"/g,
+          (match, inner) => '"' + inner
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t') + '"'
+        );
+        return JSON.parse(fixed);
+      } catch (e3) {
+        console.error('[AI] _parseJSON semua cara gagal:', e1.message);
+        console.debug('[AI] Raw response:', raw?.substring(0, 300));
+        return null;
+      }
+    }
   }
 }
 
