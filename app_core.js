@@ -2190,7 +2190,7 @@ function renderJurnal() {
   if (!body) return; // halaman jurnal belum aktif, skip
   _populateJurnalChannelFilter();
   // Render target global di bawah tabel
-  renderJurnalProyeksi();
+  renderTargetHarian();
   const q=jurnalQ.toLowerCase();
   const rows=DB.jurnal.filter(r=>{
     if(q && !r.var.toLowerCase().includes(q) && !r.ch.toLowerCase().includes(q)) return false;
@@ -2233,100 +2233,62 @@ function renderJurnal() {
     const idx=DB.jurnal.indexOf(r);
     return `<tr><td class="mono">${i+1}</td><td class="mono">${r.tgl}</td><td>${chTag(r.ch)}</td><td>${r.var}</td><td class="mono" style="text-align:center">${r.qty}</td><td class="mono" style="color:var(--sage);font-weight:600">${fmt(hargaJual)}</td><td class="mono" style="color:var(--brown);font-weight:700">${fmt(omset)}</td><td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="openEditJurnal(${idx})">✏️</button><button class="btn btn-d btn-sm" onclick="deleteJurnal(${idx})">🗑</button></td></tr>`;
   }).join(''):`<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--dusty)">Tidak ada transaksi sesuai filter</td></tr>`;
-  renderJurnalProyeksi();
+  renderTargetHarian();
 }
 
 // ── Proyeksi 1 Baris — di atas tabel Jurnal ────────────────────────────
-function renderJurnalProyeksi() {
-  const el = document.getElementById('jurnal-proyeksi-bar');
+function renderTargetHarian() {
+  const el = document.getElementById('jurnal-target-harian');
   if (!el) return;
-
-  const fmtRp = v => 'Rp ' + Number(Math.round(v)).toLocaleString('id-ID');
-
-  // ── Ambil target omset dari Biaya Operasional ──
+  const fmtRp = v => 'Rp ' + Number(Math.round(v)).toLocaleString('id-ID');
   let bgData = {};
   try { bgData = JSON.parse(localStorage.getItem('zenot_biaya_ops_global') || '{}'); } catch(e) {}
-
-  // Fallback: coba dari planning global bulan ini
-  let targetOmset = 0;
+  let targetBulanan = 0;
   if (bgData.biayaOpsGlobal > 0 && bgData.rasioOpsGlobal > 0) {
-    targetOmset = Math.round(bgData.biayaOpsGlobal / (bgData.rasioOpsGlobal / 100));
+    targetBulanan = Math.round(bgData.biayaOpsGlobal / (bgData.rasioOpsGlobal / 100));
   }
-  if (!targetOmset) {
+  if (!targetBulanan) {
     try {
       const d = new Date();
       const key = 'zenot_planning_' + d.getFullYear() + '_' + String(d.getMonth()+1).padStart(2,'0');
       const plan = JSON.parse(localStorage.getItem(key) || '{}');
-      targetOmset = plan.targetOmset || 0;
+      targetBulanan = plan.targetOmset || 0;
     } catch(e) {}
   }
-
-  // ── Hitung aktual bulan ini dari jurnal ──
-  const now = new Date();
-  const bulanStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  const today = bulanStr + '-' + String(now.getDate()).padStart(2,'0');
-  const jBulan = DB.jurnal.filter(j => (j.tgl||'').startsWith(bulanStr));
-  const params = _getHargaParams();
-
-  let aktualOmset = 0;
-  jBulan.forEach(j => {
-    const p = (DB.produk||[]).find(x => (x.var||'').toUpperCase() === (j.var||'').toUpperCase());
-    const _plJ = p ? _hitungHarga(p, params).jual : 0;
-    const harga = (j.harga && j.harga > 0 && j.harga !== (j.hpp||0))
-      ? j.harga : (_plJ > 0 ? _plJ : (j.harga || 0));
-    aktualOmset += harga * (j.qty||0);
-  });
-
-  const totalTrx = jBulan.length;
-  const sisaOmset = Math.max(0, targetOmset - aktualOmset);
-
-  // ── Hitung rata-rata nilai per transaksi & sisa pesanan hari ini ──
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-  const dayNow = now.getDate();
-  const daysLeft = Math.max(1, daysInMonth - dayNow + 1); // +1 include hari ini
-
-  // Rata-rata nilai per transaksi dari semua jurnal bulan ini
-  const avgPerTrx = totalTrx > 0 ? aktualOmset / totalTrx : 0;
-
-  // Sisa pesanan yang perlu di-achieve HARI INI
-  // = sisa omset / hari tersisa / rata-rata per transaksi
-  let sisaPesananHariIni = 0;
-  if (avgPerTrx > 0 && sisaOmset > 0) {
-    const sisaPerHari = sisaOmset / daysLeft;
-    sisaPesananHariIni = Math.ceil(sisaPerHari / avgPerTrx);
-  }
-
-  // Transaksi hari ini (untuk konteks)
-  const trxHariIni = DB.jurnal.filter(j => (j.tgl||'') === today).length;
-
-  // ── Render ──
-  if (!targetOmset) {
-    el.innerHTML = '<span class="jp-label" style="color:rgba(255,255,255,.4)">💡 Set target di Biaya Operasional untuk melihat proyeksi</span>';
+  if (!targetBulanan) {
+    el.innerHTML = '<div class="jth-empty">Set target di Biaya Operasional</div>';
     return;
   }
-
-  const sisaColor = sisaOmset === 0 ? 'good' : (sisaOmset < targetOmset * 0.2 ? 'warn' : 'danger');
-  const pesananColor = sisaPesananHariIni === 0 ? 'good' : (sisaPesananHariIni <= 5 ? 'warn' : 'danger');
-
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const targetHarian = Math.round(targetBulanan / daysInMonth);
+  const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const jHariIni = (DB.jurnal||[]).filter(j => (j.tgl||'') === today);
+  const params = _getHargaParams();
+  let omsetHariIni = 0, qtyHariIni = 0;
+  jHariIni.forEach(j => {
+    const p = (DB.produk||[]).find(x=>(x.var||'').toUpperCase()===(j.var||'').toUpperCase());
+    const _plJ = p ? _hitungHarga(p, params).jual : 0;
+    const harga = (j.harga && j.harga > 0 && j.harga !== (j.hpp||0)) ? j.harga : (_plJ > 0 ? _plJ : (j.harga||0));
+    omsetHariIni += harga * (j.qty||0);
+    qtyHariIni += (j.qty||0);
+  });
+  const pct = targetHarian > 0 ? Math.min(100, Math.round((omsetHariIni / targetHarian) * 100)) : 0;
+  const sisa = Math.max(0, targetHarian - omsetHariIni);
+  const done = omsetHariIni >= targetHarian;
+  const barColor = done ? '#27ae60' : pct >= 60 ? '#f39c12' : '#c0392b';
+  const pctColor = done ? '#27ae60' : pct >= 60 ? 'var(--gold,#c9a84c)' : '#c0392b';
   el.innerHTML =
-    '<div class="jp-item">' +
-      '<span class="jp-label">Target Omset</span>' +
-      '<span class="jp-val">' + fmtRp(targetOmset) + '</span>' +
+    '<div class="jth-header">' +
+      '<span class="jth-title">Target Harian</span>' +
+      '<span class="jth-omset">' + fmtRp(omsetHariIni) + ' <span class="jth-sep">/</span> ' + fmtRp(targetHarian) + '</span>' +
     '</div>' +
-    '<div class="jp-divider"></div>' +
-    '<div class="jp-item">' +
-      '<span class="jp-label">Sisa Omset</span>' +
-      '<span class="jp-val ' + sisaColor + '">' + (sisaOmset > 0 ? fmtRp(sisaOmset) : '🎉 Done!') + '</span>' +
-    '</div>' +
-    '<div class="jp-divider"></div>' +
-    '<div class="jp-item">' +
-      '<span class="jp-label">Pesanan Lagi Hari Ini</span>' +
-      '<span class="jp-val ' + pesananColor + '">' +
-        (sisaPesananHariIni > 0 ? sisaPesananHariIni + ' pesanan' : '✅ Cukup') +
-      '</span>' +
+    '<div class="jth-bar-bg"><div class="jth-bar-fill" style="width:' + pct + '%;background:' + barColor + ';"></div></div>' +
+    '<div class="jth-footer">' +
+      '<span class="jth-pct" style="color:' + pctColor + ';">' + pct + '% tercapai</span>' +
+      '<span class="jth-info">' + (done ? 'Target tercapai!' : fmtRp(sisa) + ' lagi') + ' &middot; ' + qtyHariIni + ' pcs hari ini</span>' +
     '</div>';
 }
-
 function openEditJurnal(idx) {
   const r = DB.jurnal[idx];
 
@@ -2498,7 +2460,34 @@ function _updateProdukFilterDot(){
   dot.style.display = active ? 'inline-block' : 'none';
 }
 
-function toggleProdukFilterPanel(){
+function toggleJurnalFilterPanel(){
+  const panel = document.getElementById('jurnal-filter-panel');
+  const btn = document.getElementById('jurnal-sort-btn');
+  if(!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  if(isOpen){
+    panel.style.display = 'none';
+    if(btn) btn.classList.remove('sort-active');
+  } else {
+    panel.style.display = 'flex';
+    if(btn) btn.classList.add('sort-active');
+    setTimeout(()=>{
+      document.addEventListener('click', function _jClose(e){
+        const p = document.getElementById('jurnal-filter-panel');
+        const b = document.getElementById('jurnal-sort-btn');
+        if(!p) return;
+        if(!p.contains(e.target) && e.target !== b && !b?.contains(e.target)){
+          p.style.display = 'none';
+          if(b) b.classList.remove('sort-active');
+        } else {
+          setTimeout(()=>document.addEventListener('click',_jClose,{once:true}),50);
+        }
+      },{once:true});
+    },50);
+  }
+}
+
+
   const panel = document.getElementById('produk-filter-panel');
   const btn = document.getElementById('produk-sort-btn');
   if(!panel) return;
