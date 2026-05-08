@@ -2253,12 +2253,14 @@ button, .btn, .bg-fill-btn, .bg-save-btn {
 #page-jurnal,
 #page-produk,
 #page-harga {
-  display: none; /* tetap hidden saat tidak aktif */
+  display: none;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-bottom: 0;
-  min-height: 0; /* penting agar flex child bisa shrink */
+  min-height: 0;
+  position: relative;
 }
 
 #page-stok.active,
