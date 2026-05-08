@@ -262,7 +262,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
 /* ═══════════════════════════════════════════════
    MAIN AREA
 ════════════════════════════════════════════════ */
-.main{margin-left:220px;padding:30px 34px;min-height:100vh;transition:margin-left .3s ease;display:flex;flex-direction:column;height:100vh;overflow-x:clip;overflow-y:auto;box-sizing:border-box;}
+.main{margin-left:220px;padding:30px 34px;min-height:100vh;transition:margin-left .3s ease;display:flex;flex-direction:column;height:100vh;overflow-x:hidden;overflow-y:auto;box-sizing:border-box;}
 /* Halaman biasa (non-frozen) tetap bisa scroll vertikal */
 .page.active:not(#page-stok):not(#page-jurnal):not(#page-produk):not(#page-harga) {
   flex: 1;
@@ -682,7 +682,7 @@ html{scroll-behavior:smooth;}
 
   /* Fix horizontal scroll — semua konten tidak overflow */
   body{overflow-x:hidden;overflow-y:auto;touch-action:pan-y;}
-  .page{overflow-x:clip;overflow-y:visible;pointer-events:auto;position:relative;z-index:1;} /* FIX: clip agar dropdown Sort tidak terpotong */
+  .page{overflow-x:hidden;overflow-y:visible;pointer-events:auto;position:relative;z-index:1;}
   .card{padding:16px 14px;}
   .topbar{flex-wrap:wrap;gap:8px;}
   .topbar > div{flex-wrap:wrap;}
@@ -2284,10 +2284,10 @@ button, .btn, .bg-fill-btn, .bg-save-btn {
 }
 
 /* FIX: Dropdown filter panel harus tampil di atas semua elemen */
+/* NOTE: position diatur oleh JS (fixed) — jangan override di sini */
 #produk-filter-panel,
 #jurnal-filter-panel {
   z-index: 9999 !important;
-  position: absolute !important;
 }
 
 /* ── tbl-curve-wrap: flex column container untuk tabel + kurva bawah ── */
