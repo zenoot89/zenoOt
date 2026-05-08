@@ -2502,9 +2502,44 @@ function toggleProdukFilterPanel(){
   const panel = document.getElementById('produk-filter-panel');
   const btn = document.getElementById('produk-sort-btn');
   if(!panel) return;
-  const open = panel.style.display !== 'none';
-  panel.style.display = open ? 'none' : 'flex';
-  if(btn) btn.classList.toggle('sort-active', !open);
+  const isOpen = panel.style.display !== 'none';
+  if(isOpen){
+    _closeProdukFilterPanel();
+  } else {
+    panel.style.display = 'flex';
+    if(btn) btn.classList.add('sort-active');
+    // Posisi: kalau di mobile, panel sesuaikan agar tidak keluar layar
+    requestAnimationFrame(()=>{
+      const rect = panel.getBoundingClientRect();
+      if(rect.right > window.innerWidth){
+        panel.style.left = 'auto';
+        panel.style.right = '0';
+      }
+    });
+    // Backdrop klik luar
+    setTimeout(()=>{
+      document.addEventListener('click', _produkFilterOutsideClick, {once:true});
+    }, 50);
+  }
+}
+function _closeProdukFilterPanel(){
+  const panel = document.getElementById('produk-filter-panel');
+  const btn = document.getElementById('produk-sort-btn');
+  if(panel) panel.style.display = 'none';
+  if(btn) btn.classList.remove('sort-active');
+}
+function _produkFilterOutsideClick(e){
+  const panel = document.getElementById('produk-filter-panel');
+  const btn = document.getElementById('produk-sort-btn');
+  if(!panel) return;
+  if(!panel.contains(e.target) && e.target !== btn && !btn?.contains(e.target)){
+    _closeProdukFilterPanel();
+  } else {
+    // Klik di dalam panel — pasang lagi listener
+    setTimeout(()=>{
+      document.addEventListener('click', _produkFilterOutsideClick, {once:true});
+    }, 50);
+  }
 }
 
 function _populateProdukSkuDropdown(){
