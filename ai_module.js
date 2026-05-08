@@ -1,16 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════
    ai_module.js — zenOt Operasional V2
-   UPGRADE AI — Gemini 2.0 Flash untuk semua fitur AI
+   UPGRADE AI — GLM-4-Flash untuk semua fitur AI
 
    ✅ FEATURE 1: AI Blueprint Analyzer — analisis SKU + action plan
    ✅ FEATURE 2: Daily Checklist AI Chat — asisten operasional harian
    ✅ FEATURE 3: Intelligence AI Advisor — insight otomatis dari data
-   ✅ Unified AI engine (Gemini 2.0 Flash)
+   ✅ Unified AI engine (GLM-4-Flash)
    ✅ Streaming support untuk chat
    ✅ Context-aware (baca DB, teData, rkData)
 
    Depends on: app_core.js (window.DB, SUPABASE_URL, SUPABASE_KEY)
-               intelligence_module.js (window._geminiKey, _configGet, _configSet)
+               intelligence_module.js (window._glmKey, _configGet, _configSet)
                trend_engine.js (window.teData)
    ════════════════════════════════════════════════════════════════ */
 
@@ -18,36 +18,46 @@
 // UNIFIED AI CALL ENGINE
 // ═══════════════════════════════════════════════════════
 
-async function _callGemini(prompt, systemInstruction = '', maxTokens = 1500) {
-  const key = window._geminiKey;
-  if (!key) throw new Error('Gemini API Key belum diset. Buka Intelligence → Settings AI.');
+async function _callGLM(prompt, systemInstruction = '', maxTokens = 1500) {
+  const key = window._glmKey;
+  if (!key) throw new Error('GLM API Key belum diset. Buka Intelligence → Settings AI.');
+
+  const messages = [];
+  if (systemInstruction) {
+    messages.push({ role: 'system', content: systemInstruction });
+  }
+  messages.push({ role: 'user', content: prompt });
 
   const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.5, maxOutputTokens: maxTokens },
+    model: 'glm-4-flash',
+    messages,
+    temperature: 0.5,
+    max_tokens: maxTokens,
   };
 
-  if (systemInstruction) {
-    body.system_instruction = { parts: [{ text: systemInstruction }] };
-  }
-
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    'https://open.bigmodel.cn/api/paas/v4/chat/completions',
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
       body: JSON.stringify(body),
     }
   );
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Gemini error HTTP ${res.status}`);
+    throw new Error(err?.error?.message || `GLM error HTTP ${res.status}`);
   }
 
   const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return data?.choices?.[0]?.message?.content || '';
 }
+
+// Alias untuk backward compatibility
+const _callGemini = _callGLM;
 
 function _parseJSON(raw) {
   try {
@@ -65,8 +75,8 @@ function _parseJSON(raw) {
 let _blueprintAICache = {}; // cache per skuRef
 
 async function runAIBlueprintAnalysis() {
-  if (!window._geminiKey) {
-    toast('⚙️ Masukkan Gemini API Key dulu di Intelligence > AI Settings', 'err');
+  if (!window._glmKey) {
+    toast('⚙️ Masukkan GLM API Key dulu di Intelligence > AI Settings', 'err');
     return;
   }
 
@@ -205,7 +215,7 @@ function _renderBlueprintAIResult(data) {
           <div style="font-size:22px;">🤖</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:#5C3D2E;">AI Strategic Blueprint</div>
-            <div style="font-size:10px;color:var(--dusty);">Dibuat ${time} · Powered by Gemini 2.0 Flash</div>
+            <div style="font-size:10px;color:var(--dusty);">Dibuat ${time} · Powered by GLM-4-Flash</div>
           </div>
           <div style="margin-left:auto;text-align:right;">
             <div style="font-size:22px;font-weight:800;color:${kesehatanColor};">${data.skor_toko}/100</div>
@@ -285,7 +295,7 @@ function _injectBlueprintAIButton() {
   wrap.id = 'ai-blueprint-inject';
   wrap.innerHTML = `
     <div class="card" style="margin-bottom:0;">
-      <div class="card-title">🤖 AI Strategic Blueprint <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by Gemini 2.0 Flash</span></div>
+      <div class="card-title">🤖 AI Strategic Blueprint <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by GLM-4-Flash</span></div>
       <p style="font-size:12px;color:var(--dusty);margin-bottom:12px;">
         AI akan menganalisis semua SKU kamu dan menghasilkan blueprint strategis — prioritas aksi, insight tersembunyi, dan quick wins yang bisa langsung dikerjakan.
       </p>
@@ -355,7 +365,7 @@ function initAIChat() {
         <button onclick="sendAIChat()" class="btn btn-p" style="padding:8px 14px;font-size:12px;flex-shrink:0;">➤</button>
       </div>
 
-      ${!window._geminiKey ? `
+      ${!window._glmKey ? `
         <div style="background:#FEF3C7;border:1px solid #d97706;border-radius:8px;padding:10px;margin-top:8px;font-size:11px;color:#92400E;">
           ⚙️ <strong>API Key belum diset.</strong> Buka Intelligence → AI Settings untuk mengaktifkan chat.
         </div>` : ''}
@@ -369,8 +379,8 @@ async function sendAIChat(prefillText = null) {
   const text = prefillText || (inputEl ? inputEl.value.trim() : '');
   if (!text) return;
 
-  if (!window._geminiKey) {
-    toast('⚙️ Masukkan Gemini API Key dulu di Intelligence > AI Settings', 'err');
+  if (!window._glmKey) {
+    toast('⚙️ Masukkan GLM API Key dulu di Intelligence > AI Settings', 'err');
     return;
   }
 
@@ -497,8 +507,8 @@ Tanggal Hari Ini: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', da
 let _intelAICache = null;
 
 async function runIntelAIAdvisor() {
-  if (!window._geminiKey) {
-    toast('⚙️ Masukkan Gemini API Key dulu di Intelligence > AI Settings', 'err');
+  if (!window._glmKey) {
+    toast('⚙️ Masukkan GLM API Key dulu di Intelligence > AI Settings', 'err');
     return;
   }
 
@@ -681,7 +691,7 @@ function _injectIntelAIAdvisor() {
   panel.className = 'card';
   panel.style.marginBottom = '16px';
   panel.innerHTML = `
-    <div class="card-title">🤖 AI Intelligence Advisor <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by Gemini 2.0 Flash</span></div>
+    <div class="card-title">🤖 AI Intelligence Advisor <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by GLM-4-Flash</span></div>
     <p style="font-size:12px;color:var(--dusty);margin-bottom:12px;">AI akan menganalisis data 30 hari terakhir dan memberikan diagnosis bisnis, kekuatan/kelemahan, serta rekomendasi konkret.</p>
     <button id="btn-intel-ai" class="btn btn-p btn-sm" onclick="runIntelAIAdvisor()">🤖 Generate AI Insight</button>
     <div id="intel-ai-result" style="display:none;margin-top:12px;"></div>`;
@@ -891,12 +901,12 @@ function openAISettings() {
     }
 
     // Scroll ke drawer
-    const drawer = document.getElementById('ai-gemini-drawer');
+    const drawer = document.getElementById('ai-glm-drawer');
     if (drawer) drawer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Focus ke input API key
     setTimeout(() => {
-      const keyInput = document.getElementById('gemini-key-input');
+      const keyInput = document.getElementById('glm-key-input');
       if (keyInput) keyInput.focus();
     }, 300);
   }, 200);
