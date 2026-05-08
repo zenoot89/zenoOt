@@ -2103,16 +2103,24 @@ function populateJVariasi() {
 }
 
 // Auto-fill harga jual saat variasi dipilih — dari formula BEP
+// FIX: jika channel bertipe RESELLER, pakai harga reseller otomatis
 function onJVariasiChange() {
   const varName=document.getElementById('j-sku-variasi')?.value;
   const hargaEl=document.getElementById('j-harga');
   if (!hargaEl || !varName) return;
   const p=DB.produk.find(x=>x.var===varName);
   if (!p) return;
-  // Hitung harga jual dari formula BEP (sama dengan Price List)
   const params = _getHargaParams();
-  const { jual } = _hitungHarga(p, params);
-  if (jual > 0) {
+  const { jual, reseller } = _hitungHarga(p, params);
+  // Cek apakah channel yang dipilih adalah tipe reseller
+  const chVal = document.getElementById('j-ch')?.value || '';
+  const chInfo = (window._tokoList||[]).find(t => t.kode === chVal);
+  const isReseller = chInfo && (chInfo.grup||'').toUpperCase() === 'RESELLER';
+  if (isReseller && reseller > 0) {
+    hargaEl.value = reseller;
+    hargaEl.style.color = 'var(--brown)';
+    hargaEl.title = 'Harga Reseller otomatis dari Price List';
+  } else if (jual > 0) {
     hargaEl.value = jual;
     hargaEl.style.color = 'var(--sage)';
     hargaEl.title = 'Harga otomatis dari Price List BEP';
@@ -2404,10 +2412,19 @@ function onEjSkuChange() {
   if (prod) {
     const hppEl = document.getElementById('ej-hpp');
     if (hppEl) hppEl.value = prod.hpp || 0;
-    // FIX: auto-fill harga jual jika field kosong
+    // FIX: auto-fill harga — pakai reseller price jika channel reseller
     const hargaEl = document.getElementById('ej-harga');
     if (hargaEl && (!hargaEl.value || +hargaEl.value === 0)) {
-      hargaEl.value = prod.jual>0 ? prod.jual : (prod.hpp||0);
+      const chVal = document.getElementById('ej-ch')?.value || '';
+      const chInfo = (window._tokoList||[]).find(t => t.kode === chVal);
+      const isReseller = chInfo && (chInfo.grup||'').toUpperCase() === 'RESELLER';
+      const params = _getHargaParams();
+      const { jual, reseller } = _hitungHarga(prod, params);
+      if (isReseller && reseller > 0) {
+        hargaEl.value = reseller;
+      } else {
+        hargaEl.value = jual > 0 ? jual : (prod.hpp||0);
+      }
     }
   }
 }
