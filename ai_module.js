@@ -874,6 +874,81 @@ function _injectAIStyles() {
 })();
 
 // ═══════════════════════════════════════════════════════
+// renderAIDrawer — inject UI settings GLM API Key
+// ═══════════════════════════════════════════════════════
+function renderAIDrawer() {
+  // Jika sudah ada, skip
+  if (document.getElementById('ai-glm-drawer')) return;
+
+  // Cari container Intel Dashboard
+  const container = document.getElementById('intel-dashboard') ||
+                    document.querySelector('.intel-content') ||
+                    document.querySelector('#page-intel-dashboard') ||
+                    document.querySelector('.page.active');
+  if (!container) return;
+
+  const saved = window._glmKey || localStorage.getItem('glm_api_key') || '';
+
+  const drawerHTML = `
+  <div id="ai-glm-drawer" style="
+    background: var(--card,#fff);
+    border: 1.5px solid var(--border,#e5e7eb);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  ">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="
+      const b=document.getElementById('ai-drawer-body');
+      const c=document.getElementById('ai-drawer-chevron');
+      if(b.style.display==='none'){b.style.display='block';c.textContent='▲';}
+      else{b.style.display='none';c.textContent='▼';}
+    ">
+      <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;">
+        ⚙️ AI Settings — GLM API Key
+      </div>
+      <span id="ai-drawer-chevron" style="font-size:12px;color:var(--dusty,#9ca3af);">▼</span>
+    </div>
+    <div id="ai-drawer-body" style="display:none;margin-top:16px;">
+      <p style="font-size:12px;color:var(--dusty,#9ca3af);margin:0 0 12px;">
+        Masukkan API Key dari <strong>z.ai</strong> (ZhipuAI) untuk mengaktifkan semua fitur AI.
+        Gratis, daftar di <a href="https://z.ai" target="_blank" style="color:var(--accent,#6366f1);">z.ai</a>.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="glm-key-input" type="password" placeholder="Paste API Key di sini..." value="${saved}"
+          style="
+            flex:1;padding:10px 14px;border:1.5px solid var(--border,#e5e7eb);
+            border-radius:8px;font-size:13px;background:var(--bg,#f9fafb);
+            color:var(--text,#111);outline:none;
+          "
+        />
+        <button onclick="
+          const v=document.getElementById('glm-key-input').value.trim();
+          if(!v){toast('❌ API Key kosong!','err');return;}
+          window._glmKey=v;
+          localStorage.setItem('glm_api_key',v);
+          toast('✅ GLM API Key tersimpan!','ok');
+          document.getElementById('ai-drawer-body').style.display='none';
+          document.getElementById('ai-drawer-chevron').textContent='▼';
+        " style="
+          padding:10px 18px;background:var(--accent,#3b4a3f);color:#fff;
+          border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+        ">Simpan</button>
+      </div>
+      ${saved ? `<p style="font-size:11px;color:#16a34a;margin:8px 0 0;">✅ API Key aktif — GLM-4-Flash siap digunakan</p>` : ''}
+    </div>
+  </div>`;
+
+  // Insert di awal container
+  container.insertAdjacentHTML('afterbegin', drawerHTML);
+
+  // Load key dari localStorage jika belum di-set
+  if (!window._glmKey && localStorage.getItem('glm_api_key')) {
+    window._glmKey = localStorage.getItem('glm_api_key');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // openAISettings — dipanggil dari tombol sidebar
 // Navigasi ke Intelligence Dashboard lalu buka drawer AI
 // ═══════════════════════════════════════════════════════
@@ -921,6 +996,11 @@ window.openAISettings = openAISettings;
 // Init styles
 window.addEventListener('DOMContentLoaded', () => {
   _injectAIStyles();
+
+  // Load GLM key dari localStorage
+  if (!window._glmKey && localStorage.getItem('glm_api_key')) {
+    window._glmKey = localStorage.getItem('glm_api_key');
+  }
 
   // Jika daily sudah aktif
   const activePage = document.querySelector('.page.active');
