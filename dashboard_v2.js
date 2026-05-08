@@ -331,6 +331,7 @@ async function renderDashboard() {
   // Laba = (harga jual - HPP) × qty
   const labaBulan     = jBulan.reduce((s,j)=>s+(_dashOmset(j) - (getHppProduk(j.var)||0)*(j.qty||0)),0);
   const labaBulanLalu = jBulanLalu.reduce((s,j)=>s+(_dashOmset(j) - (getHppProduk(j.var)||0)*(j.qty||0)),0);
+  const qtyHari       = jHari.reduce((s,j)=>s+(j.qty||0),0);
   const qtyBulan      = jBulan.reduce((s,j)=>s+(j.qty||0),0);
   const trxBulan      = jBulan.length;
   const marginPct     = omsetBulan>0 ? Math.round(labaBulan/omsetBulan*100) : 0;
@@ -539,12 +540,15 @@ async function renderDashboard() {
 
   // ─── 2. KPI STRIP — 4 kartu ───
   const kpis = [
-    {label:'Omset Hari Ini', val:fmtShort(omsetHari), accent:'var(--gold)',
+    {label:'Omset Hari Ini', accent:'var(--gold)',
+      val:`${fmtShort(omsetHari)}<span style="font-size:13px;font-weight:500;color:var(--dusty);margin-left:8px;">${qtyHari} pcs</span>`,
       sub:[deltaBadge(omsetHari,omsetKemarin),'<span>vs kemarin</span>'].join(' ')},
-    {label:'Omset Bulan Ini', val:fmtShort(omsetBulan), accent:'var(--brown)',
+    {label:'Omset Bulan Ini', accent:'var(--brown)',
+      val:`${fmtShort(omsetBulan)}<span style="font-size:13px;font-weight:500;color:var(--dusty);margin-left:8px;">${qtyBulan} pcs</span>`,
       sub:[deltaBadge(omsetBulan,omsetBulanLalu),`<span>vs bln lalu · proyeksi ${fmtShort(proyeksi)}</span>`].join(' ')},
-    {label:'Nilai Stok (HPP)', val:fmtShort(nilaiStok), accent:'#3D7EAA',
-      sub:`<span>${fmtNum(totalStok)} pcs · ${DB.stok.length} SKU</span>`},
+    {label:'Nilai Stok (HPP)', accent:'#3D7EAA',
+      val:`${fmtShort(nilaiStok)}<span style="font-size:13px;font-weight:500;color:var(--dusty);margin-left:8px;">${fmtNum(totalStok)} pcs</span>`,
+      sub:`<span>${DB.stok.length} SKU</span>`},
     {label:'Stok Bermasalah', val:`${stokHabis.length+stokKritis.length} SKU`, accent:stokHabis.length>0?'#C0392B':'#E6A817',
       sub:`<span class="stok-red">${stokHabis.length} habis</span> · <span class="stok-amber">${stokKritis.length} kritis</span>`}
   ];
