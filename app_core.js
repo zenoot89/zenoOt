@@ -2488,6 +2488,7 @@ function toggleJurnalFilterPanel(){
 }
 
 
+function toggleProdukFilterPanel(){
   const panel = document.getElementById('produk-filter-panel');
   const btn = document.getElementById('produk-sort-btn');
   if(!panel) return;
