@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════
    ai_module.js — zenOt Operasional V2
-   UPGRADE AI — Gemini 2.0 Flash untuk semua fitur AI
+   UPGRADE AI — Gemini dengan Auto-Retry & Model Fallback
 
    ✅ FEATURE 1: AI Blueprint Analyzer — analisis SKU + action plan
    ✅ FEATURE 2: Daily Checklist AI Chat — asisten operasional harian
    ✅ FEATURE 3: Intelligence AI Advisor — insight otomatis dari data
-   ✅ Unified AI engine (Gemini 2.0 Flash)
-   ✅ Streaming support untuk chat
+   ✅ Unified AI engine dengan retry + fallback otomatis
+   ✅ Model priority: gemini-1.5-flash → gemini-1.5-pro → gemini-1.0-pro
    ✅ Context-aware (baca DB, teData, rkData)
 
    Depends on: app_core.js (window.DB, SUPABASE_URL, SUPABASE_KEY)
@@ -15,24 +15,45 @@
    ════════════════════════════════════════════════════════════════ */
 
 // ═══════════════════════════════════════════════════════
-// UNIFIED AI CALL ENGINE
+// UNIFIED AI CALL ENGINE — dengan Retry & Fallback
 // ═══════════════════════════════════════════════════════
 
-async function _callGemini(prompt, systemInstruction = '', maxTokens = 1500) {
-  const key = window._geminiKey;
-  if (!key) throw new Error('Gemini API Key belum diset. Buka Intelligence → Settings AI.');
+// Urutan model fallback: mulai dari yang paling generous free tier-nya
+const _GEMINI_MODELS = [
+  'gemini-2.5-flash-preview-05-20', // Terbaru, free tier tersedia
+  'gemini-2.0-flash',               // Fallback 1
+  'gemini-1.5-flash',               // Fallback 2
+];
 
+// Cek apakah error ini adalah quota/rate-limit error (bisa di-retry)
+function _isQuotaError(msg) {
+  return (
+    msg.includes('quota') ||
+    msg.includes('RESOURCE_EXHAUSTED') ||
+    msg.includes('rate') ||
+    msg.includes('429') ||
+    msg.includes('limit')
+  );
+}
+
+// Delay helper
+function _sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// Panggil satu model Gemini tertentu
+async function _callGeminiModel(model, prompt, systemInstruction, maxTokens) {
+  const key = window._geminiKey;
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.5, maxOutputTokens: maxTokens },
   };
-
   if (systemInstruction) {
     body.system_instruction = { parts: [{ text: systemInstruction }] };
   }
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,12 +62,62 @@ async function _callGemini(prompt, systemInstruction = '', maxTokens = 1500) {
   );
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Gemini error HTTP ${res.status}`);
+    const errData = await res.json().catch(() => ({}));
+    const errMsg = errData?.error?.message || `HTTP ${res.status}`;
+    throw new Error(errMsg);
   }
 
   const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) throw new Error('Respons AI kosong');
+  return text;
+}
+
+// Main: coba setiap model, retry 1x bila quota habis, fallback ke model berikutnya
+async function _callGemini(prompt, systemInstruction = '', maxTokens = 1500) {
+  const key = window._geminiKey;
+  if (!key) throw new Error('Gemini API Key belum diset. Buka Intelligence → Settings AI.');
+
+  let lastError = null;
+
+  for (const model of _GEMINI_MODELS) {
+    // Coba model ini max 2x (sekali langsung, sekali retry setelah delay)
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const result = await _callGeminiModel(model, prompt, systemInstruction, maxTokens);
+        // Berhasil — catat model yang dipakai untuk debugging
+        if (model !== _GEMINI_MODELS[0]) {
+          console.info(`[AI] Berhasil dengan fallback model: ${model}`);
+        }
+        return result;
+      } catch (err) {
+        lastError = err;
+        const isQuota = _isQuotaError(err.message);
+
+        if (isQuota && attempt === 1) {
+          // Quota kena di attempt pertama → tunggu 3 detik lalu retry
+          console.warn(`[AI] Quota limit model ${model} (attempt ${attempt}), retry dalam 3s...`);
+          await _sleep(3000);
+          continue; // retry attempt 2
+        }
+
+        if (isQuota && attempt === 2) {
+          // Quota tetap kena setelah retry → coba model berikutnya
+          console.warn(`[AI] Quota tetap limit di model ${model}, pindah ke fallback...`);
+          break; // break attempt loop, lanjut ke model berikutnya
+        }
+
+        // Error bukan quota (misal: key invalid, network error) → langsung throw
+        throw new Error(`Gagal: ${err.message}`);
+      }
+    }
+  }
+
+  // Semua model kena quota
+  throw new Error(
+    'Semua model Gemini sedang kena quota limit. ' +
+    'Coba lagi dalam beberapa menit, atau upgrade plan Google AI Studio kamu di: https://aistudio.google.com'
+  );
 }
 
 function _parseJSON(raw) {
@@ -175,12 +246,20 @@ Sertakan maksimal 5 prioritas, 3 insight tersembunyi, dan 3 quick wins. Semua ha
     _renderBlueprintAIResult(window._blueprintAIResult);
 
   } catch (err) {
+    const isQuota = _isQuotaError(err.message);
     if (resultEl) resultEl.innerHTML = `
       <div style="background:#FEE2E2;border:1px solid #C0392B40;border-radius:10px;padding:14px;font-size:12px;color:#C0392B;">
-        ❌ <strong>Gagal generate Blueprint AI:</strong> ${err.message}<br>
-        <span style="font-size:11px;color:#888;margin-top:4px;display:block;">Pastikan API Key valid dan koneksi internet aktif.</span>
+        ❌ <strong>${isQuota ? 'Quota Gemini habis' : 'Gagal generate Blueprint AI'}:</strong>
+        ${isQuota
+          ? 'AI sudah coba 3 model berbeda tapi quota semua habis. Tunggu beberapa menit lalu coba lagi.'
+          : err.message}<br>
+        <span style="font-size:11px;color:#888;margin-top:4px;display:block;">
+          ${isQuota
+            ? '💡 Tip: Buka <a href="https://aistudio.google.com" target="_blank" style="color:#888;">aistudio.google.com</a> untuk cek usage & billing kamu.'
+            : 'Pastikan API Key valid dan koneksi internet aktif.'}
+        </span>
       </div>`;
-    toast('❌ AI Blueprint error: ' + err.message, 'err');
+    toast('❌ AI Blueprint error: ' + (isQuota ? 'Quota limit — coba lagi nanti' : err.message), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🤖 Generate AI Blueprint'; }
   }
@@ -209,7 +288,7 @@ function _renderBlueprintAIResult(data) {
           <div style="font-size:22px;">🤖</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:#5C3D2E;">AI Strategic Blueprint</div>
-            <div style="font-size:10px;color:var(--dusty);">Dibuat ${time} · Powered by Gemini 2.0 Flash</div>
+            <div style="font-size:10px;color:var(--dusty);">Dibuat ${time} · Powered by Gemini AI</div>
           </div>
           <div style="margin-left:auto;text-align:right;">
             <div style="font-size:22px;font-weight:800;color:${kesehatanColor};">${data.skor_toko}/100</div>
@@ -289,7 +368,7 @@ function _injectBlueprintAIButton() {
   wrap.id = 'ai-blueprint-inject';
   wrap.innerHTML = `
     <div class="card" style="margin-bottom:0;">
-      <div class="card-title">🤖 AI Strategic Blueprint <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by Gemini 2.0 Flash</span></div>
+      <div class="card-title">🤖 AI Strategic Blueprint <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by Gemini AI</span></div>
       <p style="font-size:12px;color:var(--dusty);margin-bottom:12px;">
         AI akan menganalisis semua SKU kamu dan menghasilkan blueprint strategis — prioritas aksi, insight tersembunyi, dan quick wins yang bisa langsung dikerjakan.
       </p>
@@ -615,11 +694,14 @@ Buat analisis dalam format JSON (HANYA JSON):
     _renderIntelAIResult(_intelAICache);
 
   } catch (err) {
+    const isQuota = _isQuotaError(err.message);
     if (resultEl) resultEl.innerHTML = `
       <div style="background:#FEE2E2;border:1px solid #C0392B40;border-radius:8px;padding:12px;font-size:12px;color:#C0392B;">
-        ❌ <strong>Gagal:</strong> ${err.message}
+        ❌ <strong>${isQuota ? 'Quota Gemini habis' : 'Gagal'}:</strong> ${isQuota
+          ? 'Semua model sudah dicoba. Tunggu beberapa menit lalu coba lagi, atau upgrade plan di <a href="https://aistudio.google.com" target="_blank" style="color:#C0392B;">aistudio.google.com</a>.'
+          : err.message}
       </div>`;
-    toast('❌ Intel AI error: ' + err.message, 'err');
+    toast('❌ Intel AI error: ' + (isQuota ? 'Quota limit — coba lagi nanti' : err.message), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🤖 Generate AI Insight'; }
   }
@@ -700,7 +782,7 @@ function _injectIntelAIAdvisor() {
   panel.className = 'card';
   panel.style.marginBottom = '16px';
   panel.innerHTML = `
-    <div class="card-title">🤖 AI Intelligence Advisor <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by Gemini 2.0 Flash</span></div>
+    <div class="card-title">🤖 AI Intelligence Advisor <span style="font-size:10px;font-weight:400;color:var(--dusty);margin-left:6px;">Powered by Gemini AI</span></div>
     <p style="font-size:12px;color:var(--dusty);margin-bottom:12px;">AI akan menganalisis data 30 hari terakhir dan memberikan diagnosis bisnis, kekuatan/kelemahan, serta rekomendasi konkret.</p>
     <button id="btn-intel-ai" class="btn btn-p btn-sm" onclick="runIntelAIAdvisor()">🤖 Generate AI Insight</button>
     <div id="intel-ai-result" style="display:none;margin-top:12px;"></div>`;
@@ -944,7 +1026,7 @@ function renderAIDrawer() {
           border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
         ">Simpan</button>
       </div>
-      ${saved ? `<p style="font-size:11px;color:#16a34a;margin:8px 0 0;">✅ API Key aktif — Gemini 2.0 Flash siap digunakan</p>` : ''}
+      ${saved ? `<p style="font-size:11px;color:#16a34a;margin:8px 0 0;">✅ API Key aktif — Gemini AI siap digunakan</p>` : ''}
     </div>
   </div>`;
 
