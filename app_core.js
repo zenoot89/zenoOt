@@ -2514,9 +2514,22 @@ function toggleJurnalFilterPanel(){
     panel.style.display = 'none';
     if(btn) btn.classList.remove('sort-active');
   } else {
+    // FIX: position:fixed agar tidak terpotong overflow dari parent manapun
+    const rect = btn.getBoundingClientRect();
+    panel.style.position = 'fixed';
+    panel.style.top = (rect.bottom + 6) + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.style.right = 'auto';
+    panel.style.zIndex = '99999';
     panel.style.display = 'flex';
-    panel.style.zIndex = '9999'; // FIX: pastikan panel di atas semua elemen
     if(btn) btn.classList.add('sort-active');
+    requestAnimationFrame(()=>{
+      const pr = panel.getBoundingClientRect();
+      if(pr.right > window.innerWidth){
+        panel.style.left = 'auto';
+        panel.style.right = (window.innerWidth - rect.right) + 'px';
+      }
+    });
     setTimeout(()=>{
       document.addEventListener('click', function _jClose(e){
         const p = document.getElementById('jurnal-filter-panel');
@@ -2542,15 +2555,20 @@ function toggleProdukFilterPanel(){
   if(isOpen){
     _closeProdukFilterPanel();
   } else {
+    // FIX: position:fixed agar tidak terpotong overflow dari parent manapun
+    const rect = btn.getBoundingClientRect();
+    panel.style.position = 'fixed';
+    panel.style.top = (rect.bottom + 6) + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.style.right = 'auto';
+    panel.style.zIndex = '99999';
     panel.style.display = 'flex';
-    panel.style.zIndex = '9999'; // FIX: pastikan panel di atas semua elemen
     if(btn) btn.classList.add('sort-active');
-    // Posisi: kalau di mobile, panel sesuaikan agar tidak keluar layar
     requestAnimationFrame(()=>{
-      const rect = panel.getBoundingClientRect();
-      if(rect.right > window.innerWidth){
+      const pr = panel.getBoundingClientRect();
+      if(pr.right > window.innerWidth){
         panel.style.left = 'auto';
-        panel.style.right = '0';
+        panel.style.right = (window.innerWidth - rect.right) + 'px';
       }
     });
     // Backdrop klik luar
