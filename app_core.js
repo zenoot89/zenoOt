@@ -3948,250 +3948,342 @@ function saveTokoAssign() {
 
 // ================================================================
 // ================================================================
-// CHANNEL PAGE — Manage Toko (1 kolom, full CRUD ke Supabase)
+// CHANNEL PAGE — 2 Tab: TOKO + PLATFORM (full CRUD, Supabase)
 // ================================================================
 
-let _chEditKode = null; // kode toko yang sedang diedit
+let _chEditKode   = null;  // kode toko yg sedang diedit
+let _chTabAktif   = 'toko'; // 'toko' | 'platform'
+let _platEditId   = null;  // id platform yg sedang diedit
+window._platList  = [];    // [{id, nama, label, warna, urutan}]
 
-function renderChannel() {
+// ── Load platform dari Supabase ──
+async function loadPlatformList() {
+  try {
+    const res = await _sbFetch(`${SUPABASE_URL}/rest/v1/platform?select=*&order=urutan.asc`);
+    if (!res.ok) throw new Error(await res.text());
+    window._platList = await res.json();
+  } catch(e) {
+    window._platList = [];
+    console.warn('loadPlatformList gagal:', e.message);
+  }
+}
+
+// ── Helper: dropdown platform untuk form toko ──
+function _platOptions(selected) {
+  if (!window._platList.length) return '<option value="">— belum ada platform —</option>';
+  return window._platList.map(p =>
+    `<option value="${p.nama}" ${p.nama === selected ? 'selected' : ''}>${p.label || p.nama}</option>`
+  ).join('');
+}
+
+const CH_COLORS = ['#5C3D2E','#C9785A','#9D4EDD','#3D7EAA','#2A5F8A','#7C3AED','#5A7A6A','#8B7355','#C0392B','#0D9488','#E31D1C','#0F146D','#FF6600','#25D366','#833AB4'];
+
+async function renderChannel() {
   const wrap = document.getElementById('page-channel');
   if (!wrap) return;
+  await loadPlatformList();
+  const grups = [...new Set(window._tokoList.map(t => t.platform ? t.platform.toUpperCase() : 'LAINNYA'))];
+  const total = window._tokoList.length;
 
-  const PLATFORM_OPTS = ['shopee','lazada','tiktok','whatsapp','offline','direct','reseller'];
-  const GRUP_OPTS     = ['SHOPEE','LAZADA','TIKTOK','OFFLINE','RESELLER','LAINNYA'];
-  const COLORS        = ['#5C3D2E','#C9785A','#9D4EDD','#3D7EAA','#2A5F8A','#7C3AED','#5A7A6A','#8B7355','#C0392B','#0D9488'];
-  const grups         = [...new Set(window._tokoList.map(t => t.grup))];
-  const total         = window._tokoList.length;
-
-  wrap.innerHTML = `
+wrap.innerHTML = `
     <div style="display:flex;height:calc(100vh - 56px);overflow:hidden;">
 
-      <!-- KOLOM KIRI — List Channel (fixed, scrollable) -->
+      <!-- KOLOM KIRI -->
       <div style="width:320px;flex-shrink:0;display:flex;flex-direction:column;border-right:1.5px solid var(--border);background:var(--cream);overflow:hidden;">
 
-        <!-- Header kiri -->
-        <div style="padding:20px 16px 12px;border-bottom:1px solid var(--border);background:var(--cream);">
-          <div style="font-size:16px;font-weight:800;color:var(--charcoal);">Channel Penjualan</div>
-          <div style="font-size:11px;color:var(--dusty);margin-top:2px;">${total} channel • Supabase</div>
-          <button onclick="chShowForm()" class="btn btn-p"
-            style="width:100%;margin-top:10px;padding:9px;border-radius:10px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
-            <span style="font-size:15px;line-height:1;">＋</span> Tambah Channel
+        <!-- Header + Tab -->
+        <div style="padding:16px 16px 0;border-bottom:1px solid var(--border);background:var(--cream);">
+          <div style="font-size:15px;font-weight:800;color:var(--charcoal);margin-bottom:10px;">Channel Penjualan</div>
+          <div style="display:flex;gap:4px;margin-bottom:-1px;">
+            <button onclick="chSwitchTab('toko')" id="ch-tab-toko"
+              style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border:1.5px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;cursor:pointer;
+                     background:${_chTabAktif==='toko'?'white':'var(--cream)'};color:${_chTabAktif==='toko'?'var(--rust)':'var(--dusty)'};">
+              🏪 Toko <span style="font-size:10px;opacity:.7;">(${total})</span>
+            </button>
+            <button onclick="chSwitchTab('platform')" id="ch-tab-platform"
+              style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border:1.5px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;cursor:pointer;
+                     background:${_chTabAktif==='platform'?'white':'var(--cream)'};color:${_chTabAktif==='platform'?'var(--rust)':'var(--dusty)'};">
+              ⚙️ Platform <span style="font-size:10px;opacity:.7;">(${window._platList.length})</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tombol tambah -->
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:white;">
+          <button onclick="${_chTabAktif==='toko'?'chShowTokoForm()':'chShowPlatForm()'}" class="btn btn-p"
+            style="width:100%;padding:8px;border-radius:8px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;">
+            <span style="font-size:14px;line-height:1;">＋</span>
+            ${_chTabAktif==='toko'?'Tambah Toko':'Tambah Platform'}
           </button>
         </div>
 
         <!-- List scroll -->
-        <div style="flex:1;overflow-y:auto;padding:12px 12px 20px;" id="ch-list-scroll">
-          ${grups.length === 0 ? `
-            <div style="text-align:center;padding:40px 16px;color:var(--dusty);">
-              <div style="font-size:28px;margin-bottom:8px;">🏪</div>
-              <div style="font-size:13px;font-weight:600;">Belum ada channel</div>
-            </div>` :
-            grups.map(grup => {
-              const items = window._tokoList.filter(t => t.grup === grup);
-              return `
-                <div style="margin-bottom:16px;">
-                  <div style="font-size:9px;font-weight:800;color:var(--dusty);text-transform:uppercase;
-                              letter-spacing:1px;padding:4px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">${grup}</div>
-                  ${items.map(t => `
-                    <div id="ch-row-${t.kode.replace(/[^A-Z0-9]/gi,'_')}"
-                      onclick="chEdit('${t.kode}')"
-                      style="display:flex;align-items:center;gap:10px;padding:10px 10px;background:white;
-                             border:1.5px solid ${_chEditKode===t.kode?'var(--rust)':'var(--border)'};
-                             border-radius:10px;margin-bottom:5px;cursor:pointer;
-                             box-shadow:0 1px 3px rgba(0,0,0,.04);
-                             opacity:${t.status==='nonaktif'?'.4':'1'};
-                             transition:border .15s;">
-                      <span style="width:9px;height:9px;border-radius:50%;background:${t.warna};flex-shrink:0;"></span>
-                      <div style="flex:1;min-width:0;">
-                        <div style="font-size:12px;font-weight:700;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.kode}</div>
-                        <div style="font-size:10px;color:var(--dusty);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                          ${t.username||t.brand} · ${t.platform}${t.status==='nonaktif'?' · NONAKTIF':''}
-                        </div>
-                      </div>
-                      <div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">
-                        <button onclick="chToggleStatus('${t.kode}')" title="${t.status==='aktif'?'Nonaktifkan':'Aktifkan'}"
-                          style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:white;cursor:pointer;font-size:11px;line-height:1;">${t.status==='aktif'?'🔴':'🟢'}</button>
-                        <button onclick="chHapus('${t.kode}')" title="Hapus"
-                          style="width:26px;height:26px;border:1px solid #f5c6cb;border-radius:6px;background:#fff5f5;cursor:pointer;font-size:11px;line-height:1;">🗑</button>
-                      </div>
-                    </div>`).join('')}
-                </div>`;
-            }).join('')}
+        <div style="flex:1;overflow-y:auto;padding:10px 10px 20px;" id="ch-list-scroll">
+          ${_chTabAktif === 'toko' ? _chRenderTokoList() : _chRenderPlatList()}
         </div>
       </div>
 
-      <!-- KOLOM KANAN — Form Edit/Tambah (sticky, muncul saat dipilih) -->
-      <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:32px 24px;overflow-y:auto;background:white;">
+      <!-- KOLOM KANAN — Form -->
+      <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:28px 20px;overflow-y:auto;background:white;">
 
-        <!-- State kosong -->
-        <div id="ch-form-empty" style="text-align:center;padding:60px 20px;color:var(--dusty);width:100%;max-width:420px;">
-          <div style="font-size:40px;margin-bottom:12px;">✏️</div>
-          <div style="font-size:14px;font-weight:600;color:var(--charcoal);">Pilih channel untuk edit</div>
-          <div style="font-size:12px;margin-top:6px;">Klik salah satu channel di kiri,<br>atau tambah channel baru.</div>
+        <!-- Empty state -->
+        <div id="ch-form-empty" style="text-align:center;padding:60px 20px;color:var(--dusty);width:100%;max-width:440px;">
+          <div style="font-size:38px;margin-bottom:10px;">${_chTabAktif==='toko'?'🏪':'⚙️'}</div>
+          <div style="font-size:14px;font-weight:600;color:var(--charcoal);">Pilih ${_chTabAktif==='toko'?'toko':'platform'} untuk edit</div>
+          <div style="font-size:12px;margin-top:5px;">Atau klik ＋ untuk tambah baru</div>
         </div>
 
-        <!-- Form panel -->
-        <div id="ch-form-wrap" style="display:none;width:100%;max-width:420px;">
-          <div style="font-size:16px;font-weight:800;color:var(--charcoal);margin-bottom:20px;padding-bottom:12px;border-bottom:1.5px solid var(--border);" id="ch-form-title">＋ Tambah Channel Baru</div>
-
-          <div style="display:flex;flex-direction:column;gap:14px;">
+        <!-- Form Toko -->
+        <div id="ch-form-toko" style="display:none;width:100%;max-width:440px;">
+          <div style="font-size:15px;font-weight:800;color:var(--charcoal);margin-bottom:18px;padding-bottom:10px;border-bottom:1.5px solid var(--border);" id="ch-toko-title">＋ Tambah Toko Baru</div>
+          <div style="display:flex;flex-direction:column;gap:13px;">
             <div>
-              <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Kode Unik *</label>
+              <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Kode Unik *</label>
               <input id="ch-f-kode" class="inp" placeholder="SHP.ZENOOT" style="width:100%;font-weight:700;text-transform:uppercase;font-size:14px;" oninput="this.value=this.value.toUpperCase()">
-              <div style="font-size:10px;color:var(--dusty);margin-top:3px;">Format: PLATFORM.BRAND — tidak bisa diubah setelah disimpan</div>
+              <div style="font-size:10px;color:var(--dusty);margin-top:2px;">Contoh: SHP.ZENOOT, TT.DIMI, IG.ALLEY</div>
             </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <div>
-                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Brand</label>
+                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Brand</label>
                 <input id="ch-f-brand" class="inp" placeholder="zenOt / elenz / alley" style="width:100%;">
               </div>
               <div>
-                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Username</label>
-                <input id="ch-f-username" class="inp" placeholder="zenootsweater" style="width:100%;">
-              </div>
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Platform</label>
-                <select id="ch-f-platform" class="sel" style="width:100%;">
-                  ${PLATFORM_OPTS.map(p=>`<option value="${p}">${p}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Grup</label>
-                <select id="ch-f-grup" class="sel" style="width:100%;">
-                  ${GRUP_OPTS.map(g=>`<option value="${g}">${g}</option>`).join('')}
-                </select>
+                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Username</label>
+                <input id="ch-f-username" class="inp" placeholder="@zenootsweater" style="width:100%;">
               </div>
             </div>
-
             <div>
-              <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px;">Warna Label</label>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                ${COLORS.map((c,i)=>`<div onclick="chPickColor('${c}')" data-color="${c}" class="ch-color-dot"
-                  style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;
+              <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Platform *</label>
+              <select id="ch-f-platform" class="sel" style="width:100%;">
+                ${_platOptions('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Warna Label</label>
+              <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                ${CH_COLORS.map((c,i)=>`<div onclick="chPickColor('${c}')" data-color="${c}" class="ch-color-dot"
+                  style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;
                          border:3px solid ${i===0?'#000':'transparent'};transition:border .15s;flex-shrink:0;"></div>`).join('')}
               </div>
-              <input type="hidden" id="ch-f-warna" value="${COLORS[0]}">
+              <input type="hidden" id="ch-f-warna" value="${CH_COLORS[0]}">
             </div>
-
-            <div style="display:flex;gap:8px;padding-top:8px;">
-              <button onclick="chHideForm()" class="btn btn-s" style="flex:1;padding:10px;font-size:13px;">Batal</button>
-              <button onclick="chSimpan()" class="btn btn-p" style="flex:2;padding:10px;font-size:13px;font-weight:700;" id="ch-btn-simpan">✅ Simpan</button>
+            <div style="display:flex;gap:8px;padding-top:6px;">
+              <button onclick="chHideForm()" class="btn btn-s" style="flex:1;padding:9px;font-size:12px;">Batal</button>
+              <button onclick="chSimpanToko()" class="btn btn-p" style="flex:2;padding:9px;font-size:13px;font-weight:700;" id="ch-btn-simpan">✅ Simpan</button>
             </div>
             <div id="ch-form-status" style="font-size:11px;color:var(--dusty);text-align:center;"></div>
           </div>
         </div>
-      </div>
 
+        <!-- Form Platform -->
+        <div id="ch-form-platform" style="display:none;width:100%;max-width:440px;">
+          <div style="font-size:15px;font-weight:800;color:var(--charcoal);margin-bottom:18px;padding-bottom:10px;border-bottom:1.5px solid var(--border);" id="ch-plat-title">＋ Tambah Platform Baru</div>
+          <div style="display:flex;flex-direction:column;gap:13px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Nama (kode) *</label>
+                <input id="plat-f-nama" class="inp" placeholder="shopee" style="width:100%;text-transform:lowercase;" oninput="this.value=this.value.toLowerCase().replace(/\s/g,'')">
+                <div style="font-size:10px;color:var(--dusty);margin-top:2px;">Huruf kecil, tanpa spasi</div>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Label Tampilan *</label>
+                <input id="plat-f-label" class="inp" placeholder="Shopee" style="width:100%;">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Warna</label>
+                <input id="plat-f-warna" type="color" value="#5C3D2E" style="width:100%;height:38px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--dusty);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;">Urutan</label>
+                <input id="plat-f-urutan" class="inp" type="number" placeholder="1" min="1" style="width:100%;">
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;padding-top:6px;">
+              <button onclick="chHideForm()" class="btn btn-s" style="flex:1;padding:9px;font-size:12px;">Batal</button>
+              <button onclick="chSimpanPlat()" class="btn btn-p" style="flex:2;padding:9px;font-size:13px;font-weight:700;" id="plat-btn-simpan">✅ Simpan</button>
+            </div>
+            <div id="plat-form-status" style="font-size:11px;color:var(--dusty);text-align:center;"></div>
+          </div>
+        </div>
+
+      </div>
     </div>
   `;
 }
 
-function chShowForm(fillData) {
-  const wrap  = document.getElementById('ch-form-wrap');
-  const empty = document.getElementById('ch-form-empty');
-  if (!wrap) return;
+// ── Render list toko (kiri) ──
+function _chRenderTokoList() {
+  const grups = [...new Set(window._tokoList.map(t => (t.platform||'lainnya').toUpperCase()))];
+  if (!grups.length) return '<div style="text-align:center;padding:40px 16px;color:var(--dusty);"><div style="font-size:28px;margin-bottom:8px;">🏪</div><div style="font-size:13px;font-weight:600;">Belum ada toko</div><div style="font-size:11px;margin-top:4px;">Tambah platform dulu, lalu tambah toko</div></div>';
+  return grups.map(grup => {
+    const items = window._tokoList.filter(t => (t.platform||'lainnya').toUpperCase() === grup);
+    const platWarna = window._platList.find(p => p.nama === grup.toLowerCase())?.warna || '#8B7355';
+    return `<div style="margin-bottom:14px;">
+      <div style="font-size:9px;font-weight:800;color:${platWarna};text-transform:uppercase;letter-spacing:1px;padding:3px 4px 5px;border-bottom:2px solid ${platWarna}22;margin-bottom:5px;display:flex;align-items:center;gap:5px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:${platWarna};flex-shrink:0;"></span>${grup}
+      </div>
+      ${items.map(t => `
+        <div id="ch-row-${t.kode.replace(/[^A-Z0-9]/gi,'_')}" onclick="chEditToko('${t.kode}')"
+          style="display:flex;align-items:center;gap:9px;padding:9px 9px;background:white;
+                 border:1.5px solid ${_chEditKode===t.kode?'var(--rust)':'var(--border)'};
+                 border-radius:9px;margin-bottom:4px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);
+                 opacity:${t.status==='nonaktif'?'.4':'1'};transition:border .15s;">
+          <span style="width:9px;height:9px;border-radius:50%;background:${t.warna};flex-shrink:0;"></span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:700;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.kode}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${t.username||t.brand}${t.status==='nonaktif'?' · NONAKTIF':''}
+            </div>
+          </div>
+          <div style="display:flex;gap:3px;flex-shrink:0;" onclick="event.stopPropagation()">
+            <button onclick="chToggleStatus('${t.kode}')" title="${t.status==='aktif'?'Nonaktifkan':'Aktifkan'}"
+              style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:white;cursor:pointer;font-size:11px;line-height:1;">${t.status==='aktif'?'🔴':'🟢'}</button>
+            <button onclick="chHapusToko('${t.kode}')" title="Hapus"
+              style="width:26px;height:26px;border:1px solid #f5c6cb;border-radius:6px;background:#fff5f5;cursor:pointer;font-size:11px;line-height:1;">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
 
-  // Tampilkan form, sembunyikan empty state
-  wrap.style.display  = 'block';
-  if (empty) empty.style.display = 'none';
+// ── Render list platform (kiri) ──
+function _chRenderPlatList() {
+  if (!window._platList.length) return '<div style="text-align:center;padding:40px 16px;color:var(--dusty);"><div style="font-size:28px;margin-bottom:8px;">⚙️</div><div style="font-size:13px;font-weight:600;">Belum ada platform</div><div style="font-size:11px;margin-top:4px;">Tambah platform pertama kamu</div></div>';
+  return window._platList.map(p => {
+    const tokoCount = window._tokoList.filter(t => t.platform === p.nama).length;
+    return `<div id="plat-row-${p.id}" onclick="chEditPlat(${p.id})"
+      style="display:flex;align-items:center;gap:10px;padding:10px;background:white;
+             border:1.5px solid ${_platEditId===p.id?'var(--rust)':'var(--border)'};
+             border-radius:9px;margin-bottom:5px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:border .15s;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${p.warna||'#8B7355'};flex-shrink:0;"></span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:var(--charcoal);">${p.label||p.nama}</div>
+        <div style="font-size:10px;color:var(--dusty);margin-top:1px;">${p.nama} · ${tokoCount} toko</div>
+      </div>
+      <div style="display:flex;gap:3px;flex-shrink:0;" onclick="event.stopPropagation()">
+        <button onclick="chHapusPlat(${p.id},'${p.nama}')" title="Hapus"
+          style="width:26px;height:26px;border:1px solid #f5c6cb;border-radius:6px;background:#fff5f5;cursor:pointer;font-size:11px;line-height:1;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
+// ── Refresh hanya kolom kiri ──
+function _chRefreshList() {
+  const scroll = document.getElementById('ch-list-scroll');
+  if (!scroll) return;
+  scroll.innerHTML = _chTabAktif === 'toko' ? _chRenderTokoList() : _chRenderPlatList();
+}
+
+// ── Switch tab ──
+function chSwitchTab(tab) {
+  _chTabAktif = tab;
+  _chEditKode = null;
+  _platEditId = null;
+  renderChannel();
+}
+
+// ── Show/hide form toko ──
+function chShowTokoForm(fillData) {
+  document.getElementById('ch-form-empty').style.display   = 'none';
+  document.getElementById('ch-form-toko').style.display    = 'block';
+  document.getElementById('ch-form-platform').style.display = 'none';
+  // Update dropdown platform
+  document.getElementById('ch-f-platform').innerHTML = _platOptions(fillData?.platform || '');
   if (fillData) {
-    document.getElementById('ch-f-kode').value    = fillData.kode;
-    document.getElementById('ch-f-kode').disabled = true;
-    document.getElementById('ch-f-brand').value   = fillData.brand    || '';
-    document.getElementById('ch-f-platform').value= fillData.platform || 'shopee';
-    document.getElementById('ch-f-grup').value    = fillData.grup     || 'SHOPEE';
-    document.getElementById('ch-f-username').value= fillData.username || '';
-    document.getElementById('ch-f-warna').value   = fillData.warna    || '#5C3D2E';
-    document.getElementById('ch-form-title').textContent    = `✏️ Edit: ${fillData.kode}`;
-    document.getElementById('ch-btn-simpan').textContent    = '✅ Update';
+    document.getElementById('ch-f-kode').value      = fillData.kode;
+    document.getElementById('ch-f-kode').disabled   = true;
+    document.getElementById('ch-f-brand').value     = fillData.brand    || '';
+    document.getElementById('ch-f-username').value  = fillData.username || '';
+    document.getElementById('ch-f-platform').value  = fillData.platform || '';
+    document.getElementById('ch-f-warna').value     = fillData.warna    || CH_COLORS[0];
+    document.getElementById('ch-toko-title').textContent = `✏️ Edit: ${fillData.kode}`;
+    document.getElementById('ch-btn-simpan').textContent = '✅ Update';
     document.querySelectorAll('.ch-color-dot').forEach(el => {
       el.style.border = el.dataset.color === fillData.warna ? '3px solid #000' : '3px solid transparent';
     });
     _chEditKode = fillData.kode;
   } else {
-    document.getElementById('ch-f-kode').value    = '';
-    document.getElementById('ch-f-kode').disabled = false;
-    document.getElementById('ch-f-brand').value   = '';
-    document.getElementById('ch-f-platform').value= 'shopee';
-    document.getElementById('ch-f-grup').value    = 'SHOPEE';
-    document.getElementById('ch-f-username').value= '';
-    document.getElementById('ch-f-warna').value   = '#5C3D2E';
-    document.getElementById('ch-form-title').textContent = '＋ Tambah Channel Baru';
+    document.getElementById('ch-f-kode').value      = '';
+    document.getElementById('ch-f-kode').disabled   = false;
+    document.getElementById('ch-f-brand').value     = '';
+    document.getElementById('ch-f-username').value  = '';
+    document.getElementById('ch-f-warna').value     = CH_COLORS[0];
+    document.getElementById('ch-toko-title').textContent = '＋ Tambah Toko Baru';
     document.getElementById('ch-btn-simpan').textContent = '✅ Simpan';
     document.querySelectorAll('.ch-color-dot').forEach((el,i) => {
       el.style.border = i === 0 ? '3px solid #000' : '3px solid transparent';
     });
     _chEditKode = null;
   }
+  document.getElementById('ch-form-status').textContent = '';
+}
+
+// ── Show/hide form platform ──
+function chShowPlatForm(fillData) {
+  document.getElementById('ch-form-empty').style.display    = 'none';
+  document.getElementById('ch-form-toko').style.display     = 'none';
+  document.getElementById('ch-form-platform').style.display = 'block';
+  if (fillData) {
+    document.getElementById('plat-f-nama').value   = fillData.nama   || '';
+    document.getElementById('plat-f-nama').disabled = true;
+    document.getElementById('plat-f-label').value  = fillData.label  || '';
+    document.getElementById('plat-f-warna').value  = fillData.warna  || '#5C3D2E';
+    document.getElementById('plat-f-urutan').value = fillData.urutan || '';
+    document.getElementById('ch-plat-title').textContent   = `✏️ Edit: ${fillData.label||fillData.nama}`;
+    document.getElementById('plat-btn-simpan').textContent = '✅ Update';
+    _platEditId = fillData.id;
+  } else {
+    document.getElementById('plat-f-nama').value   = '';
+    document.getElementById('plat-f-nama').disabled = false;
+    document.getElementById('plat-f-label').value  = '';
+    document.getElementById('plat-f-warna').value  = '#5C3D2E';
+    document.getElementById('plat-f-urutan').value = (window._platList.length + 1).toString();
+    document.getElementById('ch-plat-title').textContent   = '＋ Tambah Platform Baru';
+    document.getElementById('plat-btn-simpan').textContent = '✅ Simpan';
+    _platEditId = null;
+  }
+  document.getElementById('plat-form-status').textContent = '';
 }
 
 function chHideForm() {
-  const wrap  = document.getElementById('ch-form-wrap');
   const empty = document.getElementById('ch-form-empty');
-  if (wrap)  wrap.style.display  = 'none';
+  const fToko = document.getElementById('ch-form-toko');
+  const fPlat = document.getElementById('ch-form-platform');
   if (empty) empty.style.display = 'block';
+  if (fToko) fToko.style.display = 'none';
+  if (fPlat) fPlat.style.display = 'none';
   _chEditKode = null;
-  // Re-render list untuk hilangkan highlight
+  _platEditId = null;
   _chRefreshList();
 }
 
 function chPickColor(color) {
-  document.getElementById('ch-f-warna').value = color;
-  document.querySelectorAll('.ch-color-dot').forEach(el => {
-    el.style.border = el.dataset.color === color ? '3px solid #000' : '3px solid transparent';
+  const el = document.getElementById('ch-f-warna');
+  if (el) el.value = color;
+  document.querySelectorAll('.ch-color-dot').forEach(d => {
+    d.style.border = d.dataset.color === color ? '3px solid #000' : '3px solid transparent';
   });
 }
 
-// Re-render hanya list kiri (tanpa reset kanan)
-function _chRefreshList() {
-  const scroll = document.getElementById('ch-list-scroll');
-  if (!scroll) return;
-  const grups = [...new Set(window._tokoList.map(t => t.grup))];
-  if (!grups.length) { scroll.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--dusty);"><div style="font-size:28px;margin-bottom:8px;">🏪</div><div style="font-size:13px;font-weight:600;">Belum ada channel</div></div>'; return; }
-  scroll.innerHTML = grups.map(grup => {
-    const items = window._tokoList.filter(t => t.grup === grup);
-    return '<div style="margin-bottom:16px;">'
-      + '<div style="font-size:9px;font-weight:800;color:var(--dusty);text-transform:uppercase;letter-spacing:1px;padding:4px 4px 6px;border-bottom:1px solid var(--border);margin-bottom:6px;">'+grup+'</div>'
-      + items.map(t =>
-        '<div id="ch-row-'+t.kode.replace(/[^A-Z0-9]/gi,'_')+'" onclick="chEdit('+JSON.stringify(t.kode)+')" '
-        +'style="display:flex;align-items:center;gap:10px;padding:10px;background:white;'
-        +'border:1.5px solid '+(_chEditKode===t.kode?'var(--rust)':'var(--border)')+';'
-        +'border-radius:10px;margin-bottom:5px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);'
-        +'opacity:'+(t.status==='nonaktif'?'.4':'1')+';transition:border .15s;">'
-        +'<span style="width:9px;height:9px;border-radius:50%;background:'+t.warna+';flex-shrink:0;"></span>'
-        +'<div style="flex:1;min-width:0;">'
-        +'<div style="font-size:12px;font-weight:700;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.kode+'</div>'
-        +'<div style="font-size:10px;color:var(--dusty);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(t.username||t.brand)+' · '+t.platform+(t.status==='nonaktif'?' · NONAKTIF':'')+'</div>'
-        +'</div>'
-        +'<div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">'
-        +'<button onclick="chToggleStatus('+JSON.stringify(t.kode)+')" style="width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:white;cursor:pointer;font-size:11px;line-height:1;">'+( t.status==='aktif'?'🔴':'🟢')+'</button>'
-        +'<button onclick="chHapus('+JSON.stringify(t.kode)+')" style="width:26px;height:26px;border:1px solid #f5c6cb;border-radius:6px;background:#fff5f5;cursor:pointer;font-size:11px;line-height:1;">🗑</button>'
-        +'</div></div>'
-      ).join('')
-      + '</div>';
-  }).join('');
-}
-
-async function chSimpan() {
-  const kode     = document.getElementById('ch-f-kode').value.trim().toUpperCase();
-  const brand    = document.getElementById('ch-f-brand').value.trim() || 'zenOt';
+// ── Simpan Toko ──
+async function chSimpanToko() {
+  const kode     = (document.getElementById('ch-f-kode').value||'').trim().toUpperCase();
+  const brand    = (document.getElementById('ch-f-brand').value||'').trim() || 'zenOt';
   const platform = document.getElementById('ch-f-platform').value;
-  const grup     = document.getElementById('ch-f-grup').value;
-  const username = document.getElementById('ch-f-username').value.trim();
-  const warna    = document.getElementById('ch-f-warna').value || '#5C3D2E';
+  const username = (document.getElementById('ch-f-username').value||'').trim();
+  const warna    = document.getElementById('ch-f-warna').value || CH_COLORS[0];
+  const grup     = platform ? platform.toUpperCase() : 'LAINNYA';
   const statusEl = document.getElementById('ch-form-status');
   const btnEl    = document.getElementById('ch-btn-simpan');
 
-  if (!kode) { statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Kode wajib diisi</span>'; return; }
-
-  // Validasi format kode — hanya saat tambah baru
+  if (!kode)     { statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Kode wajib diisi</span>'; return; }
+  if (!platform) { statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Pilih platform dulu</span>'; return; }
   if (!_chEditKode && !/^[A-Z0-9._-]+$/.test(kode)) {
-    statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Kode hanya boleh huruf kapital, angka, titik, atau strip</span>'; return;
+    statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Kode hanya huruf kapital, angka, titik, strip</span>'; return;
   }
-
-  // Cek duplikat saat tambah baru
   if (!_chEditKode && window._tokoList.find(t => t.kode === kode)) {
     statusEl.innerHTML = `<span style="color:#C0392B">⚠️ Kode "${kode}" sudah ada</span>`; return;
   }
@@ -4199,31 +4291,26 @@ async function chSimpan() {
   statusEl.textContent = '⏳ Menyimpan...';
   if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳'; }
 
-  const payload = { kode, brand, platform, grup, username, warna, status: 'aktif' };
-
   try {
     if (_chEditKode) {
-      // UPDATE — patch ke Supabase
       await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(_chEditKode)}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({ brand, platform, grup, username, warna })
       });
-      // Update local
       const t = window._tokoList.find(x => x.kode === _chEditKode);
       if (t) Object.assign(t, { brand, platform, grup, username, warna });
       toast(`✅ ${_chEditKode} diupdate!`);
     } else {
-      // INSERT — tambah baru ke Supabase
       const urutan = window._tokoList.length + 1;
       const res = await _sbFetch(`${SUPABASE_URL}/rest/v1/toko`, {
         method: 'POST',
         headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify([{ ...payload, urutan }])
+        body: JSON.stringify([{ kode, brand, platform, grup, username, warna, urutan, status: 'aktif' }])
       });
       if (!res.ok) throw new Error(await res.text());
       window._tokoList.push({ kode, nama: kode, brand, platform, grup, username, warna, urutan, status: 'aktif' });
-      toast(`✅ Channel ${kode} ditambahkan!`);
+      toast(`✅ Toko ${kode} ditambahkan!`);
     }
     chHideForm();
     _chRefreshList();
@@ -4235,11 +4322,64 @@ async function chSimpan() {
   }
 }
 
-function chEdit(kode) {
+// ── Simpan Platform ──
+async function chSimpanPlat() {
+  const nama   = (document.getElementById('plat-f-nama').value||'').trim().toLowerCase().replace(/\s/g,'');
+  const label  = (document.getElementById('plat-f-label').value||'').trim();
+  const warna  = document.getElementById('plat-f-warna').value || '#5C3D2E';
+  const urutan = parseInt(document.getElementById('plat-f-urutan').value) || (window._platList.length + 1);
+  const statusEl = document.getElementById('plat-form-status');
+  const btnEl    = document.getElementById('plat-btn-simpan');
+
+  if (!nama)  { statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Nama wajib diisi</span>'; return; }
+  if (!label) { statusEl.innerHTML = '<span style="color:#C0392B">⚠️ Label wajib diisi</span>'; return; }
+  if (!_platEditId && window._platList.find(p => p.nama === nama)) {
+    statusEl.innerHTML = `<span style="color:#C0392B">⚠️ Platform "${nama}" sudah ada</span>`; return;
+  }
+
+  statusEl.textContent = '⏳ Menyimpan...';
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⏳'; }
+
+  try {
+    if (_platEditId) {
+      await _sbFetch(`${SUPABASE_URL}/rest/v1/platform?id=eq.${_platEditId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ label, warna, urutan })
+      });
+      const p = window._platList.find(x => x.id === _platEditId);
+      if (p) Object.assign(p, { label, warna, urutan });
+      toast(`✅ Platform diupdate!`);
+    } else {
+      const res = await _sbFetch(`${SUPABASE_URL}/rest/v1/platform`, {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify([{ nama, label, warna, urutan }])
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const rows = await res.json();
+      window._platList.push(rows[0]);
+      toast(`✅ Platform ${label} ditambahkan!`);
+    }
+    chHideForm();
+    _chRefreshList();
+  } catch(e) {
+    statusEl.innerHTML = `<span style="color:#C0392B">❌ Gagal: ${e.message}</span>`;
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = '✅ Simpan'; }
+  }
+}
+
+function chEditToko(kode) {
   const t = window._tokoList.find(x => x.kode === kode);
   if (!t) return;
-  chShowForm(t);
-  document.getElementById('ch-form-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  chShowTokoForm(t);
+}
+
+function chEditPlat(id) {
+  const p = window._platList.find(x => x.id === id);
+  if (!p) return;
+  chShowPlatForm(p);
 }
 
 async function chToggleStatus(kode) {
@@ -4259,45 +4399,39 @@ async function chToggleStatus(kode) {
   } catch(e) { toast('Gagal: ' + e.message, 'err'); }
 }
 
-async function chHapus(kode) {
-  if (!confirm(`Hapus channel "${kode}"? Data jurnal yang memakai kode ini tidak terhapus.`)) return;
+async function chHapusToko(kode) {
+  if (!confirm(`Hapus toko "${kode}"?\nData jurnal yang memakai kode ini tidak terhapus.`)) return;
   try {
-    await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, {
-      method: 'DELETE'
-    });
+    await _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(kode)}`, { method: 'DELETE' });
     const idx = window._tokoList.findIndex(t => t.kode === kode);
     if (idx !== -1) window._tokoList.splice(idx, 1);
+    if (_chEditKode === kode) chHideForm();
     _chRefreshList();
     renderTokoDropdown();
-    // Tutup form jika yang dihapus sedang diedit
-    if (_chEditKode === kode) chHideForm();
     toast(`🗑 ${kode} dihapus`);
   } catch(e) { toast('Gagal: ' + e.message, 'err'); }
 }
 
-function tambahChannel() { chShowForm(); } // backward compat
-function toggleChannelStatus(idx) {
-  const t=window._tokoList[idx]; if(!t)return;
-  const newStatus=t.status==='aktif'?'nonaktif':'aktif';
-  _sbFetch(`${SUPABASE_URL}/rest/v1/toko?kode=eq.${encodeURIComponent(t.kode)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status:newStatus})}).then(()=>{t.status=newStatus;_chRefreshList();renderTokoDropdown();toast(`Status ${t.kode} → ${newStatus}`);}).catch(e=>toast('Gagal: '+e.message,'err'));
-  saveDB(); _chRefreshList();
-  _syncChannelDropdowns();
-}
-function hapusChannel(idx) {
-  const t=window._tokoList[idx]; if(!t)return;
-  if (!confirm(`Hapus toko "${t.kode}"?`)) return;
-  const chNama=t.kode;
-  window._tokoList.splice(idx,1);
-  // Bersihkan assign data untuk channel ini
-  if (DB.assignChannel && chNama) {
-    Object.keys(DB.assignChannel).forEach(induk => {
-      if (DB.assignChannel[induk]) delete DB.assignChannel[induk][chNama];
-    });
-    _persistAssign();
+async function chHapusPlat(id, nama) {
+  const tokoCount = window._tokoList.filter(t => t.platform === nama).length;
+  if (tokoCount > 0) {
+    toast(`⚠️ Tidak bisa hapus — ada ${tokoCount} toko pakai platform ini`, 'err'); return;
   }
-  saveDB();
-  _chRefreshList();
+  if (!confirm(`Hapus platform "${nama}"?`)) return;
+  try {
+    await _sbFetch(`${SUPABASE_URL}/rest/v1/platform?id=eq.${id}`, { method: 'DELETE' });
+    const idx = window._platList.findIndex(p => p.id === id);
+    if (idx !== -1) window._platList.splice(idx, 1);
+    if (_platEditId === id) chHideForm();
+    _chRefreshList();
+    toast(`🗑 Platform dihapus`);
+  } catch(e) { toast('Gagal: ' + e.message, 'err'); }
 }
+
+// backward compat — lama masih dipanggil
+function tambahChannel() { if(_chTabAktif==='toko') chShowTokoForm(); else chShowPlatForm(); }
+function toggleChannelStatus(idx) { const t=window._tokoList[idx]; if(t) chToggleStatus(t.kode); }
+function hapusChannel(idx) { const t=window._tokoList[idx]; if(t) chHapusToko(t.kode); }
 
 // ================================================================
 // CHECKLIST
