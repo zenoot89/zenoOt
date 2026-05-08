@@ -45,7 +45,12 @@ async function _callGeminiModel(model, prompt, systemInstruction, maxTokens) {
   const key = window._geminiKey;
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.5, maxOutputTokens: maxTokens },
+    generationConfig: {
+      temperature: 0.5,
+      maxOutputTokens: maxTokens,
+    },
+    // Matikan thinking mode agar output JSON lebih bersih
+    thinkingConfig: { thinkingBudget: 0 },
   };
   if (systemInstruction) {
     body.system_instruction = { parts: [{ text: systemInstruction }] };
@@ -138,13 +143,6 @@ function _parseJSON(raw) {
     try { const result = attempt(); if (result) return result; } catch {}
   }
   return null;
-}
-function _parseJSON_OLD(raw) {
-  try {
-    return JSON.parse(raw.replace(/```json|```/g, '').trim());
-  } catch {
-    return null;
-  }
 }
 
 // ═══════════════════════════════════════════════════════
