@@ -3515,3 +3515,31 @@ body {
     padding-top: 0 !important;
   }
 }
+
+/* Judul jurnal dalam freeze-bar — portrait only */
+.jfb-header-row {
+  display: none; /* hidden di desktop/landscape */
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .jfb-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .jfb-page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--charcoal);
+  }
+  .jfb-page-title span { color: var(--brown); }
+  .jfb-date-badge {
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+}

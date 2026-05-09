@@ -1163,8 +1163,12 @@ function go(id, el) {
   if (page) page.classList.add('active');
   if (el) el.classList.add('active');
   document.getElementById('ph').innerHTML = ptitles[id]||id;
-  // Toggle topbar visibility untuk jurnal di portrait
-  const topbar = document.querySelector('.topbar');
+  // Isi tanggal di header jurnal portrait
+  const jfbDate = document.getElementById('jfb-date');
+  if (jfbDate) {
+    const tb = document.getElementById('topbar-date');
+    if (tb) jfbDate.textContent = tb.textContent;
+  }
   if (topbar) {
     if (id === 'jurnal') {
       topbar.setAttribute('data-hidden-by-jurnal', '1');
