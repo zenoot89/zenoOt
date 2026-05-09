@@ -598,19 +598,26 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- TREN PRODUK (Per Hari / 7 Hari / Per Bulan) -->
+    <!-- TREN PRODUK (Dropdown) -->
     <div class="ow-col3">
-      <div class="ow-col3-hd">
-        <span class="ow-sec-title">📊 Tren Produk</span>
-        <span class="ow-card-badge ow-badge-amber" id="trenProdukBadge">${skuDeclining.length} SKU</span>
+      <div class="ow-col3-hd" style="align-items:center;gap:8px;flex-wrap:nowrap;">
+        <span class="ow-sec-title" style="flex-shrink:0;">📊 Tren Produk</span>
+        <!-- Dropdown -->
+        <div id="trenDropWrap" style="position:relative;flex-shrink:0;">
+          <button id="trenDropBtn" onclick="_trenToggleDrop()" style="display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:700;border:1.5px solid var(--border);border-radius:6px;background:var(--charcoal);color:#fff;cursor:pointer;white-space:nowrap;line-height:1;">
+            <span id="trenDropLabel">Per Hari</span>
+            <span id="trenDropArrow" style="font-size:9px;transition:transform .2s;">▾</span>
+          </button>
+          <div id="trenDropMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--card);border:1.5px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;min-width:130px;overflow:hidden;">
+            <div onclick="_trenSetMode('hari')"  class="tren-drop-item" data-mode="hari">Per Hari</div>
+            <div onclick="_trenSetMode('7d')"    class="tren-drop-item" data-mode="7d">7 Hari</div>
+            <div onclick="_trenSetMode('bulan')" class="tren-drop-item" data-mode="bulan">Per Bulan</div>
+          </div>
+        </div>
+        <!-- Indicator label sejajar -->
+        <span id="trenIndicatorLabel" style="flex:1;font-size:10px;font-weight:700;color:#C0392B;letter-spacing:.6px;text-transform:uppercase;text-align:right;white-space:nowrap;line-height:1;">▼ MENURUN VS KEMARIN</span>
       </div>
       <div class="ow-col3-card">
-        <!-- Tab filter -->
-        <div style="display:flex;gap:0;margin-bottom:12px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div id="trenTab_hari" onclick="_trenSetMode('hari')" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--charcoal);color:#fff;transition:all .15s;">Per Hari</div>
-          <div id="trenTab_7d"   onclick="_trenSetMode('7d')"  style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--card);color:var(--dusty);border-left:1px solid var(--border);transition:all .15s;">7 Hari</div>
-          <div id="trenTab_bulan" onclick="_trenSetMode('bulan')" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--card);color:var(--dusty);border-left:1px solid var(--border);transition:all .15s;">Per Bulan</div>
-        </div>
         <div id="trenProdukBody" class="ow-col3-scroll"></div>
       </div>
     </div>
@@ -1262,16 +1269,12 @@ async function renderDashboard() {
       const turun = rows.filter(r=>r.pct<0).sort((a,b)=>a.pct-b.pct).slice(0,5);
       const naik  = rows.filter(r=>r.pct>0).sort((a,b)=>b.pct-a.pct).slice(0,5);
 
-      const badge=document.getElementById('trenProdukBadge');
-      if(badge) badge.textContent=turun.length+' turun · '+naik.length+' naik';
-
       if(turun.length===0&&naik.length===0){
         return '<div class="ow-empty">✅ Belum ada data pembanding periode ini</div>';
       }
 
       let html='';
       if(turun.length){
-        html+='<div style="font-size:10px;font-weight:700;color:#C0392B;letter-spacing:.7px;text-transform:uppercase;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:2px;">▼ MENURUN VS '+labelPrev+'</div>';
         html+=turun.map((s,i)=>
           '<div class="ow-stok-row" style="padding:8px 0;">'+
             '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
@@ -1286,8 +1289,8 @@ async function renderDashboard() {
         ).join('');
       }
       if(naik.length){
-        const sep=turun.length?'border-top:1px solid var(--border);':'';;
-        html+='<div style="font-size:10px;font-weight:700;color:#2D6A4F;letter-spacing:.7px;text-transform:uppercase;padding:'+( turun.length?'10px 0 6px':'0 0 6px')+';border-bottom:1px solid var(--border);margin-bottom:2px;'+sep+'">▲ NAIK VS '+labelPrev+'</div>';
+        const sep=turun.length?'border-top:1px solid var(--border);padding-top:8px;':'';;
+        html+='<div style="'+sep+'"></div>';
         html+=naik.map((s,i)=>
           '<div class="ow-stok-row" style="padding:8px 0;">'+
             '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
@@ -1304,14 +1307,53 @@ async function renderDashboard() {
       return html;
     }
 
+    // Dropdown toggle
+    window._trenToggleDrop = function(){
+      const menu = document.getElementById('trenDropMenu');
+      const arrow = document.getElementById('trenDropArrow');
+      if(!menu) return;
+      const open = menu.style.display==='block';
+      menu.style.display = open ? 'none' : 'block';
+      if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+    };
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e){
+      const wrap = document.getElementById('trenDropWrap');
+      if(wrap && !wrap.contains(e.target)){
+        const menu = document.getElementById('trenDropMenu');
+        const arrow = document.getElementById('trenDropArrow');
+        if(menu) menu.style.display='none';
+        if(arrow) arrow.style.transform='';
+      }
+    }, true);
+
     window._trenSetMode = function(mode){
-      ['hari','7d','bulan'].forEach(m=>{
-        const el=document.getElementById('trenTab_'+m);
-        if(!el) return;
-        const on=m===mode;
-        el.style.background=on?'var(--charcoal)':' var(--card)';
-        el.style.color=on?'#fff':'var(--dusty)';
+      // Update dropdown label
+      const labelMap = {hari:'Per Hari', '7d':'7 Hari', bulan:'Per Bulan'};
+      const lbl = document.getElementById('trenDropLabel');
+      if(lbl) lbl.textContent = labelMap[mode]||'Per Hari';
+
+      // Highlight active item in menu
+      document.querySelectorAll('.tren-drop-item').forEach(el=>{
+        const on = el.dataset.mode===mode;
+        el.style.background = on ? 'var(--charcoal)' : '';
+        el.style.color = on ? '#fff' : 'var(--text)';
+        el.style.fontWeight = on ? '700' : '500';
       });
+
+      // Update indicator label (sejajar header)
+      const prevMap = {hari:'KEMARIN', '7d':'7 HARI LALU', bulan:'BULAN LALU'};
+      const indic = document.getElementById('trenIndicatorLabel');
+      if(indic) indic.textContent = '▼ MENURUN VS ' + (prevMap[mode]||'KEMARIN');
+
+      // Close dropdown
+      const menu = document.getElementById('trenDropMenu');
+      const arrow = document.getElementById('trenDropArrow');
+      if(menu) menu.style.display='none';
+      if(arrow) arrow.style.transform='';
+
+      // Render body (tanpa header section di dalam body)
       const body=document.getElementById('trenProdukBody');
       if(body) body.innerHTML=buildList(mode);
     };
@@ -1426,6 +1468,24 @@ async function renderDashboard() {
       height:44px;
       display:flex;align-items:center;justify-content:space-between;
       padding:0 2px;margin-bottom:8px;flex-shrink:0;
+    }
+
+    /* Tren dropdown items */
+    .tren-drop-item{
+      padding:9px 14px;
+      font-size:12px;
+      font-weight:500;
+      cursor:pointer;
+      color:var(--text);
+      background:transparent;
+      transition:background .12s,color .12s;
+      white-space:nowrap;
+    }
+    .tren-drop-item:hover{
+      background:var(--hover,rgba(0,0,0,.05));
+    }
+    .tren-drop-item + .tren-drop-item {
+      border-top:1px solid var(--border);
     }
 
     /* Card mengisi sisa tinggi kolom */
