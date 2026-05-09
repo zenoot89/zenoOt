@@ -17,7 +17,20 @@
 
 /* ═══ RESET ═══ */
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;}
+html {
+  overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+}
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--cream);
+  color: var(--charcoal);
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* ═══════════════════════════════════════════════
    SIDEBAR — Scrollable, Accordion, Fixed header/footer
@@ -262,7 +275,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--charcoa
 /* ═══════════════════════════════════════════════
    MAIN AREA
 ════════════════════════════════════════════════ */
-.main{margin-left:220px;padding:30px 34px;min-height:100vh;transition:margin-left .3s ease;display:flex;flex-direction:column;height:100vh;overflow-x:hidden;overflow-y:auto;box-sizing:border-box;}
+.main{margin-left:220px;padding:30px 34px;min-height:100vh;transition:margin-left .3s ease;display:flex;flex-direction:column;height:100dvh;overflow-x:hidden;overflow-y:auto;box-sizing:border-box;overscroll-behavior:contain;}
 /* Halaman biasa (non-frozen) tetap bisa scroll vertikal */
 .page.active:not(#page-stok):not(#page-jurnal):not(#page-produk):not(#page-harga) {
   flex: 1;
@@ -668,8 +681,9 @@ html{scroll-behavior:smooth;}
     touch-action:pan-y;
     display:flex;
     flex-direction:column;
-    height:100vh;
+    height:100dvh;
     box-sizing:border-box;
+    overscroll-behavior:contain;
   }
   .main.expanded{margin-left:0!important;}
 
@@ -681,7 +695,7 @@ html{scroll-behavior:smooth;}
   }
 
   /* Fix horizontal scroll — semua konten tidak overflow */
-  body{overflow-x:hidden;overflow-y:auto;touch-action:pan-y;}
+  body{overflow:hidden;touch-action:pan-y;overscroll-behavior:none;}
   .page{overflow-x:hidden;overflow-y:visible;pointer-events:auto;position:relative;z-index:1;}
   .card{padding:16px 14px;}
   .topbar{flex-wrap:wrap;gap:8px;}
@@ -2134,7 +2148,6 @@ html{scroll-behavior:smooth;}
    ══════════════════════════════════════════════════════════════════ */
 
 /* Global smooth scroll */
-html { scroll-behavior: smooth; }
 
 /* Semua tombol & tap target — smooth press effect */
 button, .btn, .nav-item, .nav-acc-header, .badge,
