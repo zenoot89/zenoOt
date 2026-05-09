@@ -941,26 +941,26 @@ async function renderDashboard() {
       const diffCls=diff===null?'flat':diff>=0?'up':'dn';
       const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
       statsEl.innerHTML=`
-        <div class="ow-shopee-stat-grid">
-          <div class="ow-shopee-stat">
-            <div class="ow-shopee-stat-label">Total Omset</div>
-            <div class="ow-shopee-stat-val">${fmtVFull(total1)}</div>
-            <div class="ow-shopee-stat-sub"><span class="ow-shopee-stat-badge ${diffCls}">${diffStr}</span> vs periode lalu</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px;">
+          <div class="ow-mini">
+            <div class="ow-mini-label">Total Omset</div>
+            <div class="ow-mini-val" style="font-size:15px;">${fmtVFull(total1)}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:4px;"><span class="ow-shopee-stat-badge ${diffCls}">${diffStr}</span> vs periode lalu</div>
           </div>
-          <div class="ow-shopee-stat">
-            <div class="ow-shopee-stat-label">Tertinggi</div>
-            <div class="ow-shopee-stat-val">${fmtVFull(max1)}</div>
-            <div class="ow-shopee-stat-sub">puncak periode ini</div>
+          <div class="ow-mini">
+            <div class="ow-mini-label">Tertinggi</div>
+            <div class="ow-mini-val" style="font-size:15px;">${fmtVFull(max1)}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:4px;">puncak periode ini</div>
           </div>
-          <div class="ow-shopee-stat">
-            <div class="ow-shopee-stat-label">Rata-rata</div>
-            <div class="ow-shopee-stat-val">${fmtVFull(avg1)}</div>
-            <div class="ow-shopee-stat-sub">per titik aktif</div>
+          <div class="ow-mini">
+            <div class="ow-mini-label">Rata-rata</div>
+            <div class="ow-mini-val" style="font-size:15px;">${fmtVFull(avg1)}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:4px;">per titik aktif</div>
           </div>
-          <div class="ow-shopee-stat">
-            <div class="ow-shopee-stat-label">${lbl2}</div>
-            <div class="ow-shopee-stat-val" style="color:#aaa;">${total2>0?fmtVFull(total2):'—'}</div>
-            <div class="ow-shopee-stat-sub">periode pembanding</div>
+          <div class="ow-mini">
+            <div class="ow-mini-label">${lbl2}</div>
+            <div class="ow-mini-val" style="font-size:15px;color:#aaa;">${total2>0?fmtVFull(total2):'—'}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:4px;">periode pembanding</div>
           </div>
         </div>
       `;
@@ -1131,18 +1131,32 @@ async function renderDashboard() {
           <span style="font-weight:700;color:${pctOmset>=70?'#2D6A4F':'#D97706'}">${pctOmset}% tercapai</span>
           <span>${daysLeft} hari tersisa</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:0;">
-          <div class="ow-mini"><div class="ow-mini-label">Sisa Target</div><div class="ow-mini-val" style="font-size:14px;color:${sisaTarget>0?'#C0392B':'#2D6A4F'}">${fmtShort(sisaTarget)}</div></div>
-          <div class="ow-mini"><div class="ow-mini-label">Per Hari Perlu</div><div class="ow-mini-val" style="font-size:14px;color:#D97706">${perHariHarus>0?fmtShort(perHariHarus):'🎉 Done!'}</div></div>
+        <div class="ow-mini-grid" style="margin-bottom:18px;">
+          <div class="ow-mini"><div class="ow-mini-label">Sisa Target</div><div class="ow-mini-val" style="font-size:15px;color:${sisaTarget>0?'#C0392B':'#2D6A4F'}">${fmtShort(sisaTarget)}</div></div>
+          <div class="ow-mini"><div class="ow-mini-label">Per Hari Perlu</div><div class="ow-mini-val" style="font-size:15px;color:#D97706">${perHariHarus>0?fmtShort(perHariHarus):'🎉 Done!'}</div></div>
+        </div>
+
+        <div style="height:1px;background:var(--border);margin-bottom:16px;"></div>
+
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+          <span style="font-weight:700">☀️ Target Harian</span>
+          <span style="color:var(--dusty);font-size:12px;">${fmtShort(omsetHari)} / ${fmtShort(targetHarian)}</span>
+        </div>
+        ${progressBar(pctHari, hariColor)}
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dusty);margin-bottom:16px;">
+          <span style="font-weight:700;color:${hariColor}">${pctHari}% tercapai</span>
+          <span>${sisaHari>0?fmtShort(sisaHari)+' lagi':'✅ Done!'}</span>
+        </div>
+        <div class="ow-mini-grid">
           <div class="ow-mini">
             <div class="ow-mini-label">Omset Hari Ini</div>
-            <div class="ow-mini-val" style="font-size:14px;color:${hariColor}">${fmtShort(omsetHari)}</div>
-            <div style="font-size:10px;color:var(--dusty);margin-top:3px;">${deltaBadge(omsetHari,omsetKemarin)} vs kemarin</div>
+            <div class="ow-mini-val" style="font-size:15px;color:${hariColor}">${fmtShort(omsetHari)}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:4px;">${deltaBadge(omsetHari,omsetKemarin)} vs kemarin</div>
           </div>
           <div class="ow-mini">
             <div class="ow-mini-label">Sisa Target Hari</div>
-            <div class="ow-mini-val" style="font-size:14px;color:${sisaHari>0?'#C0392B':'#2D6A4F'}">${sisaHari>0?fmtShort(sisaHari):'✅ Done!'}</div>
-            <div style="font-size:10px;color:var(--dusty);margin-top:3px;">target ${fmtShort(targetHarian)}/hari</div>
+            <div class="ow-mini-val" style="font-size:15px;color:${sisaHari>0?'#C0392B':'#2D6A4F'}">${sisaHari>0?fmtShort(sisaHari):'✅ Done!'}</div>
+            <div style="font-size:10px;color:var(--dusty);margin-top:4px;">target ${fmtShort(targetHarian)}/hari</div>
           </div>
         </div>`;
     } else {
