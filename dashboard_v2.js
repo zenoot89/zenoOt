@@ -1160,15 +1160,15 @@ async function renderDashboard() {
     add(`<div class="ow-row2" style="align-items:stretch;">
       <!-- Tren Chart -->
       <div id="${WRAP_ID}" style="display:flex;flex-direction:column;">
-        <div style="background:linear-gradient(135deg,#EE4D2D 0%,#ff7843 100%);border-radius:14px 14px 0 0;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="background:linear-gradient(135deg,#5C3317 0%,#8B5A2B 100%);border-radius:14px 14px 0 0;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:14px;font-weight:800;color:#fff;letter-spacing:.5px;">📈 TREN PENJUALAN</span>
           <div style="display:flex;align-items:center;gap:8px;">
             <div style="display:flex;gap:0;" id="owMetricTabsWrap">
-              <div class="ow-metric-tab" id="owTabQty" onclick="_owSetMetric('qty')" style="background:rgba(255,255,255,0.18);color:#fff;border-color:rgba(255,255,255,0.35);border-radius:6px 0 0 6px;border-right:none;">Qty</div>
+              <div class="ow-metric-tab" id="owTabQty" onclick="_owSetMetric('qty')" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);border-radius:6px 0 0 6px;border-right:none;">Qty</div>
               <div class="ow-metric-tab active" id="owTabOmset" onclick="_owSetMetric('omset')" style="border-radius:0 6px 6px 0;">Omset</div>
             </div>
             <div style="position:relative;">
-              <button class="ow-period-btn" id="owPeriodBtn" onclick="_owTogglePeriodDrop()" style="background:rgba(255,255,255,0.95);color:#EE4D2D;border-color:rgba(255,255,255,0.9);font-size:11.5px;">
+              <button class="ow-period-btn" id="owPeriodBtn" onclick="_owTogglePeriodDrop()" style="background:rgba(255,255,255,0.95);color:#5C3317;border-color:rgba(255,255,255,0.9);font-size:11.5px;">
                 <span id="owPeriodBtnLbl">Real-time · Hari Ini</span>
                 <span class="ow-pdrop-icon">▾</span>
               </button>
@@ -1176,7 +1176,7 @@ async function renderDashboard() {
             </div>
           </div>
         </div>
-        <div style="background:#fff;border:1.5px solid #EE4D2D;border-top:none;border-radius:0 0 14px 14px;flex:1;padding:14px 16px 14px;">
+        <div style="background:#fff;border:1.5px solid #8B5A2B;border-top:none;border-radius:0 0 14px 14px;flex:1;padding:14px 16px 14px;">
           <canvas id="${CVAS_ID}" style="width:100%;height:150px;display:block;"></canvas>
           <div class="ow-chart-legend"></div>
           <div class="ow-chart-stats"></div>
@@ -1196,15 +1196,15 @@ async function renderDashboard() {
       const tabQty=document.getElementById('owTabQty');
       if(tabOmset){
         tabOmset.classList.toggle('active',m==='omset');
-        tabOmset.style.background=m==='omset'?'#EE4D2D':'rgba(255,255,255,0.18)';
+        tabOmset.style.background=m==='omset'?'#8B5A2B':'rgba(255,255,255,0.15)';
         tabOmset.style.color=m==='omset'?'#fff':'#fff';
-        tabOmset.style.borderColor=m==='omset'?'#EE4D2D':'rgba(255,255,255,0.35)';
+        tabOmset.style.borderColor=m==='omset'?'#8B5A2B':'rgba(255,255,255,0.3)';
       }
       if(tabQty){
         tabQty.classList.toggle('active',m==='qty');
-        tabQty.style.background=m==='qty'?'#EE4D2D':'rgba(255,255,255,0.18)';
+        tabQty.style.background=m==='qty'?'#8B5A2B':'rgba(255,255,255,0.15)';
         tabQty.style.color=m==='qty'?'#fff':'#fff';
-        tabQty.style.borderColor=m==='qty'?'#EE4D2D':'rgba(255,255,255,0.35)';
+        tabQty.style.borderColor=m==='qty'?'#8B5A2B':'rgba(255,255,255,0.3)';
       }
       renderChartSection();
     };
@@ -1216,17 +1216,14 @@ async function renderDashboard() {
 
   // ─── 3b. TREN PRODUK — Per Hari / 7 Hari / Per Bulan ───
   (function buildTrenProduk(){
-    // Siapkan data per periode
-    const todayS   = _localDateStr(new Date());
-    const kemarinS = (()=>{ const d=new Date(); d.setDate(d.getDate()-1); return _localDateStr(d); })();
-    const bulanS   = (()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
-    const bulanLaluS=(()=>{ const d=new Date(); d.setMonth(d.getMonth()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
-
-    // 7 hari ke belakang (tidak termasuk hari ini) untuk compare
-    const sevenFrom=(()=>{ const d=new Date(); d.setDate(d.getDate()-7); return _localDateStr(d); })();
-    const fourteenFrom=(()=>{ const d=new Date(); d.setDate(d.getDate()-14); return _localDateStr(d); })();
-
-    const jurnal = DB.jurnal||[];
+    const todayS      = _localDateStr(new Date());
+    const kemarinS    = (()=>{ const d=new Date(); d.setDate(d.getDate()-1); return _localDateStr(d); })();
+    const sevenFrom   = (()=>{ const d=new Date(); d.setDate(d.getDate()-6); return _localDateStr(d); })();
+    const fourteenTo  = (()=>{ const d=new Date(); d.setDate(d.getDate()-7); return _localDateStr(d); })();
+    const fourteenFrom= (()=>{ const d=new Date(); d.setDate(d.getDate()-13); return _localDateStr(d); })();
+    const bulanS      = (()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
+    const bulanLaluS  = (()=>{ const d=new Date(); d.setMonth(d.getMonth()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); })();
+    const jurnal      = DB.jurnal||[];
 
     function soldInRange(from, to){
       const map={};
@@ -1237,89 +1234,96 @@ async function renderDashboard() {
     }
 
     function buildList(mode){
-      let mapNow={}, mapPrev={}, labelPrev='', labelNow='';
+      let mapNow={}, mapPrev={}, labelPrev='';
       if(mode==='hari'){
         mapNow  = soldInRange(todayS, todayS);
         mapPrev = soldInRange(kemarinS, kemarinS);
-        labelNow='Hari ini'; labelPrev='Kemarin';
+        labelPrev='KEMARIN';
       } else if(mode==='7d'){
         mapNow  = soldInRange(sevenFrom, todayS);
-        mapPrev = soldInRange(fourteenFrom, kemarinS);
-        labelNow='7 Hari Ini'; labelPrev='7 Hari Lalu';
+        mapPrev = soldInRange(fourteenFrom, fourteenTo);
+        labelPrev='7 HARI LALU';
       } else {
         mapNow  = soldInRange(bulanS+'-01', todayS);
         mapPrev = soldInRange(bulanLaluS+'-01', bulanLaluS+'-31');
-        labelNow='Bulan Ini'; labelPrev='Bulan Lalu';
+        labelPrev='BULAN LALU';
       }
 
-      // Gabungkan semua SKU yang ada di salah satu periode
       const allSku = new Set([...Object.keys(mapNow), ...Object.keys(mapPrev)]);
-      const rows = [];
+      const rows=[];
       allSku.forEach(sku=>{
-        const now  = mapNow[sku]||0;
-        const prev = mapPrev[sku]||0;
-        if(prev<1) return; // hanya tampilkan yang sebelumnya ada aktivitas
-        const delta = now - prev;
-        const pct   = Math.round(delta/prev*100);
-        rows.push({sku, now, prev, delta, pct});
+        const now = mapNow[sku]||0;
+        const prev= mapPrev[sku]||0;
+        if(prev<1) return;
+        const pct = Math.round((now-prev)/prev*100);
+        rows.push({sku,now,prev,pct});
       });
 
-      // Sort: penurunan terbesar dulu, lalu kenaikan terbesar
-      rows.sort((a,b)=>a.pct-b.pct);
-      const turun = rows.filter(r=>r.pct<0).slice(0,5);
-      const naik  = rows.filter(r=>r.pct>0).sort((a,b)=>b.pct-a.pct).slice(0,3);
+      const turun = rows.filter(r=>r.pct<0).sort((a,b)=>a.pct-b.pct).slice(0,5);
+      const naik  = rows.filter(r=>r.pct>0).sort((a,b)=>b.pct-a.pct).slice(0,5);
 
-      let html = '';
-      if(turun.length===0 && naik.length===0){
-        html=`<div class="ow-empty">✅ Tidak ada pergerakan SKU signifikan</div>`;
-      } else {
-        if(turun.length){
-          html+=`<div style="font-size:10.5px;font-weight:700;color:#C0392B;letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px;">▼ Menurun vs ${labelPrev}</div>`;
-          html+=turun.map(s=>`
-            <div class="ow-stok-row">
-              <span class="ow-stok-sku">${s.sku}</span>
-              <div class="ow-stok-right" style="gap:8px;">
-                <span class="ow-stok-meta">${s.prev}→${s.now} pcs</span>
-                <span style="font-size:12px;font-weight:700;color:#C0392B;min-width:38px;text-align:right;">▼${Math.abs(s.pct)}%</span>
-              </div>
-            </div>`).join('');
-        }
-        if(naik.length){
-          html+=`<div style="font-size:10.5px;font-weight:700;color:#2D6A4F;letter-spacing:.6px;text-transform:uppercase;margin:${turun.length?'10px 0 4px':'0 0 4px'};">▲ Naik vs ${labelPrev}</div>`;
-          html+=naik.map(s=>`
-            <div class="ow-stok-row">
-              <span class="ow-stok-sku">${s.sku}</span>
-              <div class="ow-stok-right" style="gap:8px;">
-                <span class="ow-stok-meta">${s.prev}→${s.now} pcs</span>
-                <span style="font-size:12px;font-weight:700;color:#2D6A4F;min-width:38px;text-align:right;">▲${s.pct}%</span>
-              </div>
-            </div>`).join('');
-        }
+      const badge=document.getElementById('trenProdukBadge');
+      if(badge) badge.textContent=turun.length+' turun · '+naik.length+' naik';
+
+      if(turun.length===0&&naik.length===0){
+        return '<div class="ow-empty">✅ Belum ada data pembanding periode ini</div>';
       }
 
-      // Update badge
-      const badge=document.getElementById('trenProdukBadge');
-      if(badge) badge.textContent=`${turun.length} turun · ${naik.length} naik`;
-
+      let html='';
+      if(turun.length){
+        html+='<div style="font-size:10px;font-weight:700;color:#C0392B;letter-spacing:.7px;text-transform:uppercase;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:2px;">▼ MENURUN VS '+labelPrev+'</div>';
+        html+=turun.map((s,i)=>
+          '<div class="ow-stok-row" style="padding:8px 0;">'+
+            '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
+              '<span style="font-size:11px;font-weight:700;color:#bbb;width:16px;flex-shrink:0;">'+( i+1)+'</span>'+
+              '<span class="ow-stok-sku" style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.sku+'</span>'+
+            '</div>'+
+            '<div class="ow-stok-right" style="gap:6px;flex-shrink:0;">'+
+              '<span class="ow-stok-meta">'+s.prev+'→'+s.now+' pcs</span>'+
+              '<span style="font-size:12px;font-weight:800;color:#C0392B;min-width:44px;text-align:right;">▼'+Math.abs(s.pct)+'%</span>'+
+            '</div>'+
+          '</div>'
+        ).join('');
+      }
+      if(naik.length){
+        const sep=turun.length?'border-top:1px solid var(--border);':'';;
+        html+='<div style="font-size:10px;font-weight:700;color:#2D6A4F;letter-spacing:.7px;text-transform:uppercase;padding:'+( turun.length?'10px 0 6px':'0 0 6px')+';border-bottom:1px solid var(--border);margin-bottom:2px;'+sep+'">▲ NAIK VS '+labelPrev+'</div>';
+        html+=naik.map((s,i)=>
+          '<div class="ow-stok-row" style="padding:8px 0;">'+
+            '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
+              '<span style="font-size:11px;font-weight:700;color:#bbb;width:16px;flex-shrink:0;">'+( i+1)+'</span>'+
+              '<span class="ow-stok-sku" style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+s.sku+'</span>'+
+            '</div>'+
+            '<div class="ow-stok-right" style="gap:6px;flex-shrink:0;">'+
+              '<span class="ow-stok-meta">'+s.prev+'→'+s.now+' pcs</span>'+
+              '<span style="font-size:12px;font-weight:800;color:#2D6A4F;min-width:44px;text-align:right;">▲'+s.pct+'%</span>'+
+            '</div>'+
+          '</div>'
+        ).join('');
+      }
       return html;
     }
 
     window._trenSetMode = function(mode){
-      // Update tab style
       ['hari','7d','bulan'].forEach(m=>{
         const el=document.getElementById('trenTab_'+m);
-        if(!el)return;
-        const active=m===mode;
-        el.style.background=active?'var(--charcoal)':'var(--card)';
-        el.style.color=active?'#fff':'var(--dusty)';
+        if(!el) return;
+        const on=m===mode;
+        el.style.background=on?'var(--charcoal)':' var(--card)';
+        el.style.color=on?'#fff':'var(--dusty)';
       });
       const body=document.getElementById('trenProdukBody');
       if(body) body.innerHTML=buildList(mode);
     };
 
-    // Render default
-    setTimeout(()=>{ window._trenSetMode('hari'); }, 100);
+    // Render langsung — tidak pakai setTimeout
+    if(document.getElementById('trenProdukBody')){
+      window._trenSetMode('hari');
+    } else {
+      requestAnimationFrame(()=>window._trenSetMode('hari'));
+    }
   })();
+
 
   // --- Dead Stock HTML ---
   const deadStockHtml = deadStock.length===0
