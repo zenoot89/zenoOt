@@ -3986,7 +3986,7 @@ async function renderChannel() {
   const total = window._tokoList.length;
 
 wrap.innerHTML = `
-    <div style="display:flex;height:calc(100vh - 56px);overflow:hidden;">
+    <div style="display:flex;height:calc(100dvh - 56px);min-height:0;overflow:hidden;" id="ch-main-wrap">
 
       <!-- KOLOM KIRI -->
       <div style="width:320px;flex-shrink:0;display:flex;flex-direction:column;border-right:1.5px solid var(--border);background:var(--cream);overflow:hidden;">
