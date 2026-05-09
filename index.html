@@ -994,9 +994,6 @@
     <button class="intel-tab" id="itab-intel-cashflow"  onclick="goIntel('intel-cashflow',this)">
       <span class="intel-tab-icon">🔮</span><span class="intel-tab-label">Cash Flow</span>
     </button>
-    <button class="intel-tab" id="itab-intel-ai-settings" onclick="goIntel('intel-ai-settings',this)">
-      <span class="intel-tab-icon">⚙️</span><span class="intel-tab-label">AI Settings</span>
-    </button>
   </div>
 
   <!-- Intel Sub-Pages (shown/hidden by goIntel) -->
@@ -1036,47 +1033,7 @@
     </div>
   </div>
 
-  <div class="intel-subpage" id="ipage-intel-ai-settings">
-    <div style="max-width:520px;margin:40px auto;padding:0 16px;">
-      <div style="background:var(--card,#fff);border:1.5px solid var(--border,#e5e7eb);border-radius:14px;padding:28px 24px;">
-        <div style="font-size:20px;font-weight:700;margin-bottom:6px;">⚙️ AI Settings</div>
-        <div style="font-size:12px;color:var(--dusty,#9ca3af);margin-bottom:24px;">Gemini 2.0 Flash by Google — Gratis — Gratis</div>
 
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">API Key</label>
-        <input id="gemini-settings-input" type="text" placeholder="Paste API Key dari z.ai disini..."
-          style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border,#e5e7eb);border-radius:8px;font-size:13px;background:var(--bg,#f9fafb);color:var(--text,#111);outline:none;margin-bottom:12px;"
-        />
-        <div style="display:flex;gap:10px;margin-bottom:16px;">
-          <button onclick="
-            const v=document.getElementById('gemini-settings-input').value.trim();
-            if(!v){alert('API Key kosong!');return;}
-            localStorage.setItem('gemini_api_key',v);
-            window._glmKey=v;
-            document.getElementById('gemini-settings-status').innerHTML='<span style=color:#16a34a>✅ API Key tersimpan! Silakan klik Generate AI Insight.</span>';
-          " style="flex:1;padding:10px;background:#3b4a3f;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
-            💾 Simpan API Key
-          </button>
-          <button onclick="
-            localStorage.removeItem('gemini_api_key');
-            window._glmKey='';
-            document.getElementById('gemini-settings-input').value='';
-            document.getElementById('gemini-settings-status').innerHTML='<span style=color:#dc2626>🗑️ API Key dihapus.</span>';
-          " style="padding:10px 16px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:13px;cursor:pointer;">
-            Hapus
-          </button>
-        </div>
-        <div id="gemini-settings-status" style="font-size:12px;min-height:18px;"></div>
-
-        <hr style="margin:20px 0;border:none;border-top:1px solid var(--border,#e5e7eb);">
-        <div style="font-size:11px;color:var(--dusty,#9ca3af);line-height:1.6;">
-          <strong>Cara dapat API Key:</strong><br>
-          1. Buka <a href="https://aistudio.google.com" target="_blank" style="color:#6366f1;">Google AI Studio</a> → Login → klik <strong>API</strong> (pojok kanan atas)<br>
-          2. Klik <strong>API Keys</strong> → <strong>Create a new API key</strong><br>
-          3. Copy key yang muncul → Paste di kolom atas → Simpan
-        </div>
-      </div>
-    </div>
-  </div>
     <div id="intel-cashflow-content">
       <div class="intel-empty">Memuat Cash Flow Projection...</div>
     </div>
@@ -1533,7 +1490,6 @@
 <script src="financial_module.js"></script>
 <script src="trend_engine.js"></script>
 <script src="intelligence_module.js"></script>
-<script src="ai_module.js"></script>
 <script src="daily_checklist.js"></script>
 <script src="dashboard_v2.js"></script>
 

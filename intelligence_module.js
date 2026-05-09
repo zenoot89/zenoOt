@@ -31,7 +31,6 @@ const INTEL_TITLES = {
   'intel-unit-econ':  'Unit <span>Economics</span>',
   'intel-flashsale':  'Flash Sale <span>ROI Calculator</span>',
   'intel-cashflow':   'Cash Flow <span>Projection</span>',
-  'intel-ai-settings': '⚙️ AI <span>Settings</span>',
 };
 
 function goIntel(id, el) {
@@ -76,14 +75,6 @@ function goIntel(id, el) {
     'intel-unit-econ': typeof renderUnitEcon       === 'function' ? renderUnitEcon       : null,
     'intel-flashsale': typeof renderFlashSaleROI   === 'function' ? renderFlashSaleROI   : null,
     'intel-cashflow':  typeof renderCashflow       === 'function' ? renderCashflow       : null,
-    'intel-ai-settings': function() {
-      // Load existing key ke input
-      const inp = document.getElementById('gemini-settings-input');
-      const existing = localStorage.getItem('gemini_api_key') || window._geminiKey || '';
-      if (inp) inp.value = existing;
-      const status = document.getElementById('gemini-settings-status');
-      if (status && existing) status.innerHTML = '<span style="color:#16a34a">✅ API Key aktif — GLM-4-Flash siap digunakan</span>';
-    },
   };
   const renderFn = _intelRenders[id];
   if (renderFn) {
