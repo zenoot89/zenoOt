@@ -562,8 +562,9 @@ async function _retryCloudLoad() {
       _normalizeJurnalChannel();
       recalcKeluar();
       setCloudStatus(true);
-      // Re-render dashboard dengan data terbaru
+      // Re-render halaman aktif dengan data terbaru
       if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderJurnal === 'function') renderJurnal();
     }
   } catch(e) { /* tetap offline, coba lagi nanti */ }
 }
@@ -4567,6 +4568,7 @@ try { localStorage.removeItem(DB_KEY); } catch(e) {}
   renderHarga();
   renderChecks();
   populateJInduk();
+  renderJurnal();
   populateRsInduk();
   if (typeof initSkuPerformaToko === 'function') initSkuPerformaToko();
   if (localStorage.getItem('zenot_sidebar_collapsed')==='1') toggleSidebarCollapse();

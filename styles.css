@@ -3499,9 +3499,10 @@ body {
     padding-top: 0 !important;
   }
 
-  /* freeze-bar: beri padding-top untuk clearance burger (60px) */
+  /* freeze-bar: padding-top minimal — judul mentok atas.
+     Burger fixed top-right tidak menabrak judul di kiri. */
   #page-jurnal .freeze-bar {
-    padding-top: 60px !important;
+    padding-top: calc(10px + env(safe-area-inset-top)) !important;
   }
 
   /* Mini cards 2x2 */
@@ -3526,12 +3527,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    /* Beri ruang kanan agar tidak bertumpuk dengan burger fixed */
+    padding-right: 60px;
   }
   .jfb-page-title {
     font-family: 'DM Serif Display', serif;
     font-size: 22px;
     color: var(--charcoal);
+    line-height: 1.1;
   }
   .jfb-page-title span { color: var(--brown); }
   .jfb-date-badge {
