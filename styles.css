@@ -3330,3 +3330,130 @@ body {
 .produk-filter-main-btn svg:first-child {
   flex-shrink: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   JURNAL FREEZE-BAR 2x — landscape mobile only
+   Struktur baru: layer1 (cards) + toolbar (aksi + target harian)
+════════════════════════════════════════════════════════════════ */
+
+/* Default (desktop/portrait): toolbar sama seperti sebelumnya */
+.jfb-layer1 { /* cards — selalu tampil di portrait/desktop */ }
+
+.jfb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jfb-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.jfb-target-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tombol minimize — sembunyikan di desktop/portrait */
+.jfb-mini-btn {
+  display: none;
+}
+
+/* Tombol aksi ukuran normal di portrait */
+.jfb-btn {
+  height: 36px !important;
+  padding: 0 12px !important;
+  white-space: nowrap;
+}
+
+/* ── Landscape mobile aktif ── */
+@media (max-width: 1024px) and (orientation: landscape) and (max-height: 600px) {
+
+  /* freeze-bar: hapus padding bawah, biarkan layer yang atur */
+  #page-jurnal .freeze-bar {
+    padding-bottom: 4px !important;
+  }
+
+  /* Layer 1 (mini cards): animasi slide-up */
+  .jfb-layer1 {
+    overflow: hidden;
+    max-height: 80px;
+    opacity: 1;
+    transition: max-height .25s ease, opacity .2s ease, margin .2s ease;
+    margin-bottom: 4px;
+  }
+
+  /* State 2: cards hilang */
+  #page-jurnal.jfb-state2 .jfb-layer1,
+  #page-jurnal.jfb-state3 .jfb-layer1 {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Toolbar: satu baris kompak */
+  .jfb-toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Target harian di kanan toolbar */
+  .jfb-target-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Target card: compact 1 baris di landscape */
+  .jfb-target-wrap .jurnal-target-card {
+    margin-bottom: 0 !important;
+    padding: 5px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Tombol aksi compact */
+  .jfb-btn {
+    height: 28px !important;
+    padding: 0 9px !important;
+    font-size: 11px !important;
+  }
+
+  /* Tombol minimize tampil di landscape */
+  .jfb-mini-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border, #e5dfd5);
+    border-radius: 8px;
+    background: var(--card, #fff);
+    color: var(--dusty, #8a7f72);
+    font-size: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+  .jfb-mini-btn:active { background: var(--border); }
+
+  /* State 3: toolbar juga hilang kecuali tombol mini + target -->
+  /* State 3: target harian compact 1 baris saja */
+  #page-jurnal.jfb-state3 .jfb-target-wrap .jurnal-target-card {
+    padding: 3px 8px !important;
+  }
+
+  /* State 3: sembunyikan teks target detail, cukup progress bar */
+  #page-jurnal.jfb-state3 .jth-header { display: none !important; }
+  #page-jurnal.jfb-state3 .jth-footer { display: none !important; }
+  #page-jurnal.jfb-state3 .jth-bar-bg { margin-bottom: 0 !important; }
+
+  /* Arrow icon rotate saat state3 */
+  #page-jurnal.jfb-state3 #jfb-toggle-icon {
+    display: inline-block;
+    transform: rotate(180deg);
+  }
+}

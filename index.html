@@ -444,44 +444,51 @@
 ════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-jurnal">
   <div class="freeze-bar" id="fb-jurnal">
-    <button class="fb-toggle" onclick="toggleFreezeBar('fb-jurnal')" title="Sembunyikan/tampilkan filter">
-      <span class="fb-toggle-icon">▲</span>
-    </button>
-    <div class="grid4" style="margin-bottom:10px;">
-      <div class="stat c1"><div class="stat-label">Total Omset</div><div class="stat-val" style="font-size:16px" id="j-rev">Rp 0</div></div>
-      <div class="stat c2"><div class="stat-label">Total Qty</div><div class="stat-val" id="j-tot-qty">0</div></div>
-      <div class="stat c3"><div class="stat-label">Transaksi</div><div class="stat-val" id="j-trx">0</div></div>
-      <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
-    </div>
-    <!-- Target Harian Card -->
-    <div id="jurnal-target-harian" class="jurnal-target-card"></div>
-    <!-- Baris Aksi: Reset | Tambah -->
-    <div class="jurnal-bar-row">
-      <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);flex-shrink:0;">↺ Reset</button>
-      <div style="margin-left:auto;">
-        <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 16px;white-space:nowrap;">➕ Tambah</button>
+
+    <!-- LAYER 1: mini cards stat (hilang saat scroll state-2 di landscape) -->
+    <div class="jfb-layer1" id="jfb-layer1">
+      <div class="grid4" style="margin-bottom:6px;">
+        <div class="stat c1"><div class="stat-label">Total Omset</div><div class="stat-val" style="font-size:16px" id="j-rev">Rp 0</div></div>
+        <div class="stat c2"><div class="stat-label">Total Qty</div><div class="stat-val" id="j-tot-qty">0</div></div>
+        <div class="stat c3"><div class="stat-label">Transaksi</div><div class="stat-val" id="j-trx">0</div></div>
+        <div class="stat c4"><div class="stat-label">Rata-rata</div><div class="stat-val" style="font-size:16px" id="j-avg">Rp 0</div></div>
       </div>
     </div>
-    <!-- Baris Filter Row 2: tombol filter full-width -->
-    <div class="produk-filter-row" style="position:relative;">
-      <button class="btn produk-filter-main-btn" id="jurnal-sort-btn" onclick="toggleJurnalFilterPanel()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        Filter
-        <span id="jurnal-filter-dot" class="produk-filter-dot-inline" style="display:none;width:7px;height:7px;background:var(--gold);border-radius:50%;flex-shrink:0;"></span>
-        <svg class="produk-filter-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <!-- Floating filter panel -->
-      <div id="jurnal-filter-panel" class="produk-filter-panel" style="display:none;left:0;min-width:260px;">
-        <select class="sel produk-filter-sel" id="j-fil-ch" onchange="filterJurnalChannel()">
-          <option value="">Semua Channel</option>
-        </select>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input class="inp produk-filter-sel" type="date" id="j-fil-from" style="flex:1;" onchange="filterJurnalDate()">
-          <span style="color:var(--dusty);font-size:12px;font-weight:600;flex-shrink:0;">–</span>
-          <input class="inp produk-filter-sel" type="date" id="j-fil-to" style="flex:1;" onchange="filterJurnalDate()">
+
+    <!-- LAYER 2: toolbar — selalu visible, kiri=aksi, kanan=target harian -->
+    <div class="jfb-toolbar" id="jfb-toolbar">
+      <div class="jfb-actions">
+        <!-- tombol minimize hanya muncul di landscape -->
+        <button class="jfb-mini-btn" id="jfb-toggle-btn" onclick="toggleJurnalFreeze()" title="Perluas/Perkecil">
+          <span id="jfb-toggle-icon">▲</span>
+        </button>
+        <button class="btn btn-sm jfb-btn" onclick="resetJurnalFilter()">↺ Reset</button>
+        <div style="position:relative;">
+          <button class="btn produk-filter-main-btn jfb-btn" id="jurnal-sort-btn" onclick="toggleJurnalFilterPanel()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filter
+            <span id="jurnal-filter-dot" class="produk-filter-dot-inline" style="display:none;width:7px;height:7px;background:var(--gold);border-radius:50%;flex-shrink:0;"></span>
+            <svg class="produk-filter-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="jurnal-filter-panel" class="produk-filter-panel" style="display:none;left:0;min-width:260px;">
+            <select class="sel produk-filter-sel" id="j-fil-ch" onchange="filterJurnalChannel()">
+              <option value="">Semua Channel</option>
+            </select>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input class="inp produk-filter-sel" type="date" id="j-fil-from" style="flex:1;" onchange="filterJurnalDate()">
+              <span style="color:var(--dusty);font-size:12px;font-weight:600;flex-shrink:0;">–</span>
+              <input class="inp produk-filter-sel" type="date" id="j-fil-to" style="flex:1;" onchange="filterJurnalDate()">
+            </div>
+          </div>
         </div>
+        <button class="btn btn-p jfb-btn" onclick="openModal('modal-tambah-jurnal')">➕ Tambah</button>
+      </div>
+      <!-- Kanan: Target Harian -->
+      <div class="jfb-target-wrap">
+        <div id="jurnal-target-harian" class="jurnal-target-card"></div>
       </div>
     </div>
+
   </div>
 
   <div class="tbl-curve-wrap">
@@ -1565,9 +1572,61 @@ if (typeof _origGo === 'function') {
 // Init setelah DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(applyFreezeBarLandscape, 200);
+  initJurnalScroll();
 });
 // Fallback jika DOMContentLoaded sudah lewat
 setTimeout(applyFreezeBarLandscape, 400);
+setTimeout(initJurnalScroll, 500);
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   JURNAL FREEZE 2x — scroll-based state di landscape HP
+   State 1: normal (semua tampil)
+   State 2: scroll 60px → cards hilang
+   State 3: klik tombol ▲ → hanya toolbar tipis
+═══════════════════════════════════════════════════════ */
+let _jurnalFreezeState = 1; // 1, 2, atau 3
+
+function setJurnalState(n) {
+  const page = document.getElementById('page-jurnal');
+  if (!page) return;
+  _jurnalFreezeState = n;
+  page.classList.remove('jfb-state2','jfb-state3');
+  if (n === 2) page.classList.add('jfb-state2');
+  if (n === 3) page.classList.add('jfb-state3');
+}
+
+function toggleJurnalFreeze() {
+  if (!isLandscapeHP()) return;
+  // Toggle antara state 1/2 (expanded) dan state 3 (minimal)
+  if (_jurnalFreezeState === 3) {
+    setJurnalState(2);
+  } else {
+    setJurnalState(3);
+  }
+}
+
+function initJurnalScroll() {
+  // Scroll listener di tbl-wrap jurnal
+  const tblWrap = document.querySelector('#page-jurnal .tbl-wrap');
+  if (!tblWrap) return;
+  tblWrap.addEventListener('scroll', () => {
+    if (!isLandscapeHP()) return;
+    if (_jurnalFreezeState === 3) return; // state 3 manual, jangan override
+    const scrollY = tblWrap.scrollTop;
+    if (scrollY >= 60) {
+      setJurnalState(2);
+    } else {
+      setJurnalState(1);
+    }
+  }, { passive: true });
+}
+
+// Reset state saat orientasi berubah
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { setJurnalState(1); }, 150);
+});
 </script>
 
 <!-- ── CONTEXT MENU (Kelola Produk) ─────────────────────── -->
