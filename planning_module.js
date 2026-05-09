@@ -119,9 +119,20 @@ const PLAN = {
 async function renderPlanningKPI() {
   const el = document.getElementById('page-planning-kpi');
   if (!el) return;
-  el.innerHTML = `<div style="padding:60px;text-align:center;color:var(--dusty);font-size:13px;">⏳ Memuat data...</div>`;
-  const data = await PLAN.load('global');
-  _renderKPIHTML(el, data);
+
+  // FIX: render dari cache lokal dulu (instant), background sync cloud
+  const cachedData = PLAN.loadSync('global');
+  if (cachedData && Object.keys(cachedData).length > 0) {
+    _renderKPIHTML(el, cachedData);
+  } else {
+    el.innerHTML = `<div style="padding:60px;text-align:center;color:var(--dusty);font-size:13px;">⏳ Memuat data...</div>`;
+  }
+  // Background fetch — update jika ada data lebih baru di Supabase
+  PLAN.load('global').then(data => {
+    if (data && Object.keys(data).length > 0 && document.getElementById('page-planning-kpi')) {
+      _renderKPIHTML(el, data);
+    }
+  }).catch(()=>{});
 }
 
 function _renderKPIHTML(el, data) {
@@ -597,28 +608,26 @@ async function renderBiayaOpsGlobal() {
   const el = document.getElementById('page-biaya-ops-global');
   if (!el) return;
 
-  // Load data tersimpan
+  // FIX: render langsung dari localStorage (instant) — cloud sync di background
   let data = _bgLoad();
-  // Coba sync dari Supabase jika online
-  try {
-    const sbData = await PLAN._sbLoad('__biaya_global__', PLAN.keyBulan());
-    if (sbData && Object.keys(sbData).length > 0) {
-      data = sbData;
-      _bgSave(data);
-    }
-  } catch(e) {}
-
-  // Load npm per induk dari Supabase
   let npmInduk = {};
-  try {
-    const sbNpm = await PLAN._sbLoad('__npm_induk__', 'global').catch(()=>null);
-    if (sbNpm) npmInduk = sbNpm;
-    else {
-      const ls = localStorage.getItem('zenot_npm_induk');
-      if (ls) npmInduk = JSON.parse(ls);
-    }
-  } catch(e) {}
+  try { const ls = localStorage.getItem('zenot_npm_induk'); if (ls) npmInduk = JSON.parse(ls); } catch(e) {}
 
+  _renderBiayaOpsHTML(el, data, npmInduk);
+
+  // Background fetch Supabase paralel — re-render jika ada data baru
+  Promise.all([
+    PLAN._sbLoad('__biaya_global__', PLAN.keyBulan()).catch(()=>null),
+    PLAN._sbLoad('__npm_induk__', 'global').catch(()=>null)
+  ]).then(([sbData, sbNpm]) => {
+    let updated = false;
+    if (sbData && Object.keys(sbData).length > 0) { data = sbData; _bgSave(data); updated = true; }
+    if (sbNpm) { npmInduk = sbNpm; localStorage.setItem('zenot_npm_induk', JSON.stringify(sbNpm)); updated = true; }
+    if (updated && document.getElementById('page-biaya-ops-global')) _renderBiayaOpsHTML(el, data, npmInduk);
+  }).catch(()=>{});
+}
+
+function _renderBiayaOpsHTML(el, data, npmInduk) {
   const biaya    = data.biayaOpsGlobal  || 0;
   const rasio    = data.rasioOpsGlobal  || 0;
   const packing  = data.biayaPacking    || 2000;
@@ -827,7 +836,7 @@ async function renderBiayaOpsGlobal() {
 
   // State npm lokal untuk edit realtime
   window._npmIndukData = JSON.parse(JSON.stringify(npmInduk));
-}
+
 
 // ─── HELPER: NPM per Induk ───────────────────────────────────────
 window._npmIndukData = {};

@@ -132,7 +132,7 @@ const DataLayer = {
     }
   },
 
-  // ── SAVE: kirim semua DB ke Supabase ──
+  // ── SAVE: kirim DB ke Supabase — TANPA jurnal (jurnal di-handle individual) ──
   async save(data) {
     try {
       // Produk — upsert by var (unique)
@@ -160,13 +160,8 @@ const DataLayer = {
       }));
       await this._upsert('toko', channelRows.map(r=>({kode:r.nama||r.kode,brand:r.brand||'zenOt',platform:(r.platform||'shopee').toLowerCase(),grup:(r.platform||'SHOPEE').toUpperCase(),username:r.username||'',warna:r.warna||'#5C3D2E',urutan:r.urutan||99,status:r.status||'aktif'})), 'kode');
 
-      // Jurnal — upsert by uuid (aman multi device)
-      // FIX: jurnal lama tanpa uuid di-generate uuid-nya, bukan dibuang
-      const jurnalRows = (data.jurnal || []).map(j => ({
-        uuid: j.uuid || this._uuid(), tgl: j.tgl, jam: j.jam||'', ch: j.ch, var: j.var,
-        qty: j.qty || 1, harga: j.harga || 0, hpp: j.hpp || 0
-      })).filter(j => j.tgl && j.var); // minimal harus ada tgl dan var
-      if (jurnalRows.length > 0) await this._upsert('jurnal', jurnalRows, 'uuid');
+      // Jurnal: TIDAK di-push di sini — handled individually saat tambah/edit/delete
+      // Ini mencegah kirim ratusan baris setiap kali ada perubahan kecil
 
       // Restock — upsert by uuid (aman multi device)
       // FIX: restock lama tanpa uuid di-generate uuid-nya, bukan dibuang
@@ -672,41 +667,26 @@ async function loadDB() {
         if (DB.channel.length === 0) console.warn('[ZENOOT] ⚠️ Channel kosong! Cek tabel "toko" di Supabase — pastikan ada row dengan status=aktif');
         // Simpan ke localStorage sebagai cache
         DataLayer.saveLocal(DB);
-        // Load assignChannel dari Supabase dulu, fallback localStorage
-        try {
-          // Load assignChannel dari produk_toko (tabel proper)
-          const chRes = await _sbFetch(
-            `${SUPABASE_URL}/rest/v1/produk_toko?select=var,toko_kode,aktif`
-          );
-          if (chRes.ok) {
-            const chRows = await chRes.json();
+        // Load assignChannel dari cache lokal dulu (instant)
+        try { const ac = localStorage.getItem('zenot_assign_channel'); if (ac) DB.assignChannel = JSON.parse(ac); } catch(e) {}
+        _normalizeJurnalChannel();
+        recalcKeluar();
+        setCloudStatus(true);
+        hideLoadingOverlay();
+        // Fetch produk_toko di background — tidak blokir rendering
+        _sbFetch(`${SUPABASE_URL}/rest/v1/produk_toko?select=var,toko_kode,aktif`)
+          .then(r => r.ok ? r.json() : [])
+          .then(chRows => {
             if (chRows && chRows.length > 0) {
-              // Rebuild assignChannel: { var: { toko_kode: aktif } }
               DB.assignChannel = {};
               chRows.forEach(r => {
                 if (!DB.assignChannel[r.var]) DB.assignChannel[r.var] = {};
                 DB.assignChannel[r.var][r.toko_kode] = r.aktif;
               });
-            } else {
-              // Fallback dari localStorage jika produk_toko kosong
-              const ac = localStorage.getItem('zenot_assign_channel');
-              if (ac) {
-                try {
-                  DB.assignChannel = JSON.parse(ac);
-                  // Migrate ke produk_toko
-                  _syncAssignToSupabase().catch(()=>{});
-                } catch(e) {}
-              }
+              localStorage.setItem('zenot_assign_channel', JSON.stringify(DB.assignChannel));
             }
-          }
-        } catch(e) {
-          const ac = localStorage.getItem('zenot_assign_channel');
-          if (ac) try { DB.assignChannel = JSON.parse(ac); } catch(e2) {}
-        }
-        _normalizeJurnalChannel();
-        recalcKeluar();
-        setCloudStatus(true);
-        hideLoadingOverlay(); return;
+          }).catch(()=>{});
+        return;
       }
     } catch(e) {
       console.error('[ZENOOT] ❌ Cloud load GAGAL:', e.message, '— fallback ke localStorage');
@@ -969,9 +949,14 @@ document.addEventListener('visibilitychange', () => {
 });
 
 let _autoRefreshTimer = null;
-function startAutoRefreshHarga(intervalMenit = 2) {
+function startAutoRefreshHarga(intervalMenit = 5) {
   if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
-  _autoRefreshTimer = setInterval(() => { if (!navigator.onLine) return; syncHargaRealtime(); }, intervalMenit * 60 * 1000);
+  // Skip polling jika Realtime WS sudah aktif — WS handle update lebih efisien
+  _autoRefreshTimer = setInterval(() => {
+    if (!navigator.onLine) return;
+    if (_realtimeConnected) return; // WS aktif, tidak perlu polling
+    syncHargaRealtime();
+  }, intervalMenit * 60 * 1000);
 }
 
 async function syncHargaManual() {
@@ -4575,7 +4560,7 @@ try { localStorage.removeItem(DB_KEY); } catch(e) {}
   // Mulai Realtime WebSocket (Supabase live subscription)
   startRealtimeSync();
   // Fallback polling setiap 30 detik — jaga-jaga kalau WS tidak support (old browser)
-  startAutoRefreshHarga(0.5); // 30 detik
+  startAutoRefreshHarga(5); // 5 menit — fallback polling jika WS tidak connect
 })();
 
 // ================================================================
