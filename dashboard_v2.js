@@ -151,38 +151,49 @@ function _owInjectCSS() {
 
 /* ── Period Selector (Shopee-style) ── */
 .ow-period-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0;}
-.ow-period-btn{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;color:var(--charcoal);cursor:pointer;transition:all .18s;white-space:nowrap;position:relative;}
-.ow-period-btn:hover{border-color:var(--brown);color:var(--brown);}
-.ow-period-btn.active{background:var(--brown);border-color:var(--brown);color:#fff;}
+.ow-period-btn{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;color:#555;cursor:pointer;transition:all .18s;white-space:nowrap;position:relative;}
+.ow-period-btn:hover{border-color:#EE4D2D;color:#EE4D2D;}
+.ow-period-btn.active{background:#EE4D2D;border-color:#EE4D2D;color:#fff;}
 .ow-period-btn .ow-pdrop-icon{font-size:10px;opacity:.7;}
-.ow-period-dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.13);z-index:999;overflow:hidden;display:none;}
+.ow-period-dropdown{position:absolute;top:calc(100% + 6px);right:0;left:auto;min-width:220px;background:#fff;border:1.5px solid #eee;border-radius:12px;box-shadow:0 8px 32px rgba(238,77,45,.13);z-index:999;overflow:hidden;display:none;}
 .ow-period-dropdown.open{display:block;}
 .ow-pdrop-section{padding:8px 0;}
-.ow-pdrop-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;font-size:13px;font-weight:600;color:var(--charcoal);cursor:pointer;transition:background .12s;}
-.ow-pdrop-item:hover{background:var(--cream);}
-.ow-pdrop-item.selected{color:var(--brown);}
-.ow-pdrop-item .ow-pdrop-arrow{font-size:10px;color:var(--dusty);}
-.ow-pdrop-divider{height:1px;background:var(--border);margin:4px 0;}
-.ow-pdrop-sub{display:none;background:var(--cream);}
+.ow-pdrop-item{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;font-size:13px;font-weight:600;color:#333;cursor:pointer;transition:background .12s;}
+.ow-pdrop-item:hover{background:#fff4f2;}
+.ow-pdrop-item.selected{color:#EE4D2D;}
+.ow-pdrop-item .ow-pdrop-arrow{font-size:10px;color:#aaa;}
+.ow-pdrop-divider{height:1px;background:#f0ebe8;margin:4px 0;}
+.ow-pdrop-sub{display:none;background:#fff8f7;}
 .ow-pdrop-sub.open{display:block;}
-.ow-pdrop-sub-item{padding:8px 28px;font-size:12.5px;color:var(--charcoal);cursor:pointer;font-weight:600;}
-.ow-pdrop-sub-item:hover{color:var(--brown);}
-.ow-pdrop-sub-item.selected{color:var(--brown);}
+.ow-pdrop-sub-item{padding:8px 28px;font-size:12.5px;color:#333;cursor:pointer;font-weight:600;}
+.ow-pdrop-sub-item:hover{color:#EE4D2D;}
+.ow-pdrop-sub-item.selected{color:#EE4D2D;}
 .ow-datepicker-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .ow-datepicker-wrap input[type=date]{border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;color:var(--charcoal);background:var(--card);outline:none;}
 .ow-datepicker-wrap input[type=date]:focus{border-color:var(--brown);}
 .ow-datepicker-wrap .ow-date-sep{font-size:12px;color:var(--dusty);}
 .ow-datepicker-wrap .ow-date-apply{background:var(--brown);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
-.ow-metric-tabs{display:flex;gap:6px;}
-.ow-metric-tab{padding:5px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid var(--border);cursor:pointer;background:var(--card);color:var(--dusty);transition:all .15s;}
-.ow-metric-tab.active{background:var(--charcoal);color:#fff;border-color:var(--charcoal);}
-.ow-chart-legend{display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--dusty);margin-top:8px;}
+.ow-metric-tabs{display:flex;gap:0;}
+.ow-metric-tab{padding:5px 16px;font-size:12px;font-weight:700;border:1.5px solid #e0e0e0;cursor:pointer;background:#fff;color:#999;transition:all .15s;}
+.ow-metric-tab:first-child{border-radius:8px 0 0 8px;}
+.ow-metric-tab:last-child{border-radius:0 8px 8px 0;border-left:none;}
+.ow-metric-tab.active{background:#EE4D2D;color:#fff;border-color:#EE4D2D;}
+.ow-chart-legend{display:flex;align-items:center;gap:16px;font-size:11.5px;color:#777;margin-top:8px;}
 .ow-legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;}
-.ow-chart-stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
-.ow-chart-stat{display:flex;flex-direction:column;gap:2px;}
-.ow-chart-stat-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--dusty);font-weight:700;}
-.ow-chart-stat-val{font-size:15px;font-weight:800;color:var(--charcoal);}
-.ow-chart-stat-compare{font-size:11px;color:var(--dusty);}
+
+/* ── Shopee-style stat cards ── */
+.ow-chart-stats{margin-top:12px;}
+.ow-shopee-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1.5px solid #EE4D2D;border-radius:12px;overflow:hidden;}
+.ow-shopee-stat{display:flex;flex-direction:column;padding:14px 16px 12px;background:#fff;position:relative;}
+.ow-shopee-stat+.ow-shopee-stat{border-left:1px solid #ffd5cc;}
+.ow-shopee-stat-label{font-size:10px;font-weight:700;color:#EE4D2D;letter-spacing:.7px;text-transform:uppercase;margin-bottom:6px;}
+.ow-shopee-stat-val{font-size:17px;font-weight:800;color:#2d2d2d;line-height:1.1;margin-bottom:4px;}
+.ow-shopee-stat-sub{font-size:10.5px;color:#888;font-weight:500;}
+.ow-shopee-stat-badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.ow-shopee-stat-badge.up{background:#fff0ed;color:#EE4D2D;}
+.ow-shopee-stat-badge.dn{background:#fff0ed;color:#C0392B;}
+.ow-shopee-stat-badge.flat{background:#f5f5f5;color:#999;}
+@media(max-width:700px){.ow-shopee-stat-grid{grid-template-columns:repeat(2,1fr);}.ow-shopee-stat:nth-child(3){border-left:none;border-top:1px solid #ffd5cc;}.ow-shopee-stat:nth-child(4){border-top:1px solid #ffd5cc;}}
 
 /* Restock items */
 .ow-restock-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
@@ -828,36 +839,36 @@ async function renderDashboard() {
 
       // ── Main fill gradient ──
       const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-      grad.addColorStop(0,'rgba(184,143,73,0.18)');
-      grad.addColorStop(1,'rgba(184,143,73,0.01)');
+      grad.addColorStop(0,'rgba(238,77,45,0.22)');
+      grad.addColorStop(0.5,'rgba(238,77,45,0.08)');
+      grad.addColorStop(1,'rgba(238,77,45,0.01)');
       ctx.beginPath();
       data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
       ctx.lineTo(xOf(n-1),pad.t+ch);ctx.lineTo(xOf(0),pad.t+ch);ctx.closePath();
       ctx.fillStyle=grad;ctx.fill();
 
-      // ── Main gradient fill lebih vivid ──
+      // ── Main gradient fill vivid ──
       const grad2=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
-      grad2.addColorStop(0,'rgba(192,57,43,0.22)');
-      grad2.addColorStop(0.5,'rgba(192,57,43,0.08)');
-      grad2.addColorStop(1,'rgba(192,57,43,0.01)');
+      grad2.addColorStop(0,'rgba(255,120,67,0.18)');
+      grad2.addColorStop(1,'rgba(255,120,67,0.01)');
       ctx.beginPath();
       data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
       ctx.lineTo(xOf(n-1),pad.t+ch);ctx.lineTo(xOf(0),pad.t+ch);ctx.closePath();
       ctx.fillStyle=grad2;ctx.fill();
 
-      // ── Main line (merah) lebih tebal ──
+      // ── Main line (Shopee orange) ──
       ctx.beginPath();
-      ctx.strokeStyle='#C0392B';ctx.lineWidth=isMobile?2.5:2.8;ctx.lineJoin='round';ctx.lineCap='round';
+      ctx.strokeStyle='#EE4D2D';ctx.lineWidth=isMobile?2.5:2.8;ctx.lineJoin='round';ctx.lineCap='round';
       data1.forEach((d,i)=>{ i===0?ctx.moveTo(xOf(i),yOf(d.val)):ctx.lineTo(xOf(i),yOf(d.val)); });
       ctx.stroke();
 
-      // Main dots — lebih besar dan jelas
-      data1.forEach((d,i)=>{
+      // Main dots
+      data1.forEach((d,i)=>{\
         if(!d.val&&!d.isToday)return;
         const r=d.isToday?7:4;
         ctx.beginPath();
         ctx.arc(xOf(i),yOf(d.val),r,0,Math.PI*2);
-        ctx.fillStyle=d.isToday?'#7B1B0A':'#C0392B';
+        ctx.fillStyle=d.isToday?'#c93a1a':'#EE4D2D';
         ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
       });
 
@@ -914,7 +925,7 @@ async function renderDashboard() {
         if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,6);else ctx.rect(bx,by,bw,bh);
         ctx.fill();
         lines.forEach((l,li)=>{
-          ctx.fillStyle=li===1?'#ff8870':li===2?'#bfb8b0':'#fff';
+          ctx.fillStyle=li===1?'#ff7843':li===2?'#bbb':'#fff';
           ctx.font=li===0?`bold ${fSize}px sans-serif`:`${fSize}px sans-serif`;
           ctx.textAlign='left';
           ctx.fillText(l,bx+10,by+15+li*15);
@@ -938,30 +949,30 @@ async function renderDashboard() {
       const nonZero=data1.filter(d=>d.val>0);
       const avg1=nonZero.length?Math.round(total1/nonZero.length):0;
       const diff=total2>0?Math.round((total1-total2)/total2*100):null;
-      const diffColor=diff===null?'var(--dusty)':diff>=0?'#2D6A4F':'#C0392B';
       const diffStr=diff===null?'—':(diff>=0?'▲':'▼')+Math.abs(diff)+'%';
+      const diffCls=diff===null?'flat':diff>=0?'up':'dn';
       const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
       statsEl.innerHTML=`
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Total</div>
-            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(total1)}</div>
-            <div style="font-size:10.5px;font-weight:700;color:${diffColor};">${diffStr} vs periode lalu</div>
+        <div class="ow-shopee-stat-grid">
+          <div class="ow-shopee-stat">
+            <div class="ow-shopee-stat-label">Total Omset</div>
+            <div class="ow-shopee-stat-val">${fmtVFull(total1)}</div>
+            <div class="ow-shopee-stat-sub"><span class="ow-shopee-stat-badge ${diffCls}">${diffStr}</span> vs periode lalu</div>
           </div>
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Tertinggi</div>
-            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(max1)}</div>
-            <div style="font-size:10.5px;color:var(--dusty);">periode ini</div>
+          <div class="ow-shopee-stat">
+            <div class="ow-shopee-stat-label">Tertinggi</div>
+            <div class="ow-shopee-stat-val">${fmtVFull(max1)}</div>
+            <div class="ow-shopee-stat-sub">puncak periode ini</div>
           </div>
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">Rata-rata</div>
-            <div style="font-size:16px;font-weight:800;color:var(--charcoal);font-family:'DM Serif Display',serif;">${fmtVFull(avg1)}</div>
-            <div style="font-size:10.5px;color:var(--dusty);">per titik aktif</div>
+          <div class="ow-shopee-stat">
+            <div class="ow-shopee-stat-label">Rata-rata</div>
+            <div class="ow-shopee-stat-val">${fmtVFull(avg1)}</div>
+            <div class="ow-shopee-stat-sub">per titik aktif</div>
           </div>
-          <div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font-size:9.5px;font-weight:700;color:var(--dusty);letter-spacing:.7px;text-transform:uppercase;">${lbl2}</div>
-            <div style="font-size:16px;font-weight:800;color:var(--dusty);font-family:'DM Serif Display',serif;">${total2>0?fmtVFull(total2):'—'}</div>
-            <div style="font-size:10.5px;color:var(--dusty);">pembanding</div>
+          <div class="ow-shopee-stat">
+            <div class="ow-shopee-stat-label">${lbl2}</div>
+            <div class="ow-shopee-stat-val" style="color:#aaa;">${total2>0?fmtVFull(total2):'—'}</div>
+            <div class="ow-shopee-stat-sub">periode pembanding</div>
           </div>
         </div>
       `;
@@ -983,7 +994,7 @@ async function renderDashboard() {
       if(legendEl){
         const lbl1=_mode==='realtime'?'Hari Ini':_mode==='yesterday'?'Kemarin':_mode==='7d'?'7 Hari Ini':_mode==='30d'?'30 Hari Ini':'Periode Ini';
         const lbl2=_mode==='realtime'?'Kemarin':_mode==='yesterday'?'2 Hari Lalu':_mode==='7d'?'7 Hari Lalu':_mode==='30d'?'30 Hari Lalu':'Periode Lalu';
-        legendEl.innerHTML=`<span><span class="ow-legend-dot" style="background:#C0392B;"></span>${lbl1}</span><span><span class="ow-legend-dot" style="background:#C0B8AF;border:1px dashed #999;"></span>${lbl2}</span>`;
+        legendEl.innerHTML=`<span><span class="ow-legend-dot" style="background:#EE4D2D;"></span>${lbl1}</span><span><span class="ow-legend-dot" style="background:#ddd;border:1px dashed #bbb;"></span>${lbl2}</span>`;
       }
 
       requestAnimationFrame(()=>{
@@ -1168,13 +1179,15 @@ async function renderDashboard() {
     add(`<div class="ow-row2" style="align-items:stretch;">
       <!-- Tren Chart -->
       <div id="${WRAP_ID}" style="display:flex;flex-direction:column;">
-        <div class="ow-col3-hd">
-          <span class="ow-sec-title">📈 Tren Penjualan</span>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div class="ow-metric-tab" id="owTabQty" onclick="_owSetMetric('qty')">Qty</div>
-            <div class="ow-metric-tab active" id="owTabOmset" onclick="_owSetMetric('omset')">Omset</div>
+        <div style="background:linear-gradient(135deg,#EE4D2D 0%,#ff7843 100%);border-radius:14px 14px 0 0;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:14px;font-weight:800;color:#fff;letter-spacing:.5px;">📈 TREN PENJUALAN</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;gap:0;" id="owMetricTabsWrap">
+              <div class="ow-metric-tab" id="owTabQty" onclick="_owSetMetric('qty')" style="background:rgba(255,255,255,0.18);color:#fff;border-color:rgba(255,255,255,0.35);border-radius:6px 0 0 6px;border-right:none;">Qty</div>
+              <div class="ow-metric-tab active" id="owTabOmset" onclick="_owSetMetric('omset')" style="border-radius:0 6px 6px 0;">Omset</div>
+            </div>
             <div style="position:relative;">
-              <button class="ow-period-btn" id="owPeriodBtn" onclick="_owTogglePeriodDrop()">
+              <button class="ow-period-btn" id="owPeriodBtn" onclick="_owTogglePeriodDrop()" style="background:rgba(255,255,255,0.95);color:#EE4D2D;border-color:rgba(255,255,255,0.9);font-size:11.5px;">
                 <span id="owPeriodBtnLbl">Real-time · Hari Ini</span>
                 <span class="ow-pdrop-icon">▾</span>
               </button>
@@ -1182,8 +1195,8 @@ async function renderDashboard() {
             </div>
           </div>
         </div>
-        <div class="ow-col3-card" style="flex:1;padding-bottom:10px;">
-          <canvas id="${CVAS_ID}" style="width:100%;height:130px;display:block;"></canvas>
+        <div style="background:#fff;border:1.5px solid #EE4D2D;border-top:none;border-radius:0 0 14px 14px;flex:1;padding:14px 16px 14px;">
+          <canvas id="${CVAS_ID}" style="width:100%;height:150px;display:block;"></canvas>
           <div class="ow-chart-legend"></div>
           <div class="ow-chart-stats"></div>
         </div>
@@ -1198,8 +1211,20 @@ async function renderDashboard() {
     // Inject metric toggle
     window._owSetMetric = function(m){
       _metric=m;
-      document.getElementById('owTabOmset')?.classList.toggle('active',m==='omset');
-      document.getElementById('owTabQty')?.classList.toggle('active',m==='qty');
+      const tabOmset=document.getElementById('owTabOmset');
+      const tabQty=document.getElementById('owTabQty');
+      if(tabOmset){
+        tabOmset.classList.toggle('active',m==='omset');
+        tabOmset.style.background=m==='omset'?'#EE4D2D':'rgba(255,255,255,0.18)';
+        tabOmset.style.color=m==='omset'?'#fff':'#fff';
+        tabOmset.style.borderColor=m==='omset'?'#EE4D2D':'rgba(255,255,255,0.35)';
+      }
+      if(tabQty){
+        tabQty.classList.toggle('active',m==='qty');
+        tabQty.style.background=m==='qty'?'#EE4D2D':'rgba(255,255,255,0.18)';
+        tabQty.style.color=m==='qty'?'#fff':'#fff';
+        tabQty.style.borderColor=m==='qty'?'#EE4D2D':'rgba(255,255,255,0.35)';
+      }
       renderChartSection();
     };
 
