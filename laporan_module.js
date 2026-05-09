@@ -389,6 +389,8 @@ function renderLaporan() {
   el.innerHTML = `
   <style>
     .lap-wrap { display:grid;grid-template-columns:1fr 360px 360px;gap:16px;align-items:start; }
+    @media(max-width:900px){ .lap-wrap{grid-template-columns:1fr 260px;} }
+    @media(max-width:640px){ .lap-wrap{grid-template-columns:1fr;} }
     .lap-card { background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px; }
     .lap-title { font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--dusty);margin-bottom:14px; }
     .lap-upload-box { border:2px dashed var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;margin-bottom:10px; }
@@ -432,7 +434,7 @@ function renderLaporan() {
     .lap-history-item:hover { background:var(--cream); }
     .lap-history-item.active { border-color:var(--brown);background:rgba(92,61,46,.07); }
 
-    @media(max-width:1100px){ .lap-wrap{grid-template-columns:1fr 280px;} }
+    @media(max-width:1100px){ .lap-wrap{grid-template-columns:1fr 280px 280px;} }
     @media(max-width:800px){ .lap-wrap{grid-template-columns:1fr;} }
   </style>
 

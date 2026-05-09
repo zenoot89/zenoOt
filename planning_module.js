@@ -309,7 +309,7 @@ async function renderPlanningOps() {
   el.innerHTML = `
   <style>
     .ops-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
-    @media(max-width:768px){.ops-layout{grid-template-columns:1fr;}}
+    @media(max-width:768px){.ops-layout{grid-template-columns:1fr;} .ops-panel{position:static!important;}}
     .ops-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
     .ops-table{width:100%;border-collapse:collapse;}
     .ops-th{padding:9px 12px;font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.6px;text-transform:uppercase;background:var(--bg);border-bottom:2px solid var(--border);text-align:left;}
@@ -681,7 +681,9 @@ async function renderBiayaOpsGlobal() {
     .bg-form-title{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
     .bg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
     .bg-form-grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+    @media(max-width:640px){.bg-form-grid4{grid-template-columns:1fr 1fr;}}
     .bg-main-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-bottom:20px;}
+    @media(max-width:640px){.bg-main-grid{grid-template-columns:1fr;}}
     @media(max-width:860px){.bg-main-grid{grid-template-columns:1fr;}.bg-form-grid{grid-template-columns:1fr;}.bg-form-grid4{grid-template-columns:1fr 1fr;}}
     .bg-field-label{font-size:9px;font-weight:700;color:var(--dusty);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
     .bg-input-wrap{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);overflow:hidden;transition:border-color .2s;}

@@ -1104,6 +1104,9 @@ html{scroll-behavior:smooth;}
   .intel-tab-bar {
     gap: 5px;
     padding: 10px 0 14px 0;
+    margin: -20px -14px 16px -14px;
+    padding-left: 14px;
+    padding-right: 14px;
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
@@ -3227,16 +3230,6 @@ body {
     padding: 16px !important;
     overflow-y: auto;
     min-height: 0;
-  }
-}
-
-/* Ops layout mobile fix */
-@media(max-width:600px) {
-  .ops-layout {
-    grid-template-columns: 1fr !important;
-  }
-  .ops-panel {
-    position: static !important;
   }
 }
 
