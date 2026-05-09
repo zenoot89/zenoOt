@@ -213,7 +213,7 @@ const DataLayer = {
           jurnal: jurnal
             .map(j => ({
               sid: j.id, uuid: j.uuid,
-              tgl: j.tgl, ch: j.ch, var: j.var,
+              tgl: j.tgl, tgl_waktu: j.tgl_waktu||null, ch: j.ch, var: j.var,
               qty: j.qty, harga: Number(j.harga), hpp: Number(j.hpp)
             })),
           restock: restock
