@@ -863,7 +863,7 @@ async function renderDashboard() {
       ctx.stroke();
 
       // Main dots
-      data1.forEach((d,i)=>{\
+      data1.forEach((d,i)=>{
         if(!d.val&&!d.isToday)return;
         const r=d.isToday?7:4;
         ctx.beginPath();
