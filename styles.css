@@ -689,6 +689,17 @@ html{scroll-behavior:smooth;}
 
   /* Grid layouts stack on mobile */
   .grid2{grid-template-columns:1fr!important;}
+
+  /* Produk bar mobile — scroll horizontal */
+  .produk-bar-row2 {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 5px !important;
+    padding-bottom: 2px;
+  }
+  .produk-bar-row2::-webkit-scrollbar { display: none; }
   .grid4{grid-template-columns:1fr 1fr!important;}
   .summary-bar{grid-template-columns:1fr 1fr!important;}
   .summary-bar-6{grid-template-columns:repeat(3,1fr)!important;}
@@ -2691,6 +2702,18 @@ thead th {
   .freeze-bar .sel,
   .freeze-bar .inp { height: 30px !important; font-size: 12px !important; }
   .freeze-bar .btn { height: 30px !important; font-size: 11px !important; padding: 0 9px !important; }
+
+  /* Produk bar landscape — scroll horizontal agar tidak numpuk */
+  .produk-bar-row2 {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 5px !important;
+  }
+  .produk-bar-row2::-webkit-scrollbar { display: none; }
+  .produk-edit-btn { padding: 0 10px !important; font-size: 11px !important; }
+  .produk-menu-btn { padding: 0 8px !important; }
 
   /* Jurnal stat cards: 4 kolom compact landscape */
   #page-jurnal .freeze-bar .grid4 {
