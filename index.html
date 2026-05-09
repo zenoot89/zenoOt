@@ -455,13 +455,20 @@
     </div>
     <!-- Target Harian Card -->
     <div id="jurnal-target-harian" class="jurnal-target-card"></div>
-    <!-- Baris Aksi: Reset | Sort (floating) | Tambah -->
-    <div class="jurnal-bar-row" style="position:relative;">
+    <!-- Baris Aksi: Reset | Tambah -->
+    <div class="jurnal-bar-row">
       <button class="btn btn-sm" onclick="resetJurnalFilter()" style="height:36px;padding:0 12px;background:rgba(201,168,76,0.18);border:1px solid rgba(201,168,76,0.5);color:var(--brown);flex-shrink:0;">↺ Reset</button>
-      <button class="btn btn-sm produk-sort-btn" id="jurnal-sort-btn" onclick="toggleJurnalFilterPanel()" style="height:36px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        Sort
-        <span id="jurnal-filter-dot" class="produk-filter-dot" style="display:none"></span>
+      <div style="margin-left:auto;">
+        <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 16px;white-space:nowrap;">➕ Tambah</button>
+      </div>
+    </div>
+    <!-- Baris Filter Row 2: tombol filter full-width -->
+    <div class="produk-filter-row" style="position:relative;">
+      <button class="btn produk-filter-main-btn" id="jurnal-sort-btn" onclick="toggleJurnalFilterPanel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filter
+        <span id="jurnal-filter-dot" class="produk-filter-dot-inline" style="display:none;width:7px;height:7px;background:var(--gold);border-radius:50%;flex-shrink:0;"></span>
+        <svg class="produk-filter-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <!-- Floating filter panel -->
       <div id="jurnal-filter-panel" class="produk-filter-panel" style="display:none;left:0;min-width:260px;">
@@ -473,9 +480,6 @@
           <span style="color:var(--dusty);font-size:12px;font-weight:600;flex-shrink:0;">–</span>
           <input class="inp produk-filter-sel" type="date" id="j-fil-to" style="flex:1;" onchange="filterJurnalDate()">
         </div>
-      </div>
-      <div style="margin-left:auto;">
-        <button class="btn btn-p" onclick="openModal('modal-tambah-jurnal')" style="height:36px;padding:0 16px;white-space:nowrap;">➕ Tambah</button>
       </div>
     </div>
   </div>
@@ -500,14 +504,27 @@
     <button class="fb-toggle" onclick="toggleFreezeBar('fb-produk')" title="Sembunyikan/tampilkan filter">
       <span class="fb-toggle-icon">▲</span>
     </button>
-    <!-- Baris Aksi: Tambah > Import > Sort -->
-    <div class="produk-bar-row2" style="position:relative;">
+    <!-- Baris Aksi Row 1: Tambah | Import | EDIT -->
+    <div class="produk-bar-row2">
       <button class="btn btn-p btn-sm" onclick="openModal('modal-tambah-produk')">➕ Tambah</button>
       <button class="btn btn-o btn-sm" onclick="openModal('modal-import-sheets')">📋 Import</button>
-      <button class="btn btn-sm produk-sort-btn" id="produk-sort-btn" onclick="toggleProdukFilterPanel()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        Sort
-        <span id="produk-filter-dot" class="produk-filter-dot" style="display:none"></span>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <button class="btn produk-edit-btn" id="produk-edit-btn" onclick="toggleProdukEditMode()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          EDIT
+        </button>
+        <button class="btn produk-menu-btn" id="produk-menu-btn" onclick="toggleProdukContextPanel(event)" style="display:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Baris Filter Row 2: tombol filter full-width -->
+    <div class="produk-filter-row" style="position:relative;">
+      <button class="btn produk-filter-main-btn" id="produk-sort-btn" onclick="toggleProdukFilterPanel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filter
+        <span id="produk-filter-dot" class="produk-filter-dot-inline" style="display:none;width:7px;height:7px;background:var(--gold);border-radius:50%;flex-shrink:0;"></span>
+        <svg class="produk-filter-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <!-- Floating filter panel — mengambang, tidak geser konten -->
       <div id="produk-filter-panel" class="produk-filter-panel" style="display:none;">
@@ -522,15 +539,6 @@
         <select class="inp produk-filter-sel" onchange="filterProdukBySku(this.value)" id="produk-sku-sel">
           <option value="">Semua SKU Induk</option>
         </select>
-      </div>
-      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-        <button class="btn produk-edit-btn" id="produk-edit-btn" onclick="toggleProdukEditMode()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          EDIT
-        </button>
-        <button class="btn produk-menu-btn" id="produk-menu-btn" onclick="toggleProdukContextPanel(event)" style="display:none;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
       </div>
     </div>
   </div><!-- /freeze-bar -->

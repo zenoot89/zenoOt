@@ -2950,6 +2950,47 @@ thead th {
   transition: all .15s;
   white-space: nowrap;
 }
+
+/* ── FILTER ROW — tombol filter full-width ─────────────────── */
+.produk-filter-row {
+  position: relative;
+  width: 100%;
+}
+.produk-filter-main-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--linen, #f3ede4);
+  border: 1.5px solid var(--border);
+  color: var(--charcoal);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  text-align: left;
+}
+.produk-filter-main-btn:hover {
+  background: var(--cream);
+  border-color: var(--brown);
+}
+.produk-filter-main-btn.sort-active {
+  background: var(--brown);
+  border-color: var(--brown);
+  color: #fff;
+}
+.produk-filter-main-btn.sort-active svg { stroke: #fff; }
+.produk-filter-caret {
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+.produk-filter-main-btn.sort-active .produk-filter-caret {
+  transform: rotate(180deg);
+}
 .produk-sort-btn:hover { background: var(--linen); border-color: var(--brown); }
 .produk-sort-btn.sort-active {
   background: var(--brown);
@@ -3279,4 +3320,17 @@ body {
 /* Hamburger safe area */
 .hamburger-fixed {
   top: calc(12px + env(safe-area-inset-top)) !important;
+}
+
+/* ── PRODUK & JURNAL FILTER ROW — full-width filter button ─── */
+#page-produk .freeze-bar,
+#page-jurnal .freeze-bar {
+  display: flex;
+  flex-direction: column;
+}
+.produk-filter-row {
+  padding-top: 4px;
+}
+.produk-filter-main-btn svg:first-child {
+  flex-shrink: 0;
 }
